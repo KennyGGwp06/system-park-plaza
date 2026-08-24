@@ -1,0 +1,22 @@
+# Dependencies and generated application bundles
+node_modules/
+client/node_modules/
+customer/node_modules/
+server/node_modules/
+client/dist/
+customer/dist/
+
+# Runtime output
+*.out.log
+*.err.log
+*.log
+server/uploads/
+
+# Local configuration and editor files
+.env
+client/.env
+.env.*
+!.env.example
+!.env.*.example
+.DS_Store
+Thumbs.db

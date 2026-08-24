@@ -1,0 +1,35 @@
+{
+  "name": "hotel-park-plaza-erp",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "customer",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace server\" \"npm run dev --workspace client\" \"npm run dev --workspace customer\"",
+    "build": "npm run build --workspace client && npm run build --workspace customer",
+    "install:all": "npm install",
+    "db:migrate": "npm run migrate --workspace server -- up",
+    "db:rollback": "npm run migrate --workspace server -- down",
+    "db:reset-demo": "node server/scripts/reset-demo.js",
+    "test:demo": "node scripts/demo-integral.mjs",
+    "test:pilot-flow": "node scripts/pilot-flow.mjs",
+    "test:checkin-cleaning": "node scripts/checkin-cleaning-flow.mjs",
+    "test:performance-mobile": "node scripts/mobile-performance.mjs",
+    "test:inventory-phase1": "npm run test:inventory-phase1 --workspace server",
+    "test:product-catalog": "npm run test:product-catalog --workspace server",
+    "test:operational-inventory": "npm run test:operational-inventory --workspace server",
+    "test:technical-recipes": "npm run test:technical-recipes --workspace server",
+    "test:transformations": "npm run test:transformations --workspace server",
+    "test:order-inventory": "npm run test:order-inventory --workspace server",
+    "test:realtime": "npm run test:realtime --workspace server",
+    "test:bar-bottles": "npm run test:bar-bottles --workspace server",
+    "test:inventory-admin": "npm run test:inventory-admin --workspace server",
+    "test:rbac-security": "npm run test:rbac-security --workspace server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

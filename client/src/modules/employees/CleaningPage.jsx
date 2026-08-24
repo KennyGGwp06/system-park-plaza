@@ -1,0 +1,512 @@
+import { useMemo, useState } from "react";
+import { Camera, CheckCircle2, Eye, FileWarning, Upload, X, Clock, AlertTriangle, ShieldCheck, MapPin, Wrench, ClipboardCheck } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { api, getToken } from "../../services/api";
+import { useFetch } from "../../hooks/useFetch";
+import { EmptyState } from "../../components/EmptyState";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { StatusBadge } from "../../components/StatusBadge";
+import { Toast } from "../../components/Toast";
+import { Button, Input as UiInput, PageHeader, Select as UiSelect } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
+import { apiOrigin } from "../../config/api";
+
+const API_ROOT = apiOrigin;
+
+export function CleaningPage({ view = "DASHBOARD" }) {
+  const { can, user } = useAuth();
+  const { data: currentShift, setData: setCurrentShift } = useFetch("/attendance/current", { initialData: { active: user?.role === "ADMINISTRADOR" }, cacheTime: 0, realtime: false });
+  const shiftActive = user?.role === "ADMINISTRADOR" || currentShift?.active;
+  const canCreate = can("LIMPIEZA", "CREAR") && shiftActive;
+  const canEdit = can("LIMPIEZA", "EDITAR") && shiftActive;
+  
+  // En modular, fetch todo y lo filtramos en cliente si no es excesivo, o fetch por status.
+  const { data, loading, reload } = useFetch("/cleaning/tasks", { initialData: [] });
+  const { data: reportsData } = useFetch("/reports", { initialData: { reports: [] } });
+  const tasks = Array.isArray(data) ? data.filter((task) => task && typeof task === "object") : [];
+  const [toast, setToast] = useState("");
+  const [shiftBusy, setShiftBusy] = useState(false);
+  
+  const [search, setSearch] = useState("");
+  const [modal, setModal] = useState(null);
+  const [pendingFinish, setPendingFinish] = useState(null);
+  const [selected, setSelected] = useState(null);
+
+  const pendingTasks = useMemo(() => tasks.filter(t => t.status !== "FINALIZADA").sort((a, b) => taskRank(a) - taskRank(b)), [data]);
+  const finishedTasks = useMemo(() => tasks.filter(t => t.status === "FINALIZADA"), [data]);
+  const evidenceTasks = useMemo(() => tasks.filter(t => t.evidences && t.evidences.length > 0), [data]);
+  const incidents = useMemo(() => tasks.filter(t => t.operationalReports && t.operationalReports.length > 0), [data]);
+  const maintenanceReports = useMemo(() => (reportsData?.reports || [])
+    .filter((report) => report?.requiresMaintenance)
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), [reportsData]);
+
+  async function startTask(task) {
+    await api(`/cleaning/tasks/${task.id}/start`, { method: "PATCH" });
+    setToast(`Limpieza iniciada en habitación ${roomNumber(task)}.`);
+    reload();
+  }
+
+  async function finishTask(task) {
+    await api(`/cleaning/tasks/${task.id}/finish`, { method: "PATCH" });
+    setToast(`Habitación ${roomNumber(task)} finalizada y disponible para Recepción.`);
+    setPendingFinish(null);
+    reload();
+  }
+
+  async function changeShift(action) {
+    setShiftBusy(true);
+    try { const record = await api(`/attendance/${action}`, { method: "POST", body: { employeeId: user.id } }); const active = action === "check-in"; setCurrentShift((current) => ({ ...(current || {}), active, record: active ? record : null })); setToast(active ? "Turno iniciado. Ya puedes atender habitaciones." : "Turno cerrado y asistencia registrada."); }
+    catch (error) { setToast(error.message); }
+    finally { setShiftBusy(false); }
+  }
+
+  if (loading) return <LoadingSpinner />;
+
+  const titleMap = {
+    DASHBOARD: "Dashboard de Limpieza",
+    PENDIENTES: "Habitaciones por Atender",
+    FINALIZADAS: "Limpiezas Finalizadas",
+    EVIDENCIAS: "Galería de Evidencias",
+    INCIDENCIAS: "Novedades y Mantenimiento"
+  };
+
+  return (
+    <div className="space-y-4">
+      <Toast message={toast} onClose={() => setToast("")} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader eyebrow="Operaciones - Limpieza" title={titleMap[view] || "Limpieza"} description="Módulo independiente para el personal de housekeeping." />
+        <div className="flex gap-2 mt-1">
+          {user?.role !== "ADMINISTRADOR" ? <Button loading={shiftBusy} variant={shiftActive ? "secondary" : "gold"} onClick={() => changeShift(shiftActive ? "check-out" : "check-in")}>{shiftActive ? "Cerrar turno" : "Iniciar turno"}</Button> : null}
+          <Button onClick={reload} variant="secondary">Actualizar</Button>
+        </div>
+      </div>
+
+      <section className={`rounded-card border p-4 shadow-card ${shiftActive ? "border-park-green bg-park-green-soft" : "border-amber-300 bg-amber-50"}`}><div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}><Clock size={19}/></span><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">Jornada de housekeeping</p><h2 className="font-black text-park-dark">{shiftActive ? "Turno activo · evidencia obligatoria" : "Operación bloqueada hasta iniciar turno"}</h2><p className="text-sm text-park-muted">{shiftActive ? "Atiende por prioridad, registra foto de entrada y salida, y reporta cualquier daño a Mantenimiento." : "Puedes revisar las tareas asignadas, pero todavía no iniciarlas ni finalizarlas."}</p></div></div></section>
+
+      {view === "DASHBOARD" && <DashboardTab pending={pendingTasks} finished={finishedTasks} incidents={incidents} maintenanceReports={maintenanceReports} />}
+      {view === "PENDIENTES" && <TaskList tasks={pendingTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} />}
+      {view === "FINALIZADAS" && <TaskList tasks={finishedTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} isFinishedView />}
+      {view === "EVIDENCIAS" && <EvidenceGalleryTab tasks={evidenceTasks} />}
+      {view === "INCIDENCIAS" && <IncidentsTab tasks={incidents} maintenanceReports={maintenanceReports} />}
+
+      {modal?.type === "evidence" && <EvidenceModal evidenceType={modal.evidenceType} task={modal.task} onClose={() => setModal(null)} onSaved={() => { setModal(null); setToast("Evidencia guardada."); reload(); }} />}
+      {modal?.type === "report" && <ReportModal task={modal.task} onClose={() => setModal(null)} onSaved={() => { setModal(null); setToast("Incidencia registrada."); reload(); }} />}
+      {selected ? <ReviewDetail task={selected} onClose={() => setSelected(null)} /> : null}
+      
+      {pendingFinish ? (
+        <ConfirmDialog
+          title="Evidencia requerida"
+          description={pendingFinish.requestId ? `La solicitud de la habitación ${roomNumber(pendingFinish)} aún no tiene evidencia. Puedes finalizarla si no corresponde a una salida.` : `Antes de liberar la habitación ${roomNumber(pendingFinish)}, registra evidencia de entrada y de salida.`}
+          confirmLabel={pendingFinish.requestId ? "Finalizar de todos modos" : "Ir a Registrar"}
+          onCancel={() => setPendingFinish(null)}
+          onConfirm={() => pendingFinish.requestId ? finishTask(pendingFinish) : setPendingFinish(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function DashboardTab({ pending, finished, incidents, maintenanceReports }) {
+  const criticas = pending.filter(t => t.priority === "CRITICA" || t.priority === "ALTA");
+  const enLimpieza = pending.filter(t => t.status === "EN_LIMPIEZA");
+  const nextTask = enLimpieza[0] || pending[0];
+  const openMaintenance = maintenanceReports.filter((report) => report.status !== "RESUELTO");
+  const total = pending.length + finished.length;
+  const progress = total === 0 ? 0 : Math.round((finished.length / total) * 100);
+
+  return (
+    <div className="space-y-4">
+      <section className={`rounded-card border p-4 shadow-card ${nextTask ? "border-blue-200 bg-blue-50" : "border-park-green/30 bg-park-green-soft"}`}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${nextTask ? "bg-blue-600" : "bg-park-green"}`}><ClipboardCheck size={21}/></span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-park-muted">Tu siguiente acción</p>
+              <h3 className="font-black text-park-dark">{nextTask ? `${nextTask.status === "EN_LIMPIEZA" ? "Continúa" : "Atiende"} la habitación ${roomNumber(nextTask)}` : "No tienes habitaciones pendientes"}</h3>
+              <p className="mt-1 text-sm text-park-muted">{nextTask ? `${taskKind(nextTask)} · ${nextTask.priority || "Prioridad media"}. Registra evidencia antes de liberarla.` : "La jornada está al día. Puedes revisar evidencias o las novedades reportadas."}</p>
+            </div>
+          </div>
+          <Button as={Link} to={nextTask ? "/limpieza/pendientes" : "/limpieza/evidencias"} className="w-full sm:w-auto">{nextTask ? "Ir a la tarea" : "Ver evidencias"}</Button>
+        </div>
+      </section>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <article className="rounded-card border border-park-border bg-white p-4 shadow-card">
+          <p className="text-3xl font-black text-park-dark">{pending.length}</p>
+          <p className="mt-1 text-sm font-semibold text-park-muted">Por atender</p>
+        </article>
+        <article className="rounded-card border border-park-border bg-white p-4 shadow-card">
+          <p className="text-3xl font-black text-park-green">{finished.length}</p>
+          <p className="mt-1 text-sm font-semibold text-park-muted">Finalizadas hoy</p>
+        </article>
+        <article className="rounded-card border border-red-200 bg-red-50 p-4 shadow-card">
+          <p className="text-3xl font-black text-red-600 animate-pulse">{criticas.length}</p>
+          <p className="mt-1 text-sm font-semibold text-red-800">Prioridad Crítica / Alta</p>
+        </article>
+        <article className="rounded-card border border-amber-200 bg-amber-50 p-4 shadow-card">
+          <p className="text-3xl font-black text-amber-700">{incidents.length}</p>
+          <p className="mt-1 text-sm font-semibold text-amber-900">Incidencias reportadas</p>
+        </article>
+      </div>
+
+      {openMaintenance.length > 0 && (
+        <section className="rounded-card border border-amber-200 bg-amber-50 p-4 shadow-card">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white"><Wrench size={19}/></span><div><p className="text-xs font-black uppercase tracking-wide text-amber-800">Mantenimiento coordinado</p><h3 className="font-black text-park-dark">{openMaintenance.length} {openMaintenance.length === 1 ? "incidencia sigue" : "incidencias siguen"} en seguimiento</h3><p className="mt-1 text-sm text-park-muted">Recepción coordina al técnico externo. Aquí puedes verificar qué reportaste y su estado.</p></div></div>
+            <Button as={Link} to="/limpieza/incidencias" variant="secondary" className="w-full sm:w-auto">Ver novedades</Button>
+          </div>
+        </section>
+      )}
+
+      <div className="rounded-card border border-park-border bg-white p-5 shadow-card">
+        <h3 className="text-lg font-black text-park-dark mb-4">Progreso del Turno</h3>
+        <div className="w-full bg-park-bg rounded-full h-4 mb-2">
+          <div className="bg-park-green h-4 rounded-full" style={{ width: `${progress}%` }}></div>
+        </div>
+        <p className="text-sm text-park-muted font-semibold text-right">{progress}% completado ({finished.length} de {total})</p>
+      </div>
+      
+      {enLimpieza.length > 0 && (
+        <div className="rounded-card border border-blue-200 bg-blue-50 p-5 shadow-card">
+          <h3 className="text-sm font-black text-blue-900 mb-3 flex items-center gap-2"><Clock size={16}/> En proceso ahora</h3>
+          <div className="grid gap-2">
+            {enLimpieza.map(t => (
+              <div key={t.id} className="bg-white p-3 rounded-lg border border-blue-100 flex justify-between items-center">
+                <div>
+                  <strong className="text-blue-900">Habitación {roomNumber(t)}</strong>
+                  <p className="text-xs text-blue-700 mt-1">{t.assignedTo || "Personal"} limpiando...</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TaskList({ tasks, search, setSearch, startTask, finishTask, canCreate, canEdit, setModal, setSelected, setPendingFinish, isFinishedView }) {
+  const filtered = tasks.filter((task) => !search || task.room?.number?.includes(search));
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-card border border-park-border bg-white p-4 shadow-card flex gap-3">
+        <UiInput placeholder="Buscar por número de habitación..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full md:max-w-sm" />
+      </div>
+
+      {!filtered.length ? <EmptyState title="No hay tareas" description="Todo limpio por ahora." /> : (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {filtered.map((task) => (
+            <article key={task.id} className={`rounded-card border-2 p-4 flex flex-col ${task.priority === "CRITICA" ? "border-red-300 bg-red-50" : task.priority === "ALTA" ? "border-amber-300 bg-amber-50" : "border-park-border bg-white"}`}>
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+                <div>
+                  <h3 className="text-2xl font-black text-park-dark">Hab. {roomNumber(task)}</h3>
+                  <p className="text-sm text-park-muted mt-1">{taskKind(task)} · {task.room.type?.name}</p>
+                </div>
+                <StatusBadge value={task.status} />
+              </div>
+              
+              {task.priority === "CRITICA" && <p className="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded inline-block w-fit mb-3 uppercase animate-pulse">Prioridad Crítica</p>}
+              
+              <EvidenceSummary task={task} />
+
+              {task.operationalReports?.[0] && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-100 p-2 text-sm flex gap-2 items-start">
+                  <FileWarning className="text-amber-700 shrink-0 mt-0.5" size={16}/>
+                  <div>
+                    <strong className="text-amber-900">Incidencia registrada:</strong>
+                    <p className="text-amber-800 text-xs mt-0.5">{task.operationalReports[0].description}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-park-border/50">
+                {canEdit && task.status === "PENDIENTE" && <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ Iniciar Limpieza</Button>}
+                
+                {task.status !== "PENDIENTE" && !isFinishedView && canCreate && (
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button type="button" variant="secondary" icon={Camera} onClick={() => setModal({ type: "evidence", task, evidenceType: "ENTRADA" })}>Entrada</Button>
+                    <Button type="button" variant="secondary" icon={Camera} onClick={() => setModal({ type: "evidence", task, evidenceType: "SALIDA" })}>Salida</Button>
+                  </div>
+                )}
+                
+                {!isFinishedView && canCreate && <Button type="button" variant="danger" icon={FileWarning} onClick={() => setModal({ type: "report", task })} className="w-full sm:w-auto">Problema</Button>}
+                
+                {canEdit && task.status === "EN_LIMPIEZA" && <Button type="button" variant="gold" onClick={() => canReleaseRoom(task) ? finishTask(task) : setPendingFinish(task)} className="w-full sm:w-auto py-3">✓ Finalizar</Button>}
+                
+                {isFinishedView && <Button type="button" variant="secondary" icon={Eye} onClick={() => setSelected(task)}>Ver reporte completo</Button>}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EvidenceGalleryTab({ tasks }) {
+  if (!tasks.length) return <EmptyState title="Sin evidencias" description="Aún no se han subido fotos de limpieza." />;
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {tasks.map(task => {
+        const groups = splitEvidence(task.evidences);
+        return (
+          <div key={task.id} className="rounded-card border border-park-border bg-white p-4 shadow-card">
+            <h3 className="font-black text-park-dark mb-2 border-b pb-2">Habitación {roomNumber(task)}</h3>
+            <EvidenceGallery label="Evidencias de Entrada" items={groups.entry} />
+            <EvidenceGallery label="Evidencias de Salida" items={groups.exit} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function IncidentsTab({ tasks, maintenanceReports }) {
+  const taskReports = tasks.flatMap((task) => (task.operationalReports || []).map((report) => ({ ...report, roomNumber: roomNumber(task) })));
+  const taskReportIds = new Set(taskReports.map((report) => Number(report.id)));
+  const extraMaintenance = maintenanceReports.filter((report) => !taskReportIds.has(Number(report.id)));
+  if (!taskReports.length && !extraMaintenance.length) return <EmptyState title="Sin novedades" description="No hay problemas ni solicitudes de mantenimiento registradas en esta jornada." />;
+  return (
+    <div className="space-y-4">
+      <section className="rounded-card border border-blue-200 bg-blue-50 p-4"><div className="flex gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-white"><Wrench size={19}/></span><div><h3 className="font-black text-park-dark">Cómo funciona el soporte</h3><p className="mt-1 text-sm text-park-muted">Registra el problema desde la tarea. Si es mantenimiento, el sistema lo escala a Recepción para coordinar al técnico. No bloquees la habitación ni la declares lista hasta que corresponda.</p></div></div></section>
+      <div className="grid gap-4 md:grid-cols-2">
+        {taskReports.map((report) => <IncidentCard key={`task-${report.id}`} report={report} roomNumber={report.roomNumber} />)}
+        {extraMaintenance.map((report) => <IncidentCard key={`support-${report.id}`} report={report} roomNumber={report.location || "Área reportada"} />)}
+      </div>
+    </div>
+  );
+}
+
+function IncidentCard({ report, roomNumber: location }) {
+  const maintenance = report.requiresMaintenance || ["MANTENIMIENTO", "DANO_INFRAESTRUCTURA", "DANO_EQUIPO"].includes(report.type);
+  return <article className={`rounded-card border p-4 shadow-card ${maintenance ? "border-amber-200 bg-amber-50" : "border-park-border bg-white"}`}><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">{maintenance ? "Mantenimiento" : "Novedad operativa"}</p><h3 className="mt-1 font-black text-park-dark">{location}</h3></div><StatusBadge value={report.priority} /></div><p className="mt-3 text-sm font-semibold text-park-dark">{report.description || "Sin detalle registrado"}</p><div className="mt-4 flex items-center justify-between gap-2 border-t border-park-border/70 pt-3"><span className="text-xs font-bold text-park-muted">{String(report.type || "INCIDENCIA").replaceAll("_", " ")}</span><StatusBadge value={report.status || (maintenance ? "ABIERTO" : "PENDIENTE")} /></div>{maintenance ? <p className="mt-3 text-xs text-amber-900">Recepción dará seguimiento con el proveedor externo.</p> : null}</article>;
+}
+
+function EvidenceSummary({ task }) {
+  const groups = splitEvidence(task.evidences);
+  return (
+    <div className="mt-3 grid gap-2 grid-cols-2">
+      <StateTile label="Foto Entrada" value={groups.entry.length ? "Lista" : "Falta"} ok={groups.entry.length > 0} />
+      <StateTile label="Foto Salida" value={groups.exit.length ? "Lista" : "Falta"} ok={groups.exit.length > 0} />
+    </div>
+  );
+}
+
+function StateTile({ label, value, ok }) {
+  return (
+    <div className={`rounded-lg border p-2 text-center ${ok ? "bg-park-green-soft border-park-green/20" : "bg-slate-100 border-slate-200"}`}>
+      <p className="text-[10px] font-black uppercase text-park-muted">{label}</p>
+      <p className={`mt-0.5 text-xs font-black ${ok ? "text-park-green" : "text-park-muted"}`}>{value}</p>
+    </div>
+  );
+}
+
+function taskKind(task) { return task.requestId ? "Solicitud de huésped" : "Limpieza de check-out/rutina"; }
+function roomNumber(task) { return task?.room?.number || task?.roomId || "sin asignar"; }
+function taskRank(task) {
+  const priority = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
+  const status = task.status === "EN_LIMPIEZA" ? 0 : task.status === "PENDIENTE" ? 1 : 2;
+  return status * 10 + (priority[task.priority] ?? 4);
+}
+function canReleaseRoom(task) {
+  if (task.requestId) return true;
+  const groups = splitEvidence(task.evidences);
+  return groups.entry.length > 0 && groups.exit.length > 0;
+}
+
+function ReviewDetail({ task, onClose }) {
+  const groups = splitEvidence(task.evidences);
+  return (
+    <Modal title={`Detalle de revisión - Habitación ${roomNumber(task)}`} onClose={onClose}>
+      <div className="grid gap-5 xl:grid-cols-[1fr_1.2fr]">
+        <section>
+          <h4 className="mb-3 font-sans text-lg font-black text-park-black">Informacion general</h4>
+          <div className="grid gap-3">
+            <InfoRow label="Tipo" value={task.room?.type?.name} />
+            <InfoRow label="Prioridad" value={task.priority} />
+            <InfoRow label="Estado" value={<StatusBadge value={task.status} />} />
+            <InfoRow label="Empleado" value={task.assignedTo || "Sin asignar"} />
+            <InfoRow label="Inicio" value={formatDateTime(task.startedAt)} />
+            <InfoRow label="Finalizacion" value={formatDateTime(task.finishedAt)} />
+          </div>
+        </section>
+        <section>
+          <h4 className="mb-3 font-sans text-lg font-black text-park-black">Evidencias</h4>
+          <EvidenceGallery label="Entrada" items={groups.entry} />
+          <EvidenceGallery label="Salida" items={groups.exit} />
+        </section>
+      </div>
+      <section className="mt-5">
+        <h4 className="mb-3 font-sans text-lg font-black text-park-black">Novedades / Danos</h4>
+        {task.operationalReports?.length ? (
+          <div className="grid gap-3">
+            {task.operationalReports.map((report) => (
+              <div className="rounded-card border border-amber-200 bg-amber-50 p-3" key={report.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-semibold text-park-black">{report.description}</p>
+                  <StatusBadge value={report.priority} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Sin novedades registradas.</p>}
+      </section>
+    </Modal>
+  );
+}
+
+function EvidenceGallery({ label, items }) {
+  return (
+    <div className="mb-4">
+      <p className="mb-2 text-xs font-black text-park-muted uppercase">{label}</p>
+      {items.length ? (
+        <div className="grid grid-cols-2 gap-2">
+          {items.map((evidence) => <img className="h-24 w-full rounded-lg border border-park-border object-cover" key={evidence.id} src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} alt={evidence.description || "Evidencia"} />)}
+        </div>
+      ) : <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-400 border border-dashed border-slate-200">No hay fotos</p>}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return <div className="rounded-card bg-park-bg p-3"><p className="text-[10px] font-black uppercase text-park-muted">{label}</p><div className="mt-0.5 font-semibold text-park-dark text-sm">{value || "No registrado"}</div></div>;
+}
+
+function EvidenceModal({ task, evidenceType = "ENTRADA", onClose, onSaved }) {
+  const [files, setFiles] = useState([]);
+  const [description, setDescription] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const uploaded = await uploadImages(files);
+      await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", body: { description: `${evidenceType}: ${description || "Evidencia"}`, files: uploaded } });
+      onSaved();
+    } catch(e) {
+      alert("Error: " + e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Cámara: ${evidenceType} (Hab. ${roomNumber(task)})`} onClose={onClose}>
+      <form className="space-y-4" onSubmit={submit}>
+        <ImagePicker files={files} setFiles={setFiles} />
+        <textarea className="min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Observaciones opcionales..." value={description} onChange={(event) => setDescription(event.target.value)} />
+        <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button disabled={busy || files.length===0} loading={busy}>Guardar foto</Button></div>
+      </form>
+    </Modal>
+  );
+}
+
+function ReportModal({ task, onClose, onSaved }) {
+  const [files, setFiles] = useState([]);
+  const [form, setForm] = useState({ type: "DANO_INFRAESTRUCTURA", priority: "ALTA", description: "" });
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const uploaded = files.length ? await uploadImages(files) : [];
+      await api(`/cleaning/tasks/${task.id}/report`, { method: "POST", body: { ...form, files: uploaded } });
+      onSaved();
+    } catch(e){
+      alert("Error: " + e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Reportar problema (Hab. ${roomNumber(task)})`} onClose={onClose}>
+      <form className="space-y-4" onSubmit={submit}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Select label="Categoría" value={form.type} onChange={(type) => setForm({ ...form, type })} options={["DANO_INFRAESTRUCTURA", "MANTENIMIENTO", "OBJETO_PERDIDO", "FALTA_INSUMO", "INCIDENCIA", "OTRO"]} />
+          <Select label="Gravedad" value={form.priority} onChange={(priority) => setForm({ ...form, priority })} options={["BAJA", "MEDIA", "ALTA", "CRITICA"]} />
+        </div>
+        <textarea className="min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Detalle qué está mal..." value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required />
+        <ImagePicker files={files} setFiles={setFiles} />
+        <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button variant="danger" disabled={busy} loading={busy}>Enviar reporte</Button></div>
+      </form>
+    </Modal>
+  );
+}
+
+function ImagePicker({ files, setFiles }) {
+  const previews = files.map((file) => ({ file, url: URL.createObjectURL(file) }));
+  return (
+    <div>
+      <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-park-green bg-park-green-soft text-park-green p-4 font-black transition-colors hover:bg-park-green hover:text-white">
+        <Camera size={40} className="mb-2" />
+        <span className="text-lg">Tomar foto / Seleccionar</span>
+        <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple onChange={(event) => setFiles([...files, ...Array.from(event.target.files || [])])} />
+      </label>
+      {previews.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{previews.map(({ file, url }) => <div key={url} className="relative"><img className="h-20 w-24 rounded-lg object-cover" src={url} alt={file.name} /><button type="button" className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white" onClick={() => setFiles(files.filter((item) => item !== file))}><X size={14} /></button></div>)}</div>}
+    </div>
+  );
+}
+
+async function uploadImages(files) {
+  if (!files.length) return [];
+  const supported = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const uploaded = [];
+  for (const file of files) {
+    if (!supported.has(file.type)) throw new Error(`${file.name}: usa una imagen JPG, PNG o WEBP.`);
+    if (file.size > 10 * 1024 * 1024) throw new Error(`${file.name}: la imagen supera el límite de 10 MB.`);
+    const response = await fetch(`${API_ROOT}/api/cleaning/evidence/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        "Content-Type": file.type,
+        "X-File-Name": encodeURIComponent(file.name)
+      },
+      body: file
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.message || `No fue posible subir ${file.name}.`);
+    uploaded.push(...(data.files || []));
+  }
+  return uploaded;
+}
+
+function Modal({ title, children, onClose }) {
+  return <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4"><section className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-card bg-white p-5 shadow-drawer"><div className="mb-4 flex items-center justify-between"><h3 className="font-black text-xl text-park-dark">{title}</h3><button type="button" className="p-1 text-slate-400 hover:text-slate-800 bg-slate-100 rounded-full" onClick={onClose}><X size={20}/></button></div>{children}</section></div>;
+}
+
+function ConfirmDialog({ title, description, confirmLabel, onCancel, onConfirm }) {
+  return (
+    <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4">
+      <div className="w-full max-w-sm rounded-card bg-white p-5 shadow-drawer text-center">
+        <AlertTriangle size={48} className="mx-auto text-amber-500 mb-3" />
+        <h3 className="font-black text-xl text-park-dark">{title}</h3>
+        <p className="mt-2 text-sm text-park-muted">{description}</p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Button type="button" variant="gold" onClick={onConfirm} className="w-full py-3">{confirmLabel}</Button>
+          <Button type="button" variant="secondary" onClick={onCancel} className="w-full py-3">Cancelar</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options }) {
+  return <UiSelect label={label} value={value} onChange={(event) => onChange(event.target.value)}>{options.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}</UiSelect>;
+}
+
+function splitEvidence(evidences = []) {
+  const entry = evidences.filter((item) => /entrada/i.test(item.description || item.notes || ""));
+  const exit = evidences.filter((item) => /salida/i.test(item.description || item.notes || ""));
+  if (!entry.length && !exit.length && evidences.length) {
+    return { entry: evidences.slice(-1), exit: evidences.length > 1 ? evidences.slice(0, 1) : [] };
+  }
+  return { entry, exit };
+}
+
+function formatDateTime(value) {
+  if (!value) return "No registrado";
+  return new Date(value).toLocaleString("es-PE");
+}

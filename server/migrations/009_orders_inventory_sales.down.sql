@@ -1,0 +1,11 @@
+DROP TRIGGER IF EXISTS trg_order_losses_history ON inventory_order_cancellation_losses;
+DROP TRIGGER IF EXISTS trg_order_sales_history ON inventory_consolidated_sales;
+DROP TRIGGER IF EXISTS trg_order_events_history ON inventory_order_events;
+DROP TRIGGER IF EXISTS trg_order_reservations_history ON inventory_order_reservations;
+DROP TRIGGER IF EXISTS trg_order_lines_history ON inventory_order_lines;
+DROP FUNCTION IF EXISTS protect_order_inventory_history();
+DROP TABLE IF EXISTS inventory_order_cancellation_losses;
+DROP TABLE IF EXISTS inventory_consolidated_sales;
+DROP TABLE IF EXISTS inventory_order_events;
+DROP TABLE IF EXISTS inventory_order_reservations;
+DROP TABLE IF EXISTS inventory_order_lines;

@@ -1,0 +1,38 @@
+{
+  "name": "hotel-park-plaza-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "migrate": "node scripts/migrate.js",
+    "test:inventory-phase1": "node scripts/inventory-phase1-test.js",
+    "test:product-catalog": "node scripts/product-catalog-test.js",
+    "test:purchasing": "node scripts/purchasing-receiving-test.js",
+    "test:transfers": "node scripts/transfers-test.js"
+    ,"test:operational-inventory": "node scripts/operational-inventory-test.js"
+    ,"test:technical-recipes": "node scripts/technical-recipes-test.js"
+    ,"test:transformations": "node scripts/transformations-test.js"
+    ,"test:order-inventory": "node scripts/order-inventory-test.js"
+    ,"test:realtime": "node scripts/realtime-update-test.js"
+    ,"test:bar-bottles": "node scripts/bar-bottles-test.js"
+    ,"test:inventory-admin": "node scripts/inventory-admin-dashboard-test.js"
+    ,"test:rbac-security": "node scripts/rbac-security-test.js"
+    ,"test:stabilization": "node scripts/stabilization-test.js"
+    ,"test:phase2-operations": "node scripts/phase2-operations-test.js"
+    ,"clean:operational-demo": "node scripts/clean-operational-demo.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "gsap": "^3.15.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.16.3",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  }
+}

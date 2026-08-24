@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Park Plaza, la magia de Pucallpa">
+  <defs><linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7EC6FF"/><stop offset="1" stop-color="#1E6FD6"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <circle cx="128" cy="128" r="122" fill="#0B1020" stroke="url(#blue)" stroke-width="4"/><circle cx="128" cy="128" r="112" fill="none" stroke="#7EC6FF" stroke-opacity=".24"/>
+  <path d="M74 190V65h52c35 0 58 20 58 51 0 30-23 51-58 51h-20v23H74zm32-54h18c17 0 28-9 28-20 0-12-11-20-28-20h-18v40z" fill="#E6E9EE"/>
+  <path d="M142 101c20 9 31 28 29 55-1 20-11 35-27 45 9-17 10-33 5-48-5-15-2-33-7-52z" fill="#1E6FD6"/><path d="M139 105c-7 2-12 9-13 17 8-5 15-2 20 5 3-10 0-18-7-22z" fill="#7EC6FF"/><circle cx="140" cy="114" r="2.6" fill="#0B1020"/><path d="M129 140c10 2 20 11 26 22-12-2-23-8-32-17z" fill="#7EC6FF"/><path d="M157 130l13 5-13 6z" fill="#E6E9EE"/><circle cx="128" cy="128" r="116" fill="none" stroke="#1E6FD6" stroke-opacity=".33" filter="url(#glow)"/>
+</svg>

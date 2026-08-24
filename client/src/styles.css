@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Park Plaza UI";
+  src: local("Segoe UI Variable"), local("Segoe UI"), local("Arial");
+  font-display: swap;
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/50 shadow-soft;
+  }
+  .glass-dark {
+    @apply bg-park-dark/90 backdrop-blur-lg border border-white/10 shadow-drawer;
+  }
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+}
+
+html,
+body,
+#root {
+  min-width: 0;
+  min-height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: #0B1020;
+  background: #F6F6F6;
+  background-image: radial-gradient(at 0% 0%, rgba(0, 0, 0, .035) 0px, transparent 42%),
+                    radial-gradient(at 100% 0%, rgba(0, 0, 0, .025) 0px, transparent 44%);
+  background-attachment: fixed;
+  font-family: "Park Plaza UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+main,
+main > * {
+  min-width: 0;
+}
+
+table th,
+table td {
+  padding-right: 0.75rem;
+  vertical-align: middle;
+}
+
+@media (max-width: 767px) {
+  header.sticky {
+    min-height: 60px;
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  header.sticky h2 {
+    max-width: 55vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.05rem;
+  }
+
+  header.sticky h2 + p {
+    display: none;
+  }
+
+  main {
+    padding: 0.75rem !important;
+  }
+
+  main h1 {
+    font-size: 1.55rem !important;
+  }
+
+  main table {
+    min-width: 680px;
+  }
+
+  main table th,
+  main table td {
+    white-space: nowrap;
+  }
+
+  main button,
+  main a {
+    min-height: 40px;
+  }
+
+  .fixed.inset-0 {
+    padding: 0.5rem !important;
+  }
+
+  .fixed.inset-0 > aside,
+  .fixed.inset-0 > form,
+  .fixed.inset-0 > section {
+    width: 100%;
+    max-width: none;
+    max-height: 100%;
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  transition: all 0.2s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 2px;
+}
+
+/* Contraste consistente para operación: texto oscuro, acción azul y fondo claro. */
+::selection { background: #111111; color: #FFFFFF; }
+
+.erp-surface {
+  background: rgba(255,255,255,.92);
+  border: 1px solid #C9C9C9;
+  box-shadow: 0 12px 32px rgba(11, 16, 32, .08);
+}
+
+/* Modern Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(17, 17, 17, 0.28);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(17, 17, 17, 0.5);
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Tema formal monocromático. Neutraliza colores heredados de módulos antiguos. */
+:is([class*="bg-blue-"],[class*="bg-emerald-"],[class*="bg-green-"],[class*="bg-amber-"],[class*="bg-red-"],[class*="bg-cyan-"],[class*="bg-violet-"],[class*="bg-sky-"]) { background-color: #F2F2F2 !important; }
+:is([class*="text-blue-"],[class*="text-emerald-"],[class*="text-green-"],[class*="text-amber-"],[class*="text-red-"],[class*="text-cyan-"],[class*="text-violet-"],[class*="text-sky-"]) { color: #101010 !important; }
+:is([class*="border-blue-"],[class*="border-emerald-"],[class*="border-green-"],[class*="border-amber-"],[class*="border-red-"],[class*="border-cyan-"],[class*="border-violet-"],[class*="border-sky-"]) { border-color: #C9C9C9 !important; }
+:is(.bg-blue-600,.bg-blue-700,.bg-emerald-600,.bg-emerald-700,.bg-green-600,.bg-green-700,.bg-amber-500,.bg-red-500,.bg-red-600,.bg-cyan-600,.bg-violet-600,.bg-sky-600) { background-color: #111111 !important; color: #FFFFFF !important; }
+:is(.bg-blue-600,.bg-blue-700,.bg-emerald-600,.bg-emerald-700,.bg-green-600,.bg-green-700,.bg-amber-500,.bg-red-500,.bg-red-600,.bg-cyan-600,.bg-violet-600,.bg-sky-600) :is(svg,path) { color: currentColor; }
