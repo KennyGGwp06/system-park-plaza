@@ -118,7 +118,7 @@ app.post("/api/public/identify", async (req, res, next) => {
     if (!documentNumber) return res.status(400).json({ message: "Ingresa un documento" });
     const client = await mutateState((state) => {
       const existing = state.clients.find((row) => normalizeDocument(row.documentNumber) === documentNumber);
-      if (existing) throw httpError(409, "Este documento ya tiene una cuenta. Usa ‘Recuperar mi reserva’ con el celular registrado; no se mezclaron los datos ingresados.");
+      if (existing) throw httpError(409, "Este documento ya tiene una cuenta. Usa ‘Recuperar mi reserva’ con tu DNI para continuar.");
       const id = nextId(state, "client");
       const item = { id, documentType: req.body.documentType || "DNI", documentNumber, firstName: req.body.firstName || "Visitante", lastName: req.body.lastName || "Park Plaza", phone: req.body.phone || "", email: req.body.email || "", status: "ACTIVO", createdAt: now() };
       state.clients.push(item);

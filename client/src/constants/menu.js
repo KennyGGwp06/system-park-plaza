@@ -48,7 +48,7 @@ export const menuSectionsByRole = {
       label: "Operación",
       items: [
         ["Recepción y reservas", "/recepcion", ClipboardCheck],
-        ["Consumos · Cocina y Bar", "/admin/restaurante/resumen", ChefHat],
+        ["Alimentos y bebidas", "/admin/alimentos-bebidas", ChefHat],
         ["Limpieza y mantenimiento", "/admin/limpieza/resumen", CheckCircle2]
       ]
     },
@@ -57,7 +57,7 @@ export const menuSectionsByRole = {
       items: [
         ["Precios y tarifas", "/admin/comercial", CircleDollarSign],
         ["Carta, recetas e insumos", "/inventario", Package],
-        ["Compras y proveedores", "/compras", ShoppingCart],
+        ["Compras y abastecimiento", "/compras", ShoppingCart],
         ["Cierres y transferencias", "/inventario/turnos", LockKeyhole]
       ]
     },
@@ -98,27 +98,27 @@ export const menuSectionsByRole = {
   ],
   RESTAURANTE: [
     {
-      label: "Restaurante",
+      label: "Restaurante · mi operación",
       items: [
-        ["Pedidos en curso", "/restaurante/pedidos", ChefHat],
+        ["Operación y pedidos", "/restaurante/pedidos", ChefHat],
         ["Mi turno", "/restaurante/dashboard", LayoutDashboard],
-        ["Manual de comida", "/restaurante/inventario/recetas", ClipboardCheck],
-        ["Insumos disponibles", "/restaurante/inventario/insumos", Boxes],
-        ["Registro de mermas", "/restaurante/inventario/mermas", Trash2],
-        ["Cierre de turno", "/restaurante/inventario/cierre", CheckCircle2]
+        ["Manual y porciones", "/restaurante/inventario/recetas", ClipboardCheck],
+        ["Mi inventario", "/restaurante/inventario/insumos", Boxes],
+        ["Registrar merma", "/restaurante/inventario/mermas", Trash2],
+        ["Cerrar y cuadrar", "/restaurante/inventario/cierre", CheckCircle2]
       ]
     }
   ],
   BARTENDER: [
     {
-      label: "Bar",
+      label: "Bar · mi operación",
       items: [
-        ["Pedidos en curso", "/bartender/pedidos", Wine],
+        ["Operación y pedidos", "/bartender/pedidos", Wine],
         ["Mi turno", "/bartender/dashboard", LayoutDashboard],
-        ["Manual de preparación", "/bartender/inventario/recetas", ClipboardCheck],
-        ["Insumos disponibles", "/bartender/inventario/insumos", Boxes],
-        ["Registro de mermas", "/bartender/inventario/mermas", Trash2],
-        ["Cierre de turno", "/bartender/inventario/cierre", CheckCircle2]
+        ["Manual y medidas", "/bartender/inventario/recetas", ClipboardCheck],
+        ["Mi inventario", "/bartender/inventario/insumos", Boxes],
+        ["Registrar merma", "/bartender/inventario/mermas", Trash2],
+        ["Cerrar y cuadrar", "/bartender/inventario/cierre", CheckCircle2]
       ]
     }
   ],
@@ -161,6 +161,7 @@ export const defaultRouteByRole = {
 
 export function permissionForHref(href) {
   if (href.startsWith("/transferencias")) return "INVENTARIO:VER";
+  if (href.startsWith("/admin/alimentos-bebidas")) return "INVENTARIO:VER";
   if (href.startsWith("/admin/restaurante") || href.startsWith("/restaurante")) return "RESTAURANTE:VER";
   if (href.startsWith("/admin/bartender") || href.startsWith("/bartender") || href.startsWith("/bar")) return "BARTENDER:VER";
   if (href.startsWith("/admin/limpieza") || href.startsWith("/limpieza")) return "LIMPIEZA:VER";

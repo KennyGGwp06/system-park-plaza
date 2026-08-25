@@ -35,6 +35,7 @@ const RolesPage = lazyPage(() => import("./modules/admin/RolesPage"), "RolesPage
 const AdminCleaningPage = lazyPage(() => import("./modules/admin/AdminCleaningPage"), "AdminCleaningPage");
 const AdminBartenderPage = lazyPage(() => import("./modules/admin/AdminBartenderPage"), "AdminBartenderPage");
 const AdminRestaurantPage = lazyPage(() => import("./modules/admin/AdminRestaurantPage"), "AdminRestaurantPage");
+const FoodBeverageControlPage = lazyPage(() => import("./modules/admin/FoodBeverageControlPage"), "FoodBeverageControlPage");
 const AdminMaintenancePage = lazyPage(() => import("./modules/admin/AdminMaintenancePage"), "AdminMaintenancePage");
 const InventoryAdminDashboardPage = lazyPage(() => import("./modules/admin/InventoryAdminDashboardPage"), "InventoryAdminDashboardPage");
 const AdminMasterDashboard = lazyPage(() => import("./modules/admin/AdminCommandCenter"), "AdminCommandCenter");
@@ -49,6 +50,7 @@ const preloadersByRole = {
   ADMINISTRADOR: [
     () => import("./modules/admin/AdminCommandCenter"),
     () => import("./modules/admin/InventoryAdminDashboardPage"),
+    () => import("./modules/admin/FoodBeverageControlPage"),
     () => import("./modules/admin/DataIntegrityPage")
   ],
   RECEPCION: [() => import("./modules/reception/ReceptionPage"), () => import("./modules/reception/CheckInPage")],
@@ -62,6 +64,7 @@ const protectedRoutes = [
   ["/admin-panel", "ADMINISTRADOR:VER", <AdminMasterDashboard />, ["ADMINISTRADOR"]],
   ["/admin-panel/caja-central", "ADMINISTRADOR:VER", <CentralCashRegister />, ["ADMINISTRADOR"]],
   ["/admin/comercial", "INVENTARIO:VER", <CommercialSettingsPage />, ["ADMINISTRADOR"]],
+  ["/admin/alimentos-bebidas", "INVENTARIO:VER", <FoodBeverageControlPage />, ["ADMINISTRADOR"]],
   ["/clientes", "CLIENTES:VER", <ClientsPage />],
   ["/habitaciones", "HABITACIONES:VER", <RoomsPage />],
   ["/reservas", "RESERVAS:VER", <ReservationsPage />],

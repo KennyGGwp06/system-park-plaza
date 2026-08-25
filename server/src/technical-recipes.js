@@ -66,7 +66,7 @@ export async function operationalRecipeManual(area){
       ri.product_id "productId",p.name "productName",p.product_type "productType",
       ri.quantity,iu.symbol "unitSymbol",ri.base_quantity "baseQuantity",bu.symbol "baseUnitSymbol",
       ri.technical_waste_percent "technicalWastePercent",ri.waste_tolerance_percent "tolerancePercent",
-      ri.consumption_mode "consumptionMode",COALESCE(SUM(CASE WHEN lot.status='AVAILABLE' THEN b.on_hand-b.reserved ELSE 0 END),0) "availableBaseQuantity"
+      ri.consumption_mode "consumptionMode",COALESCE(SUM(CASE WHEN COALESCE(lot.status,'AVAILABLE')='AVAILABLE' THEN b.on_hand-b.reserved ELSE 0 END),0) "availableBaseQuantity"
     FROM inventory_recipes r
     JOIN inventory_recipe_versions rv ON rv.recipe_id=r.id AND rv.status='ACTIVE' AND rv.valid_from<=NOW() AND (rv.valid_to IS NULL OR rv.valid_to>NOW())
     JOIN inventory_recipe_ingredients ri ON ri.recipe_version_id=rv.id

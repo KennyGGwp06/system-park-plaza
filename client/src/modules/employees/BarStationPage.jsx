@@ -13,7 +13,6 @@ import { OperationalRecipeManual } from "../../components/OperationalRecipeManua
 import { useFetch } from "../../hooks/useFetch";
 import { api } from "../../services/api";
 
-const today = () => new Date().toISOString().slice(0, 10);
 const qty = (v) => Number(v || 0).toLocaleString("es-PE", { maximumFractionDigits: 3 });
 const qtyS = (v) => Number(v || 0).toLocaleString("es-PE", { maximumFractionDigits: 1 });
 const unitSummary = (rows = [], key) => rows.map((row) => `${qty(row[key])} ${row.unit}`).join(" · ") || "sin movimientos";
@@ -34,11 +33,10 @@ export function BarStationPage({ view = "DASHBOARD" }) {
     ? { ...refsData, stock: Array.isArray(refsData.stock) ? refsData.stock : [], wasteCategories: Array.isArray(refsData.wasteCategories) ? refsData.wasteCategories : [], warehouses: Array.isArray(refsData.warehouses) ? refsData.warehouses : [] }
     : { stock: [], wasteCategories: [], warehouses: [] };
   const sessions = Array.isArray(sessionsData) ? sessionsData : [];
-  const operationalDate = today();
-  const currentSessions = useMemo(() => sessions.filter((s) => s.date === operationalDate), [sessions, operationalDate]);
-  const blockingSession = useMemo(() => sessions.find((s) => s.date !== operationalDate && ["OPEN", "OPERATING", "COUNTING", "REOPENED"].includes(s.status)) || null, [sessions, operationalDate]);
-  const active = useMemo(() => currentSessions.find((s) => ["OPEN", "OPERATING", "COUNTING", "REOPENED", "PENDING"].includes(s.status)) || null, [currentSessions]);
-  const operationalReady = !blockingSession && ["OPEN", "OPERATING", "REOPENED"].includes(active?.status);
+  // El Bar no trabaja por "día" sino por relevo. Un turno abierto a las
+  // 22:00 sigue siendo el activo después de medianoche hasta su cierre físico.
+  const active = useMemo(() => sessions.find((s) => ["OPEN", "OPERATING", "COUNTING", "REOPENED", "PENDING"].includes(s.status)) || null, [sessions]);
+  const operationalReady = ["OPEN", "OPERATING", "REOPENED"].includes(active?.status);
   const { data: detail, reload: reloadDetail } = useFetch(
     active ? `/operational-inventory/sessions/${active.id}` : "/operational-inventory/sessions/0",
     { enabled: Boolean(active), initialData: null }
@@ -87,8 +85,8 @@ export function BarStationPage({ view = "DASHBOARD" }) {
   async function openTurn() {
     setBusy(true); setError("");
     try {
-      if (blockingSession) throw new Error(`Hay un turno anterior (${blockingSession.shift}, ${blockingSession.date}) en estado ${blockingSession.statusLabel || blockingSession.status}. Administración debe revisarlo y cerrarlo antes de abrir el turno de hoy.`);
-      const session = active?.status === "PENDING" ? active : await api("/operational-inventory/sessions", { method: "POST", body: { area: "BARTENDER", date: today() } });
+      if (active && active.status !== "PENDING") throw new Error(`Ya tienes un turno ${active.shift} en estado ${active.statusLabel || active.status}. Debe cerrarse antes de abrir uno nuevo.`);
+      const session = active?.status === "PENDING" ? active : await api("/operational-inventory/sessions", { method: "POST", body: { area: "BARTENDER" } });
       await api(`/operational-inventory/sessions/${session.id}/open`, { method: "POST", body: { openingCounts: openingCounts() } });
       await refresh(); setToast("Turno de bar abierto. Ya puedes atender pedidos.");
     } catch (e) { setError(e.message || "No se pudo abrir el turno de bar."); }
@@ -145,12 +143,11 @@ export function BarStationPage({ view = "DASHBOARD" }) {
 
       <TurnBanner active={active} detail={detail} pendingCount={pending.length} lowCount={lowStock.length} openBottles={bottles.filter((b) => b.status === "OPEN").length} />
 
-      {blockingSession ? <Alert tone="warning" title="Turno anterior pendiente de cierre">Bar tiene un turno {blockingSession.shift} del {blockingSession.date} en estado {blockingSession.statusLabel || blockingSession.status}. No se creó ni se abrirá un turno nuevo hasta que Administración lo revise y cierre.</Alert> : null}
       {error ? <Alert tone="danger" title="No se pudo actualizar el turno">{error} La estación conserva los últimos datos válidos.</Alert> : null}
       {ordersError ? <Alert tone="danger" title="No se pudieron cargar los pedidos">{ordersError.message} La estación reintentará automáticamente.</Alert> : null}
 
-      {view === "DASHBOARD" && <DashboardTab pending={pending} preparing={preparing} ready={ready} orders={orders} detail={detail} active={active} blockedByPriorShift={blockingSession} busy={busy} stockLines={stockLines} lowStock={lowStock} bottles={bottles} onStartTurn={openTurn} onOpenTurn={openTurn} />}
-      {view === "PEDIDOS" && <PedidosTab pending={pending} preparing={preparing} ready={ready} busy={busy} operationalReady={operationalReady} blockedByPriorShift={blockingSession} onStatus={changeStatus} onRefresh={reloadOrders} />}
+      {view === "DASHBOARD" && <DashboardTab pending={pending} preparing={preparing} ready={ready} orders={orders} detail={detail} active={active} blockedByPriorShift={null} busy={busy} stockLines={stockLines} lowStock={lowStock} bottles={bottles} onStartTurn={openTurn} onOpenTurn={openTurn} />}
+      {view === "PEDIDOS" && <PedidosTab pending={pending} preparing={preparing} ready={ready} busy={busy} operationalReady={operationalReady} blockedByPriorShift={null} onStatus={changeStatus} onRefresh={reloadOrders} />}
       {view === "INVENTARIO" && <InventarioTab stockLines={stockLines} lowStock={lowStock} detail={detail} bottles={bottles} />}
       {view === "RECETAS" && <OperationalRecipeManual area="BARTENDER" />}
       {view === "MERMAS" && <MermasTab detail={detail} refs={refs} busy={busy} act={act} />}
