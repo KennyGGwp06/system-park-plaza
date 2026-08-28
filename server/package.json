@@ -20,6 +20,7 @@
     ,"test:rbac-security": "node scripts/rbac-security-test.js"
     ,"test:stabilization": "node scripts/stabilization-test.js"
     ,"test:phase2-operations": "node scripts/phase2-operations-test.js"
+    ,"test:stock-requests": "node scripts/stock-requests-test.js"
     ,"clean:operational-demo": "node scripts/clean-operational-demo.js"
   },
   "dependencies": {

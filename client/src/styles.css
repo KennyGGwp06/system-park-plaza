@@ -2,6 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Shell nativo basado directamente en la arquitectura visual del Prototipo V6. */
+.erp-v6-shell { --v6-navy: #0a1c15; --v6-navy-deep: #05100c; --v6-primary: #0f3c2c; --v6-primary-soft: #e8f0eb; --v6-gold: #d4af37; --v6-gold-soft: #fdf5d3; background: #f4f7f6; }
+.erp-v6-shell.theme-restaurant { --v6-navy: #3d1c0e; --v6-navy-deep: #291209; --v6-primary: #8b3a1a; --v6-primary-soft: #fcf1ed; --v6-gold: #d4af37; }
+.erp-v6-shell.theme-bar { --v6-navy: #1f0b3e; --v6-navy-deep: #160829; --v6-primary: #4c1d95; --v6-primary-soft: #f3e8ff; --v6-gold: #d4af37; }
+.reception-v6-sidebar { background: var(--v6-navy, #0a1c15) !important; width: 14.75rem; box-shadow: 4px 0 20px rgba(10, 28, 21, .15); }
+.reception-v6-sidebar.theme-restaurant { --v6-navy: #3d1c0e; --v6-primary: #8b3a1a; --v6-primary-soft: #fcf1ed; --v6-gold: #d4af37; }
+.reception-v6-sidebar.theme-bar { --v6-navy: #1f0b3e; --v6-primary: #4c1d95; --v6-primary-soft: #f3e8ff; --v6-gold: #d4af37; }
+.reception-v6-sidebar .sidebar-scroll { scrollbar-color: #b58a2e transparent; }
+.reception-v6-sidebar .border-b, .reception-v6-sidebar .border-t { border-color: rgba(232, 210, 148, .16); }
+.reception-v6-sidebar .text-white\/45 { color: #9eabb0; }
+.reception-v6-sidebar .text-white\/65 { color: #c7d0ca; }
+.reception-v6-brand { min-height: 92px; padding: 15px 14px; }
+.reception-v6-brand-inner { align-items: center; flex-direction: row; gap: .65rem; justify-content: flex-start; padding-left: .2rem; text-align: left; }
+.v6-crest { background: rgba(197,157,95,.12); border: 1px solid rgba(229,201,151,.8); border-radius: 50%; color: #e5c997; display: grid; flex: 0 0 42px; font-family: Georgia, serif; font-size: 23px; font-weight: 700; height: 42px; place-items: center; width: 42px; }
+.v6-brand-title { font-family: Georgia, Cambria, serif; letter-spacing: .08em; }
+.reception-v6-sidebar .sidebar-scroll { display: grid; gap: .1rem; padding: .72rem .45rem; }
+.reception-v6-section { border-bottom: 1px solid rgba(255,255,255,.025); }
+.reception-v6-section-toggle { align-items: center; color: #94a3b8; display: flex; font-size: .625rem; font-weight: 800; justify-content: space-between; letter-spacing: .12em; min-height: 38px; padding: .45rem .55rem; text-align: left; text-transform: uppercase; transition: color .18s; width: 100%; }
+.reception-v6-section-toggle:hover, .reception-v6-section-toggle.is-open { color: var(--v6-gold, #d4af37); }
+.reception-v6-section-toggle svg { transition: transform .25s ease; }
+.reception-v6-section-toggle.is-open svg { transform: rotate(90deg); }
+.reception-v6-sidebar .sidebar-user-card { background: rgba(255,255,255,.07); }
+.reception-v6-navbar { border-bottom-color: #d9e5de; background: rgba(255,255,255,.97); }
+.v6-sidebar-link { color: #cbd5e1; min-height: 40px; position: relative; }
+.v6-sidebar-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+.v6-sidebar-link.is-active { background: rgba(197,157,95,.10); color: var(--v6-gold, #d4af37); box-shadow: inset 0 0 0 1px rgba(197,157,95,.30); }
+.v6-sidebar-link.is-active::before { background: var(--v6-gold, #d4af37); border-radius: 0 4px 4px 0; content: ""; inset: 8px auto 8px -4px; position: absolute; width: 3px; }
+.erp-v6-shell .reception-v6-navbar h2 { color: #0a1c15; font-family: Georgia, Cambria, serif; font-weight: 700; }
+.v6-global-search { align-items: center; display: flex; position: relative; width: clamp(220px, 22vw, 340px); }
+.v6-global-search svg { color: #64748b; left: 12px; pointer-events: none; position: absolute; }
+.v6-global-search input { background: #f4f7f6; border: 1px solid #e2e8f0; border-radius: 8px; height: 44px; outline: none; padding: 0 12px 0 38px; width: 100%; }
+.v6-global-search input:focus { background: #fff; border-color: var(--v6-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--v6-primary) 14%, transparent); }
+.v6-search-results { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 24px 60px rgba(10,28,21,.14); left: 0; overflow: hidden; position: absolute; right: 0; top: 48px; z-index: 50; }
+.v6-search-results a { align-items: center; border-bottom: 1px solid #e2e8f0; color: #0a1c15; display: flex; justify-content: space-between; min-height: 42px; padding: 8px 12px; }
+.v6-search-results a:hover { background: var(--v6-primary-soft); color: var(--v6-primary); }
+.v6-search-results p { color: #64748b; padding: 12px; }
+.v6-top-action { align-items: center; background: #c79a3b; border: 1px solid #c79a3b; border-radius: 9px; color: #fff; font-size: .78rem; font-weight: 800; gap: .45rem; min-height: 44px; padding: 0 1rem; white-space: nowrap; }
+.v6-top-action.secondary { background: #fff; border-color: #d7e0dc; color: #0a1c15; }
+.reception-command { max-width: 1440px; margin: 0 auto; }
+.reception-status { display: flex; gap: .4rem; flex-wrap: wrap; border: 1px solid #b9e4ca; border-radius: 12px; background: #ebfaf0; color: #14713e; padding: .75rem 1rem; font-size: .78rem; }
+.reception-status strong { font-weight: 900; }
+.reception-hero { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; padding: 1.05rem .6rem .35rem; }
+.reception-hero p { color: #0f5132; font-size: .68rem; font-weight: 900; letter-spacing: .15em; }
+.reception-hero h1 { color: #10251c; font-family: Georgia, Cambria, serif; font-size: clamp(2rem, 4vw, 3.15rem); font-weight: 700; line-height: 1.06; margin-top: .35rem; }
+.reception-hero span { display: block; color: #62756c; font-size: .92rem; margin-top: .55rem; }
+.reception-command .reception-hero a:first-of-type { background: #123b2b; color: #fff; }
+.reception-command .reception-hero a:last-child { background: #b8892b; color: #fff; box-shadow: 0 5px 16px rgba(154, 109, 19, .3); }
+.reception-command .rounded-card { border-color: #dbe7df; box-shadow: 0 8px 22px rgba(24, 62, 43, .055); }
+.reception-command .bg-park-bg { background: #f5f9f6; }
+.reception-command .text-blue-600 { color: #8d6818; }
+.reception-command .bg-blue-50 { background: #edf6ef; }
+.reception-command .text-blue-700 { color: #17613b; }
+.reception-command .bg-emerald-50 { background: #eff9f1; }
+.reception-command .text-emerald-700 { color: #187548; }
+.reception-command .bg-violet-50 { background: #f4f0fb; }
+.reception-command .text-violet-700 { color: #65449c; }
+.reception-command .bg-amber-50 { background: #fff8e7; }
+.reception-command .text-amber-700 { color: #a56a08; }
+.reception-command .border-park-border { border-color: #dbe7df; }
+.reception-command .hover\:bg-blue-50:hover { background: #edf6ef; border-color: #b9d9c5; }
+.erp-v6-shell.theme-restaurant .reception-hero p { color: #8b3a1a; }
+.erp-v6-shell.theme-bar .reception-hero p { color: #4c1d95; }
+.erp-v6-shell.theme-restaurant .reception-status { background: #fcf1ed; border-color: #e9c7b8; color: #6e2e15; }
+.erp-v6-shell.theme-bar .reception-status { background: #f3e8ff; border-color: #dcc7f5; color: #4c1d95; }
+@media (max-width: 780px) { .reception-hero { align-items: flex-start; flex-direction: column; padding-inline: 0; } }
+
 @font-face {
   font-family: "Park Plaza UI";
   src: local("Segoe UI Variable"), local("Segoe UI"), local("Arial");
@@ -173,10 +239,3 @@ textarea {
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
 }
-
-/* Tema formal monocromático. Neutraliza colores heredados de módulos antiguos. */
-:is([class*="bg-blue-"],[class*="bg-emerald-"],[class*="bg-green-"],[class*="bg-amber-"],[class*="bg-red-"],[class*="bg-cyan-"],[class*="bg-violet-"],[class*="bg-sky-"]) { background-color: #F2F2F2 !important; }
-:is([class*="text-blue-"],[class*="text-emerald-"],[class*="text-green-"],[class*="text-amber-"],[class*="text-red-"],[class*="text-cyan-"],[class*="text-violet-"],[class*="text-sky-"]) { color: #101010 !important; }
-:is([class*="border-blue-"],[class*="border-emerald-"],[class*="border-green-"],[class*="border-amber-"],[class*="border-red-"],[class*="border-cyan-"],[class*="border-violet-"],[class*="border-sky-"]) { border-color: #C9C9C9 !important; }
-:is(.bg-blue-600,.bg-blue-700,.bg-emerald-600,.bg-emerald-700,.bg-green-600,.bg-green-700,.bg-amber-500,.bg-red-500,.bg-red-600,.bg-cyan-600,.bg-violet-600,.bg-sky-600) { background-color: #111111 !important; color: #FFFFFF !important; }
-:is(.bg-blue-600,.bg-blue-700,.bg-emerald-600,.bg-emerald-700,.bg-green-600,.bg-green-700,.bg-amber-500,.bg-red-500,.bg-red-600,.bg-cyan-600,.bg-violet-600,.bg-sky-600) :is(svg,path) { color: currentColor; }

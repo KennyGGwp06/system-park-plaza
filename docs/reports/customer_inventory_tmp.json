@@ -1,0 +1,346 @@
+[
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\Dockerfile",
+        "Length":  555
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\index.html",
+        "Length":  500
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\nginx.conf",
+        "Length":  962
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\package.json",
+        "Length":  514
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\vite.config.js",
+        "Length":  132
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\index.html",
+        "Length":  599
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\manifest.webmanifest",
+        "Length":  247
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\assets\\index-BK_GwVYw.css",
+        "Length":  94465
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\assets\\index-BRX58hjb.js",
+        "Length":  578571
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\brand\\park-plaza-mark.svg",
+        "Length":  1200
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\experiences\\eventos.webp",
+        "Length":  349056
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\experiences\\hospedaje.webp",
+        "Length":  302882
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\experiences\\mirador.webp",
+        "Length":  481792
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\experiences\\piscina.webp",
+        "Length":  327564
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\landing\\park-plaza-bar-v1.png",
+        "Length":  1870077
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\landing\\park-plaza-hero-desktop-v1.png",
+        "Length":  1695870
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\landing\\park-plaza-hero-mobile-v1.png",
+        "Length":  1804631
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\landing\\park-plaza-hero-tablet-v1.png",
+        "Length":  2197247
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\landing\\park-plaza-terraza-v1.png",
+        "Length":  1859982
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\menu\\ceviche.webp",
+        "Length":  54868
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\menu\\juane.webp",
+        "Length":  72546
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\menu\\lomo.webp",
+        "Length":  54340
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\menu\\pisco.webp",
+        "Length":  27846
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\menu\\selva.webp",
+        "Length":  28846
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\rooms\\doble.webp",
+        "Length":  61702
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\rooms\\matrimonial.webp",
+        "Length":  54702
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\rooms\\simple.webp",
+        "Length":  55914
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\rooms\\suite.webp",
+        "Length":  53424
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\dist\\images\\rooms\\triple.webp",
+        "Length":  43318
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\chunk-AFR2SLAT.js",
+        "Length":  16477
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\chunk-AFR2SLAT.js.map",
+        "Length":  26405
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\chunk-G3PMV62Z.js",
+        "Length":  1497
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\chunk-G3PMV62Z.js.map",
+        "Length":  93
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\chunk-IA4WOC5Y.js",
+        "Length":  45641
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\chunk-IA4WOC5Y.js.map",
+        "Length":  71074
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\chunk-LYYQHPL7.js",
+        "Length":  76464
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\chunk-LYYQHPL7.js.map",
+        "Length":  220042
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\firebase_app.js",
+        "Length":  1821
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\firebase_app.js.map",
+        "Length":  1000
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\firebase_auth.js",
+        "Length":  288135
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\firebase_auth.js.map",
+        "Length":  712181
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\lucide-react.js",
+        "Length":  878340
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\lucide-react.js.map",
+        "Length":  2776987
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\package.json",
+        "Length":  23
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react-dom.js",
+        "Length":  155
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react-dom.js.map",
+        "Length":  93
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react-dom_client.js",
+        "Length":  1005529
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react-dom_client.js.map",
+        "Length":  1559204
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react.js",
+        "Length":  117
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react.js.map",
+        "Length":  93
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react_jsx-dev-runtime.js",
+        "Length":  12450
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react_jsx-dev-runtime.js.map",
+        "Length":  18668
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react_jsx-runtime.js",
+        "Length":  12804
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\react_jsx-runtime.js.map",
+        "Length":  19269
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\socket__io-client.js",
+        "Length":  108172
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\socket__io-client.js.map",
+        "Length":  226098
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\node_modules\\.vite\\deps\\_metadata.json",
+        "Length":  2126
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\manifest.webmanifest",
+        "Length":  247
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\brand\\park-plaza-mark.svg",
+        "Length":  1200
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\experiences\\eventos.webp",
+        "Length":  349056
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\experiences\\hospedaje.webp",
+        "Length":  302882
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\experiences\\mirador.webp",
+        "Length":  481792
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\experiences\\piscina.webp",
+        "Length":  327564
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\landing\\park-plaza-bar-v1.png",
+        "Length":  1870077
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\landing\\park-plaza-hero-desktop-v1.png",
+        "Length":  1695870
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\landing\\park-plaza-hero-mobile-v1.png",
+        "Length":  1804631
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\landing\\park-plaza-hero-tablet-v1.png",
+        "Length":  2197247
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\landing\\park-plaza-terraza-v1.png",
+        "Length":  1859982
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\menu\\ceviche.webp",
+        "Length":  54868
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\menu\\juane.webp",
+        "Length":  72546
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\menu\\lomo.webp",
+        "Length":  54340
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\menu\\pisco.webp",
+        "Length":  27846
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\menu\\selva.webp",
+        "Length":  28846
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\rooms\\doble.webp",
+        "Length":  61702
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\rooms\\matrimonial.webp",
+        "Length":  54702
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\rooms\\simple.webp",
+        "Length":  55914
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\rooms\\suite.webp",
+        "Length":  53424
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\public\\images\\rooms\\triple.webp",
+        "Length":  43318
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\src\\App.jsx",
+        "Length":  67909
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\src\\CustomerErrorBoundary.jsx",
+        "Length":  732
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\src\\ExperienceFlows.jsx",
+        "Length":  59515
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\src\\main.jsx",
+        "Length":  346
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\src\\ModernExperience.jsx",
+        "Length":  12956
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\src\\styles.css",
+        "Length":  98998
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\src\\config\\api.js",
+        "Length":  150
+    },
+    {
+        "FullName":  "C:\\Users\\useru\\OneDrive\\Documents\\park_plaza_ejem\\park_plaza_ejem\\customer\\src\\config\\firebase.js",
+        "Length":  867
+    }
+]

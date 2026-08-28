@@ -18,13 +18,19 @@ async function expectForbidden(name, email, method, path) {
   pass(name, `${email} fue rechazado por backend con HTTP 403.`);
 }
 
+async function expectNoErpAccess(name, email) {
+  const response = await fetch(`${baseUrl}/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }) });
+  assert.equal(response.status, 401, `${name}: se esperaba 401 y se recibió ${response.status}`);
+  pass(name, `${email} no puede iniciar sesión en el ERP (HTTP 401); sus evidencias las registra el Admin de recepción.`);
+}
+
 try {
   await expectForbidden("Recepción no ve costos centrales", "recepcion@parkplaza.com", "GET", "/inventory-admin/dashboard");
   await expectForbidden("Cocina no crea compras", "restaurante@parkplaza.com", "POST", "/purchasing/orders");
   await expectForbidden("Bar no administra recetas", "bartender@parkplaza.com", "GET", "/technical-recipes");
   await expectForbidden("Cocina no opera botellas", "restaurante@parkplaza.com", "GET", "/bar/bottles");
   await expectForbidden("Bar no procesa producción de cocina", "bartender@parkplaza.com", "POST", "/transformations/processing");
-  await expectForbidden("Limpieza no transfiere almacén", "limpieza@parkplaza.com", "GET", "/transfers");
+  await expectNoErpAccess("Limpieza no tiene ERP independiente", "limpieza@parkplaza.com");
   await expectForbidden("Cocina no reabre cierres", "restaurante@parkplaza.com", "POST", "/operational-inventory/sessions/999/reopen");
   await new Promise((resolve) => setTimeout(resolve, 100));
   const adminToken = await login("admin@parkplaza.com");

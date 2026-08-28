@@ -6,11 +6,12 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { Button, PageHeader } from "../../components/ui";
 import { apiOrigin } from "../../config/api";
 import { useFetch } from "../../hooks/useFetch";
+import { api, getToken } from "../../services/api";
 
 const API_ROOT = apiOrigin;
 
 export function AdminCleaningPage({ view = "resumen" }) {
-  const { data, loading } = useFetch("/cleaning/tasks", { initialData: [] });
+  const { data, loading, reload } = useFetch("/reception/tasks", { initialData: [] });
   const [selected, setSelected] = useState(null);
   const tasks = Array.isArray(data) ? data : [];
   const reports = useMemo(() => tasks.flatMap((task) => (task.operationalReports || []).map((report) => ({ ...report, task }))), [tasks]);
@@ -23,7 +24,7 @@ export function AdminCleaningPage({ view = "resumen" }) {
       <PageHeader
         eyebrow="Administrador"
         title={pageTitle(view)}
-        description="Supervisa el estado de limpieza del hotel sin interferir con el flujo operativo del empleado."
+        description="Recepción coordina por WhatsApp, registra las fotos recibidas y libera la habitación al finalizar. Limpieza y mantenimiento no ingresan al ERP."
       />
 
       {view === "resumen" ? <CleaningSummary reports={reports} tasks={tasks} onSelect={setSelected} /> : null}
@@ -31,7 +32,7 @@ export function AdminCleaningPage({ view = "resumen" }) {
       {view === "evidencias" ? <EvidenceList tasks={tasks.filter((task) => task.evidences?.length)} onSelect={setSelected} /> : null}
       {view === "incidencias" ? <IncidentList reports={reports} onSelect={(report) => setSelected(report.task)} /> : null}
 
-      {selected ? <CleaningDetail task={selected} onClose={() => setSelected(null)} /> : null}
+      {selected ? <CleaningDetail task={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await reload(); }} /> : null}
     </div>
   );
 }
@@ -199,8 +200,17 @@ function IncidentList({ reports, onSelect }) {
   );
 }
 
-function CleaningDetail({ task, onClose }) {
+function CleaningDetail({ task, onClose, onSaved }) {
   const groups = splitEvidence(task.evidences);
+  const [assignedTo, setAssignedTo] = useState(task.assignedTo || "");
+  const [note, setNote] = useState("");
+  const [file, setFile] = useState(null);
+  const [stage, setStage] = useState("ENTRADA");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  async function assign() { setBusy(true); try { await api(`/reception/tasks/${task.id}/assign`, { method: "PATCH", body: { assignedTo } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
+  async function changeStatus(action) { setBusy(true); try { await api(`/reception/tasks/${task.id}/${action}`, { method: "PATCH" }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
+  async function registerEvidence(event) { event.preventDefault(); if (!file) { setMessage("Selecciona la foto que el personal envió por WhatsApp."); return; } setBusy(true); try { const uploaded = await uploadWhatsappEvidence(file); await api(`/reception/tasks/${task.id}/evidence`, { method: "POST", body: { stage, description: note, files: [uploaded] } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
   return (
     <div className="fixed inset-0 z-40 bg-slate-950/30 p-4">
       <aside className="ml-auto h-full max-w-5xl overflow-auto rounded-card bg-white p-5 shadow-drawer">
@@ -221,6 +231,15 @@ function CleaningDetail({ task, onClose }) {
               <InfoTile label="Inicio" value={formatDateTime(task.startedAt)} />
               <InfoTile label="Finalizacion" value={formatDateTime(task.finishedAt)} />
             </div>
+          </Panel>
+          <Panel title="Control desde recepción">
+            <p className="mb-3 text-sm text-park-muted">Comunícate por WhatsApp; luego registra aquí la evidencia que te envíen.</p>
+            {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
+            <label className="block text-sm font-black text-park-black">Personal avisado por WhatsApp<input className="mt-2 h-11 w-full rounded-input border border-park-border px-3 font-normal" value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)} placeholder="Ej. Ana Operaciones" /></label>
+            <Button className="mt-3 w-full" disabled={busy || !assignedTo.trim()} onClick={assign} type="button" variant="secondary">Guardar responsable avisado</Button>
+            {task.status === "PENDIENTE" ? <Button className="mt-3 w-full" disabled={busy} onClick={() => changeStatus("start")} type="button">Registrar inicio informado</Button> : null}
+            {task.status !== "FINALIZADA" ? <form className="mt-4 border-t border-park-border pt-4" onSubmit={registerEvidence}><p className="text-sm font-black text-park-black">Evidencia recibida por WhatsApp</p><select className="mt-2 h-11 w-full rounded-input border border-park-border px-3 text-sm" value={stage} onChange={(event) => setStage(event.target.value)}><option value="ENTRADA">Foto inicial · cómo se encontró</option><option value="SALIDA">Foto final · trabajo terminado</option></select><textarea className="mt-2 min-h-20 w-full rounded-input border border-park-border p-3 text-sm" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Detalle enviado por el personal" /><input className="mt-2 block w-full text-sm" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setFile(event.target.files?.[0] || null)} /><Button className="mt-3 w-full" disabled={busy} type="submit">Adjuntar evidencia</Button></form> : null}
+            {task.status !== "FINALIZADA" ? <Button className="mt-3 w-full" disabled={busy} onClick={() => changeStatus("finish")} type="button" variant="gold">Confirmar terminado y liberar</Button> : <p className="mt-4 rounded-card bg-park-green-soft p-3 text-sm font-black text-park-green">Tarea cerrada y habitación liberada.</p>}
           </Panel>
           <Panel title="Evidencias">
             <EvidenceBlock items={groups.entry} label="Entrada" />
@@ -323,13 +342,20 @@ function filterTasks(view, tasks) {
 
 function pageTitle(view) {
   const titles = {
-    resumen: "Limpieza - Resumen general",
-    pendientes: "Limpieza - Pendientes",
-    finalizadas: "Limpieza - Finalizadas",
-    evidencias: "Limpieza - Evidencias",
-    incidencias: "Limpieza - Incidencias"
+    resumen: "Habitaciones y evidencias",
+    pendientes: "Tareas de habitación pendientes",
+    finalizadas: "Tareas de habitación finalizadas",
+    evidencias: "Evidencias recibidas por WhatsApp",
+    incidencias: "Novedades de habitaciones"
   };
   return titles[view] || titles.resumen;
+}
+
+async function uploadWhatsappEvidence(file) {
+  const response = await fetch(`${API_ROOT}/api/cleaning/evidence/upload`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": file.type }, body: file });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.message || "No se pudo subir la foto");
+  return { fileUrl: data.fileUrl, imageUrl: data.fileUrl, originalName: file.name };
 }
 
 function formatDateTime(value) {

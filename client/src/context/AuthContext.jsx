@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
 
   function hasPermission(permission) {
     if (!permission) return true;
-    if (user?.role === "ADMINISTRADOR") return true;
+    if (["ADMINISTRADOR", "SUPERADMIN"].includes(user?.role)) return true;
     return user?.permissions?.includes(permission);
   }
 
@@ -50,6 +50,7 @@ export function useAuth() {
 function normalizeUser(user) {
   return {
     ...user,
+    role: user.displayRole || user.role,
     permissions: (user.permissions || []).map((permission) => {
       if (typeof permission === "string") return permission;
       return `${permission.module}:${permission.action}`;

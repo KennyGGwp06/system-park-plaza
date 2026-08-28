@@ -76,7 +76,7 @@ export function UsersPage() {
       <section className="rounded-card border border-park-border bg-white p-4 shadow-card">
         <div className="grid gap-3 xl:grid-cols-[1fr_220px_220px_auto_auto] lg:items-end">
           <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-park-muted" size={17} /><input className="h-11 w-full rounded-input border border-park-border px-3 pl-10 text-sm outline-none focus:border-park-green" placeholder="Buscar trabajador por nombre, DNI o correo..." value={filters.search} onChange={(event) => { setPage(1); setFilters((state) => ({ ...state, search: event.target.value })); }} /></label>
-          <SelectControl label="Rol" value={filters.role} onChange={(value) => { setPage(1); setFilters((state) => ({ ...state, role: value })); }}><option value="TODOS">Todos los roles</option>{roles.map((role) => <option key={role.id} value={role.name}>{role.name}</option>)}</SelectControl>
+          <SelectControl label="Rol" value={filters.role} onChange={(value) => { setPage(1); setFilters((state) => ({ ...state, role: value })); }}><option value="TODOS">Todos los roles</option>{roles.map((role) => <option key={role.id} value={role.name}>{roleLabel(role.name)}</option>)}</SelectControl>
           <SelectControl label="Estado" value={filters.status} onChange={(value) => { setPage(1); setFilters((state) => ({ ...state, status: value })); }}><option value="TODOS">Todos los estados</option>{statusOptions(users).map((status) => <option key={status} value={status}>{status}</option>)}</SelectControl>
           <Button type="button" variant="secondary" onClick={() => { setPage(1); setFilters({ search: "", role: "TODOS", status: "TODOS" }); }}>Limpiar filtros</Button><Button icon={UserPlus} onClick={() => setModal({ type: "create" })}>Nuevo trabajador</Button>
         </div>
@@ -96,7 +96,7 @@ function UsersTable({ users, currentUser, auditLogs, menuOpen, setMenuOpen, onDe
 
 function UserRow({ item, currentUser, auditLogs, menuOpen, setMenuOpen, onDetail, onModal, onQuickUpdate, saving }) {
   const isSelf = item.id === currentUser?.id;
-  return <tr className="hover:bg-park-green-soft/30"><td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar user={item} /><div><p className="font-black text-park-black">{fullName(item)} {isSelf ? <span className="ml-2 rounded-full bg-park-green-soft px-2 py-0.5 text-[10px] font-black text-park-green">TU</span> : null}</p><p className="text-xs text-park-muted">{item.email}</p></div></div></td><td className="px-4 py-3 font-semibold text-park-black">{item.documentNumber || "-"}</td><td className="px-4 py-3"><p className="font-black text-park-black">{item.role?.name || "SIN ROL"}</p><p className="text-xs text-park-muted">{item.position || areaLabel(item.role?.name)}</p></td><td className="px-4 py-3"><StatusBadge value={item.status} /></td><td className="px-4 py-3"><StatusBadge value={item.attendanceStatus || "FUERA_DE_TURNO"} /></td><td className="px-4 py-3"><AccessBadge status={item.status} /></td><td className="relative px-4 py-3"><button className="grid h-9 w-9 place-items-center rounded-button border border-park-border hover:border-park-green" onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)} type="button"><MoreVertical size={16} /></button>{menuOpen === item.id ? <ActionMenu item={item} isSelf={isSelf} saving={saving} onDetail={onDetail} onModal={onModal} onQuickUpdate={onQuickUpdate} /> : null}</td></tr>;
+  return <tr className="hover:bg-park-green-soft/30"><td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar user={item} /><div><p className="font-black text-park-black">{fullName(item)} {isSelf ? <span className="ml-2 rounded-full bg-park-green-soft px-2 py-0.5 text-[10px] font-black text-park-green">TU</span> : null}</p><p className="text-xs text-park-muted">{item.email}</p></div></div></td><td className="px-4 py-3 font-semibold text-park-black">{item.documentNumber || "-"}</td><td className="px-4 py-3"><p className="font-black text-park-black">{roleLabel(item.role?.name, item.position)}</p><p className="text-xs text-park-muted">{positionLabel(item.position, item.role?.name)}</p></td><td className="px-4 py-3"><StatusBadge value={item.status} /></td><td className="px-4 py-3"><StatusBadge value={item.attendanceStatus || "FUERA_DE_TURNO"} /></td><td className="px-4 py-3"><AccessBadge status={item.status} /></td><td className="relative px-4 py-3"><button className="grid h-9 w-9 place-items-center rounded-button border border-park-border hover:border-park-green" onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)} type="button"><MoreVertical size={16} /></button>{menuOpen === item.id ? <ActionMenu item={item} isSelf={isSelf} saving={saving} onDetail={onDetail} onModal={onModal} onQuickUpdate={onQuickUpdate} /> : null}</td></tr>;
 }
 
 function ActionMenu({ item, isSelf, saving, onDetail, onModal, onQuickUpdate }) {
@@ -132,7 +132,7 @@ function Avatar({ user, large = false, xl = false }) {
   return <span className={size + " grid shrink-0 place-items-center rounded-full bg-park-green font-black text-white"}>{initials(user)}</span>;
 }
 function RoleBadge({ role }) {
-  return <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">{role || "SIN ROL"}</span>;
+  return <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">{roleLabel(role)}</span>;
 }
 function AccessBadge({ status }) {
   const active = status === "ACTIVO";
@@ -178,6 +178,8 @@ function dateInputValue(value) { return value ? new Date(value).toISOString().sl
 function onlyDigits(value, max) { return value.replace(/\\D/g, "").slice(0, max); }
 function calculateAge(value) { if (!value) return "-"; const birth = new Date(value); const today = new Date(); let age = today.getFullYear() - birth.getFullYear(); const month = today.getMonth() - birth.getMonth(); if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) age -= 1; return age + " anos"; }
 function areaLabel(role) { return role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase().replaceAll("_", " ") : "Sin area"; }
+function roleLabel(role, position) { return role === "ADMINISTRADOR" && position === "ADMIN_RECEPCION" ? "Admin de recepción" : areaLabel(role); }
+function positionLabel(position, role) { return position === "ADMIN_RECEPCION" ? "Segundo al mando · recepción" : position || areaLabel(role); }
 function lastAccess(user, auditLogs = []) {
   const login = (user.auditLogs || auditLogs.filter((log) => log.userId === user.id)).find((log) => log.module === "AUTH" || log.action === "LOGIN");
   return login ? formatDate(login.createdAt) : "-";

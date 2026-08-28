@@ -62,7 +62,7 @@ function operationalDate(value) {
 }
 
 function mapSession(row) {
-  return { id: n(row.id), area: row.area_code, areaName: row.warehouse_name, warehouseId: n(row.warehouse_id), date: operationalDate(row.operational_date), shift: row.shift_code, status: row.status, statusLabel: LABELS[row.status] || row.status, openingSource: row.opening_source, previousSessionId: row.previous_session_id ? n(row.previous_session_id) : null, periodStartedAt: row.period_started_at, openedAt: row.opened_at, submittedAt: row.submitted_at, closedAt: row.closed_at, reopenCount: n(row.reopen_count), metadata: row.metadata || {} };
+  return { id: n(row.id), area: row.area_code, areaName: row.warehouse_name, warehouseId: n(row.warehouse_id), date: operationalDate(row.operational_date), shift: row.shift_code, status: row.status, statusLabel: LABELS[row.status] || row.status, responsibleId: row.responsible_legacy_user_id ? n(row.responsible_legacy_user_id) : null, submittedBy: row.submitted_by_legacy_user_id ? n(row.submitted_by_legacy_user_id) : null, openingSource: row.opening_source, previousSessionId: row.previous_session_id ? n(row.previous_session_id) : null, periodStartedAt: row.period_started_at, openedAt: row.opened_at, submittedAt: row.submitted_at, closedAt: row.closed_at, reopenCount: n(row.reopen_count), varianceCost: n(row.variance_cost), observation: row.closing_metadata?.observation || null, metadata: row.metadata || {} };
 }
 
 async function latestClosing(client, sessionId) {
@@ -119,8 +119,13 @@ export async function listOperationalInventories(filters={}, user) {
   const params=[]; const where=[];
   if (filters.area){params.push(filters.area);where.push(`s.area_code=$${params.length}`);} if(filters.date){params.push(filters.date);where.push(`s.operational_date=$${params.length}`);}
   if (user.role!=="ADMINISTRADOR"){params.push(user.role);where.push(`s.area_code=$${params.length}`);}
-  const rows=(await db.query(`SELECT s.*,w.name warehouse_name,w.code warehouse_code FROM inventory_shift_sessions s JOIN inventory_warehouses w ON w.id=s.warehouse_id ${where.length?`WHERE ${where.join(" AND ")}`:""} ORDER BY s.operational_date DESC,s.created_at DESC`,params)).rows;
-  return rows.map(mapSession);
+  const rows=(await db.query(`SELECT s.*,w.name warehouse_name,w.code warehouse_code,c.variance_cost,c.metadata closing_metadata
+    FROM inventory_shift_sessions s JOIN inventory_warehouses w ON w.id=s.warehouse_id
+    LEFT JOIN LATERAL (SELECT variance_cost,metadata FROM inventory_closings WHERE session_id=s.id ORDER BY revision DESC LIMIT 1) c ON TRUE
+    ${where.length?`WHERE ${where.join(" AND ")}`:""} ORDER BY s.operational_date DESC,s.created_at DESC`,params)).rows;
+  const state=(await db.query("SELECT data FROM app_state WHERE id=1")).rows[0].data;
+  const person=(id)=>{const actor=(state.users||[]).find((item)=>n(item.id)===n(id));return actor?`${actor.firstName||''} ${actor.lastName||''}`.trim():null;};
+  return rows.map((row)=>({...mapSession(row),responsibleName:person(row.responsible_legacy_user_id),submittedByName:person(row.submitted_by_legacy_user_id)}));
 }
 
 export async function getOperationalInventory(id, user) { const client=await db.connect(); try { const row=await sessionRow(client,id); authorizeArea(user,row.area_code); return await readDetail(client,id); } finally { client.release(); } }

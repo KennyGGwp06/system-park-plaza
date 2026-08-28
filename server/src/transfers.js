@@ -108,24 +108,27 @@ async function readTransfers(client, transferId = null) {
   return transfers;
 }
 
-export async function transferReferences() {
+export async function transferReferences(user = null) {
   const [warehouses, stock] = await Promise.all([
     db.query("SELECT id,code,name,warehouse_type AS \"warehouseType\",area_code AS \"areaCode\" FROM inventory_warehouses WHERE active AND code IN ('GENERAL','RESTAURANTE','BARTENDER') ORDER BY CASE code WHEN 'GENERAL' THEN 1 WHEN 'RESTAURANTE' THEN 2 ELSE 3 END"),
     db.query(`SELECT b.warehouse_id AS "warehouseId",w.code AS "warehouseCode",b.product_id AS "productId",p.name AS "productName",p.legacy_id AS "legacyProductId",p.track_lots AS "trackLots",b.lot_id AS "lotId",l.lot_code AS "lotCode",l.expires_on AS "expiresOn",u.id AS "unitId",u.symbol AS "unitSymbol",b.on_hand AS "onHand",b.reserved AS committed,(b.on_hand-b.reserved) AS available
       FROM inventory_stock_balances b JOIN inventory_warehouses w ON w.id=b.warehouse_id JOIN inventory_products p ON p.id=b.product_id JOIN inventory_units u ON u.id=p.base_unit_id LEFT JOIN inventory_lots l ON l.id=b.lot_id
       WHERE w.code IN ('GENERAL','RESTAURANTE','BARTENDER') AND p.status='ACTIVE' ORDER BY w.code,p.name,l.expires_on NULLS LAST`)
   ]);
-  return { warehouses: warehouses.rows, stock: stock.rows, routes: [...ROUTES] };
+  if (!user || user.role === "ADMINISTRADOR") return { warehouses: warehouses.rows, stock: stock.rows, routes: [...ROUTES] };
+  return { warehouses: warehouses.rows.filter((item) => item.code === user.role), stock: stock.rows.filter((item) => item.warehouseCode === user.role), routes: [] };
 }
 
-export async function transferStockOverview() {
+export async function transferStockOverview(user = null) {
   const rows = (await db.query(`SELECT w.id AS "warehouseId",w.code AS "warehouseCode",w.name AS "warehouseName",w.warehouse_type AS "warehouseType",COALESCE(SUM(b.on_hand),0) AS "onHand",COALESCE(SUM(b.reserved),0) AS committed,COALESCE(SUM(b.on_hand-b.reserved),0) AS available
     FROM inventory_warehouses w LEFT JOIN inventory_stock_balances b ON b.warehouse_id=w.id WHERE w.code IN ('GENERAL','RESTAURANTE','BARTENDER','TRANSIT','DISCREPANCY') GROUP BY w.id ORDER BY w.id`)).rows;
-  return { warehouses: rows, definitions: { available: "Existencia física menos cantidad comprometida", committed: "Reservada por transferencias en borrador", inTransit: "Despachada del origen y todavía no confirmada por el destino" } };
+  const visible = !user || user.role === "ADMINISTRADOR" ? rows : rows.filter((item) => item.warehouseCode === user.role);
+  return { warehouses: visible, definitions: { available: "Existencia física menos cantidad comprometida", committed: "Reservada por transferencias en borrador", inTransit: "Despachada del origen y todavía no confirmada por el destino" } };
 }
 
-export async function listTransfers() { return readTransfers(db); }
-export async function getTransfer(id) { const rows=await readTransfers(db,id); if(!rows.length) fail(404,"Transferencia no encontrada"); return rows[0]; }
+function visibleTransfer(item,user){return !user||user.role==="ADMINISTRADOR"||item.fromWarehouseCode===user.role||item.toWarehouseCode===user.role;}
+export async function listTransfers(user = null) { return (await readTransfers(db)).filter((item)=>visibleTransfer(item,user)); }
+export async function getTransfer(id,user = null) { const rows=await readTransfers(db,id); if(!rows.length||!visibleTransfer(rows[0],user)) fail(404,"Transferencia no encontrada"); return rows[0]; }
 
 export async function createTransfer(payload, actorId) {
   if (!payload.fromWarehouseId || !payload.toWarehouseId || !(payload.lines || []).length) fail(400, "Completa origen, destino y productos");

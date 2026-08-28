@@ -86,10 +86,12 @@ function createDemoState() {
     return { id: index + 1, number: String(101 + index), floor: Math.floor(index / 10) + 1, type: { id: typeIndex + 1, name }, capacity, price, status: roomStatuses[index % roomStatuses.length], features: ["Wi-Fi", "Baño privado", typeIndex ? "Vista al jardín" : "Cama full"] };
   });
   const permissions = ["DASHBOARD:VER", "RECEPCION:VER", "CLIENTES:VER", "HABITACIONES:VER", "RESERVAS:VER", "CHECK_IN:VER", "CHECK_OUT:VER", "PEDIDOS:VER", "RESTAURANTE:VER", "BARTENDER:VER", "EVENTOS:VER", "COCHERA:VER", "LIMPIEZA:VER", "MANTENIMIENTO:VER", "INVENTARIO:VER", "COMPRAS:VER", "PROVEEDORES:VER", "PAGOS:VER", "FACTURACION:VER", "CAJA:VER", "USUARIOS:VER", "ROLES:VER", "REPORTES:VER", "AUDITORIA:VER", "CONFIGURACION:VER", "EMPLEADOS:VER", "TURNOS:VER", "ACCESOS:VER"];
-  const roleNames = ["ADMINISTRADOR", "RECEPCION", "RESTAURANTE", "BARTENDER", "LIMPIEZA", "MANTENIMIENTO"];
+  const roleNames = ["SUPERADMIN", "ADMINISTRADOR", "RESTAURANTE", "BARTENDER", "LIMPIEZA", "MANTENIMIENTO"];
   const roles = roleNames.map((name, index) => ({ id: index + 1, name, description: `Rol ${name.toLowerCase()}`, permissions: permissions.map((code, permissionIndex) => ({ id: permissionIndex + 1, code, module: code.split(":")[0], action: code.split(":")[1] })) }));
-  const userRows = [[1, "Administrador", "Park Plaza", "admin@parkplaza.com", "ADMINISTRADOR", 90, "1111"], [2, "Rosa", "Recepción", "recepcion@parkplaza.com", "RECEPCION", 65, "2222"], [3, "Carlos", "Cocina", "restaurante@parkplaza.com", "RESTAURANTE", 65, "3333"], [4, "Luis", "Bar", "bartender@parkplaza.com", "BARTENDER", 65, "4444"], [5, "Ana", "Operaciones", "limpieza@parkplaza.com", "LIMPIEZA", 60, "5555"], [6, "Jorge", "Mantenimiento", "mantenimiento@parkplaza.com", "MANTENIMIENTO", 70, "6666"]];
+  const userRows = [[1, "Superadmin", "Park Plaza", "superadmin@parkplaza.com", "SUPERADMIN", 0, "1111"], [2, "Rosa", "Recepción", "recepcion@parkplaza.com", "ADMINISTRADOR", 65, "2222"], [3, "Carlos", "Cocina", "restaurante@parkplaza.com", "RESTAURANTE", 65, "3333"], [4, "Luis", "Bar", "bartender@parkplaza.com", "BARTENDER", 65, "4444"], [5, "Ana", "Operaciones", "limpieza@parkplaza.com", "LIMPIEZA", 60, "5555"], [6, "Jorge", "Mantenimiento", "mantenimiento@parkplaza.com", "MANTENIMIENTO", 70, "6666"]];
   const users = userRows.map(([id, firstName, lastName, email, role, dailyRate, pin]) => ({ id, firstName, lastName, email, role, status: "ACTIVO", permissions, dailyRate, pin, documentNumber: `7000000${id}`, phone: `99910000${id}` }));
+  const receptionUser = users.find((user) => user.email === "recepcion@parkplaza.com");
+  if (receptionUser) Object.assign(receptionUser, { position: "ADMIN_RECEPCION", operationalArea: "RECEPCION" });
   const employees = users.map((user) => ({ ...user, baseRole: user.role, attendanceStatus: "FUERA_DE_TURNO", currentAssignment: null }));
   const inventory = [
     { id: 1, name: "Pescado fresco", unit: "kg", stock: 18, reserved: 0, minStock: 8, cost: 24, area: "RESTAURANTE", imageUrl: "https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?auto=format&fit=crop&w=300&q=80" },
@@ -135,18 +137,48 @@ function upgradeState(state) {
   const modules = ["DASHBOARD", "RECEPCION", "CLIENTES", "HABITACIONES", "RESERVAS", "CHECK_IN", "CHECK_OUT", "PEDIDOS", "RESTAURANTE", "BARTENDER", "EVENTOS", "COCHERA", "LIMPIEZA", "MANTENIMIENTO", "INVENTARIO", "COMPRAS", "PROVEEDORES", "PAGOS", "FACTURACION", "CAJA", "USUARIOS", "ROLES", "REPORTES", "AUDITORIA", "CONFIGURACION", "EMPLEADOS", "TURNOS", "ACCESOS"];
   const catalog = modules.flatMap((module, moduleIndex) => ["VER", "CREAR", "EDITAR", "ELIMINAR"].map((action, actionIndex) => ({ id: moduleIndex * 4 + actionIndex + 1, code: `${module}:${action}`, module, action })));
   const allowed = {
+    SUPERADMIN: modules,
     ADMINISTRADOR: modules,
-    RECEPCION: ["RECEPCION", "CLIENTES", "HABITACIONES", "RESERVAS", "CHECK_IN", "CHECK_OUT", "PEDIDOS", "EVENTOS", "COCHERA", "PAGOS", "FACTURACION", "ACCESOS", "MANTENIMIENTO", "REPORTES"],
     RESTAURANTE: ["RESTAURANTE", "PEDIDOS", "INVENTARIO", "REPORTES"],
     BARTENDER: ["BARTENDER", "PEDIDOS", "INVENTARIO", "REPORTES"],
     LIMPIEZA: ["LIMPIEZA", "REPORTES"],
     MANTENIMIENTO: ["MANTENIMIENTO", "REPORTES"]
   };
-  state.roles = state.roles.filter((role) => role.name !== "MANTENIMIENTO");
+  // RECEPCION era el rol antiguo. Ahora la estación se representa por ADMINISTRADOR
+  // con posición ADMIN_RECEPCION, manteniendo intactos los contratos internos.
+  state.users.forEach((user) => {
+    if ((user.role?.name || user.role) === "RECEPCION" || String(user.email || "").toLowerCase() === "recepcion@parkplaza.com") {
+      user.role = "ADMINISTRADOR";
+      user.position = "ADMIN_RECEPCION";
+      user.operationalArea = "RECEPCION";
+    }
+  });
+  state.roles = state.roles.filter((role) => !["MANTENIMIENTO", "RECEPCION"].includes(role.name));
+  if (!state.roles.some((role) => role.name === "SUPERADMIN")) {
+    state.roles.push({ id: Math.max(0, ...state.roles.map((role) => Number(role.id) || 0)) + 1, name: "SUPERADMIN", description: "Control integral del sistema", permissions: [] });
+  }
   state.users = state.users.filter((user) => (user.role?.name || user.role) !== "MANTENIMIENTO");
   state.employees = state.employees.filter((employee) => (employee.baseRole || employee.role?.name || employee.role) !== "MANTENIMIENTO");
   state.shifts = state.shifts.filter((shift) => state.employees.some((employee) => employee.id === shift.employeeId));
   state.roles.forEach((role) => { role.permissions = catalog.filter((permission) => (allowed[role.name] || []).includes(permission.module)); });
+  // Compatibilidad con bases antiguas: si todavía no existe dueño, la antigua cuenta
+  // administrativa se convierte una sola vez en SUPERADMIN.
+  if (!state.users.some((user) => (user.role?.name || user.role) === "SUPERADMIN")) {
+    const owner = state.users.find((user) => String(user.email || "").toLowerCase() === "admin@parkplaza.com");
+    if (owner) {
+      owner.role = "SUPERADMIN";
+      owner.position = "SUPERADMIN";
+      owner.operationalArea = "DIRECCION";
+    }
+  }
+  // La cuenta administrativa heredada no se borra físicamente: conserva sus cierres
+  // y auditorías históricas, pero queda sin acceso al ERP.
+  const legacyAdmin = state.users.find((user) => String(user.email || "").toLowerCase() === "admin@parkplaza.com");
+  if (legacyAdmin && (legacyAdmin.role?.name || legacyAdmin.role) !== "SUPERADMIN") {
+    legacyAdmin.status = "INACTIVO";
+    legacyAdmin.position = "CUENTA_HISTORICA_DESACTIVADA";
+    legacyAdmin.permissions = [];
+  }
   state.users.forEach((user) => {
     const role = state.roles.find((item) => item.name === (user.role?.name || user.role));
     user.role = role?.name || user.role;
@@ -160,7 +192,7 @@ function upgradeState(state) {
   state.employees.forEach((employee) => {
     const user = state.users.find((item) => item.id === employee.id);
     Object.assign(employee, user || {});
-    employee.baseRole ||= employee.role;
+    employee.baseRole = employee.role === "SUPERADMIN" ? "SUPERADMIN" : (employee.baseRole || employee.role);
     employee.attendanceStatus ||= "FUERA_DE_TURNO";
   });
   state.attendance.forEach((record) => {

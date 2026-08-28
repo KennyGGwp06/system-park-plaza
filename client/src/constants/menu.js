@@ -1,170 +1,97 @@
 import {
-  BarChart3,
-  BedDouble,
-  CalendarCheck,
-  Car,
-  ChefHat,
-  CircleDollarSign,
-  ClipboardCheck,
-  Coffee,
-  DollarSign,
-  FileText,
-  LayoutDashboard,
-  LockKeyhole,
-  Package,
-  Receipt,
-  Settings,
-  ShieldCheck,
-  ShoppingCart,
-  Sparkles,
-  UserCog,
-  Users,
-  Waves,
-  Wine,
-  Wrench,
-  Scale
-  ,ArrowLeftRight
-  ,ScanLine
-  ,ContactRound
-  ,CalendarClock
-  ,Boxes
-  ,Trash2
-  ,CheckCircle2
-  ,Camera
-  ,FileWarning
+  AlertCircle, ArrowLeftRight, BarChart3, BedDouble, BookOpen, Boxes, CalendarCheck, CalendarClock, Camera, Car, ChefHat,
+  CircleDollarSign, ClipboardCheck, ClipboardList, ContactRound, DollarSign, Factory, FileText,
+  FileWarning, KeyRound, LayoutDashboard, LockKeyhole, Package, Receipt, ScanLine, Settings, ShieldCheck,
+  ShoppingCart, Sparkles, Trash2, UserCog, Users, Waves, Wine, Wrench, Scale
 } from "lucide-react";
 
+const adminMenu = [
+  { label: "CENTRO ADMIN RECEPCIÓN", items: [["Mi centro de control", "/admin-panel", LayoutDashboard]] },
+  { label: "ATENCIÓN Y COBROS", items: [
+    { label: "Huéspedes y reservas", icon: BedDouble, children: [["Reservas", "/reservas", CalendarCheck], ["Llegadas y salidas", "/checkin", ScanLine], ["Clientes", "/clientes", ContactRound]] },
+    { label: "Caja de recepción", icon: DollarSign, children: [["Recepción en vivo", "/recepcion", ClipboardCheck], ["Pagos registrados", "/pagos", Receipt], ["Mi caja y cierre", "/admin-panel/mi-caja", DollarSign]] }
+  ] },
+  { label: "SERVICIOS Y ACCESOS", items: [
+    { label: "Validación del cliente", icon: ShieldCheck, children: [["Validar QR y accesos", "/accesos", ShieldCheck], ["Hospedaje", "/habitaciones", BedDouble]] },
+    { label: "Servicios contratados", icon: Waves, children: [["Piscina y mirador", "/piscina/ingresos", Waves], ["Eventos", "/eventos/reservas", CalendarCheck], ["Cochera", "/cochera", Car]] }
+  ] },
+  { label: "COORDINACIÓN HOTELERA", items: [
+    { label: "Habitaciones y soporte", icon: Sparkles, children: [["Evidencias por WhatsApp", "/admin/limpieza/resumen", Camera], ["Incidencias y mantenimiento", "/incidencias", Wrench]] },
+    { label: "Restaurante y bar", icon: ChefHat, children: [["Monitor de restaurante", "/admin/restaurante/pedidos", ChefHat], ["Monitor de bar", "/admin/bartender/pedidos", Wine], ["Entrega a cocina y bar", "/transferencias", ArrowLeftRight]] }
+  ] },
+  { label: "PERSONAL DE TURNO", items: [
+    { label: "Coordinación de personal", icon: Users, children: [["Personal activo", "/empleados", Users], ["Turnos programados", "/turnos", ClipboardList]] }
+  ] }
+];
+
+// Superadmin: control total agrupado por procesos reales, no por pantallas aisladas.
+const superAdminMenu = [
+  { label: "CENTRO SUPERADMIN", items: [["Resumen integral", "/superadmin", LayoutDashboard]] },
+  { label: "GOBIERNO Y SEGURIDAD", items: [{ label: "Control del sistema", icon: ShieldCheck, children: [["Usuarios y permisos", "/usuarios", UserCog], ["Auditoría", "/auditoria", ShieldCheck], ["Integridad de datos", "/admin/integridad", ShieldCheck], ["Configuración", "/configuracion", Settings]] }] },
+  { label: "OPERACIÓN HOTELERA", items: [{ label: "Huéspedes y habitaciones", icon: BedDouble, children: [["Reservas y huéspedes", "/reservas", CalendarCheck], ["Llegadas y salidas", "/checkin", ScanLine], ["Clientes", "/clientes", ContactRound], ["Habitaciones y evidencias", "/admin/limpieza/resumen", Sparkles], ["Incidencias y mantenimiento", "/incidencias", Wrench]] }] },
+  { label: "SERVICIOS Y EXPERIENCIA", items: [{ label: "Oferta, tarifas y accesos", icon: CircleDollarSign, children: [["Precios y tarifas", "/admin/comercial", CircleDollarSign], ["Habitaciones y tarifas", "/habitaciones", BedDouble], ["Piscina y mirador", "/piscina/ingresos", Waves], ["Eventos y ambientes", "/eventos/reservas", CalendarCheck], ["Cochera y tarifas", "/cochera", Car]] }] },
+  { label: "RESTAURANTE Y BAR", items: [{ label: "Carta y operación", icon: ChefHat, children: [["Carta, precios y recetas", "/admin/alimentos-bebidas", ChefHat], ["Pedidos de restaurante", "/admin/restaurante/pedidos", ChefHat], ["Pedidos de bar", "/admin/bartender/pedidos", Wine]] }] },
+  { label: "INVENTARIO, PERSONAL Y FINANZAS", items: [
+    { label: "Inventario y abastecimiento", icon: Boxes, children: [["Inventario central", "/admin/inventario", Boxes], ["Compras y proveedores", "/compras", ShoppingCart], ["Transferencias", "/transferencias", ArrowLeftRight], ["Producción y porcionado", "/inventario/produccion", Factory], ["Cierres de inventario", "/inventario/turnos", LockKeyhole]] },
+    { label: "Personal y control financiero", icon: Users, children: [["Personal y turnos", "/empleados", Users], ["Programación y planilla", "/turnos", ClipboardList], ["Pagos y cajas", "/admin-panel/caja-central", DollarSign], ["Reportes globales", "/reportes", BarChart3]] }
+  ] }
+];
+
 export const menuSectionsByRole = {
-  ADMINISTRADOR: [
-    {
-      label: "Hoy · prioridad alta",
-      items: [
-        ["Inicio y alertas", "/admin-panel", LayoutDashboard],
-        ["Caja y cierre diario", "/admin-panel/caja-central", DollarSign],
-        ["Incidencias", "/incidencias", Wrench]
-      ]
-    },
-    {
-      label: "Operación",
-      items: [
-        ["Recepción y reservas", "/recepcion", ClipboardCheck],
-        ["Alimentos y bebidas", "/admin/alimentos-bebidas", ChefHat],
-        ["Limpieza y mantenimiento", "/admin/limpieza/resumen", CheckCircle2]
-      ]
-    },
-    {
-      label: "Ventas e inventario",
-      items: [
-        ["Precios y tarifas", "/admin/comercial", CircleDollarSign],
-        ["Carta, recetas e insumos", "/inventario", Package],
-        ["Compras y abastecimiento", "/compras", ShoppingCart],
-        ["Cierres y transferencias", "/inventario/turnos", LockKeyhole]
-      ]
-    },
-    {
-      label: "Equipo y control avanzado",
-      items: [
-        ["Personal y turnos", "/empleados", Users],
-        ["Usuarios y permisos", "/usuarios", UserCog],
-        ["Reportes e indicadores", "/dashboard", BarChart3],
-        ["Integridad y auditoría", "/admin/integridad", ShieldCheck]
-      ]
-    }
-  ],
-  RECEPCION: [
-    {
-      label: "Centro de atención",
-      items: [
-        ["Mi jornada", "/recepcion", LayoutDashboard],
-        ["Validar ingreso", "/accesos", ScanLine],
-        ["Llegadas y salidas", "/checkin", ShieldCheck]
-      ]
-    },
-    {
-      label: "Atención al huésped",
-      items: [
-        ["Reservas y clientes", "/reservas?nueva=1", CalendarCheck],
-        ["Check-out", "/checkout", Receipt],
-        ["Operación y cochera", "/recepcion", Waves]
-      ]
-    },
-    {
-      label: "Soporte y caja",
-      items: [
-        ["Pagos", "/pagos", DollarSign],
-        ["Soporte y mantenimiento", "/incidencias", Wrench]
-      ]
-    }
-  ],
+  ADMINISTRADOR: adminMenu,
+  SUPERADMIN: superAdminMenu,
   RESTAURANTE: [
     {
-      label: "Restaurante · mi operación",
+      label: "Centro de Restaurante",
       items: [
-        ["Operación y pedidos", "/restaurante/pedidos", ChefHat],
         ["Mi turno", "/restaurante/dashboard", LayoutDashboard],
-        ["Manual y porciones", "/restaurante/inventario/recetas", ClipboardCheck],
-        ["Mi inventario", "/restaurante/inventario/insumos", Boxes],
+        ["Alertas operativas", "/restaurante/dashboard", AlertCircle]
+      ]
+    },
+    {
+      label: "Pedidos y producción",
+      items: [
+        ["Cola de pedidos", "/restaurante/pedidos", ChefHat],
+        ["Preparación y entrega", "/restaurante/pedidos", ChefHat]
+      ]
+    },
+    {
+      label: "Recetas y porciones",
+      items: [
+        ["Manual técnico", "/restaurante/inventario/recetas", BookOpen],
+        ["Ficha del plato", "/restaurante/inventario/recetas", BookOpen]
+      ]
+    },
+    {
+      label: "Mi inventario de turno",
+      items: [
+        ["Stock asignado", "/restaurante/inventario/insumos", Boxes],
         ["Registrar merma", "/restaurante/inventario/mermas", Trash2],
-        ["Cerrar y cuadrar", "/restaurante/inventario/cierre", CheckCircle2]
+        ["Cerrar y cuadrar", "/restaurante/inventario/cierre", ClipboardList]
       ]
     }
   ],
   BARTENDER: [
-    {
-      label: "Bar · mi operación",
-      items: [
-        ["Operación y pedidos", "/bartender/pedidos", Wine],
-        ["Mi turno", "/bartender/dashboard", LayoutDashboard],
-        ["Manual y medidas", "/bartender/inventario/recetas", ClipboardCheck],
-        ["Mi inventario", "/bartender/inventario/insumos", Boxes],
-        ["Registrar merma", "/bartender/inventario/mermas", Trash2],
-        ["Cerrar y cuadrar", "/bartender/inventario/cierre", CheckCircle2]
-      ]
-    }
+    { label: "Centro de Bar", items: [["Mi turno", "/bartender/dashboard", LayoutDashboard], ["Alertas operativas", "/bartender/dashboard", AlertCircle]] },
+    { label: "Pedidos y preparación", items: [["Cola de bebidas", "/bartender/pedidos", Wine], ["Preparación y entrega", "/bartender/pedidos", Wine]] },
+    { label: "Recetas y medidas", items: [["Manual técnico", "/bartender/inventario/recetas", ClipboardCheck], ["Porciones y medidas", "/bartender/inventario/recetas", Scale]] },
+    { label: "Mi inventario de turno", items: [["Stock asignado", "/bartender/inventario/insumos", Boxes], ["Registrar merma", "/bartender/inventario/mermas", Trash2], ["Cerrar y cuadrar", "/bartender/inventario/cierre", ClipboardList]] }
   ],
-  LIMPIEZA: [
-    {
-      label: "Operación de limpieza",
-      items: [
-        ["Mi turno", "/limpieza/dashboard", LayoutDashboard],
-        ["Tareas por atender", "/limpieza/pendientes", ClipboardCheck],
-        ["Evidencias y cierre", "/limpieza/finalizadas", CheckCircle2],
-        ["Galería de evidencias", "/limpieza/evidencias", Camera],
-        ["Novedades y mantenimiento", "/limpieza/incidencias", FileWarning]
-      ]
-    }
-  ]
+  OPERATIVO: []
 };
 
-function flattenItems(items) {
-  return items.flatMap((item) => {
-    if (Array.isArray(item)) return [item];
-    return [[item.label, item.href, item.icon], ...(item.children || [])];
-  });
-}
+function flattenItems(items) { return items.flatMap((item) => Array.isArray(item) ? [item] : flattenItems(item.children || [])); }
+export const menuByRole = Object.fromEntries(Object.entries(menuSectionsByRole).map(([role, sections]) => [role, sections.flatMap((section) => flattenItems(section.items))]));
+export const routeTitles = Object.fromEntries(Object.values(menuSectionsByRole).flatMap((sections) => sections.flatMap((section) => flattenItems(section.items).map(([label, href]) => [href, label]))));
+export const defaultRouteByRole = { ADMINISTRADOR: "/admin-panel", SUPERADMIN: "/superadmin", RESTAURANTE: "/restaurante", BARTENDER: "/bartender", OPERATIVO: "/403" };
 
-export const menuByRole = Object.fromEntries(
-  Object.entries(menuSectionsByRole).map(([role, sections]) => [role, sections.flatMap((section) => flattenItems(section.items))])
-);
-
-export const routeTitles = Object.fromEntries(
-  Object.values(menuSectionsByRole).flatMap((sections) => sections.flatMap((section) => flattenItems(section.items).map(([label, href]) => [href, label])))
-);
-
-export const defaultRouteByRole = {
-  ADMINISTRADOR: "/admin-panel",
-  RECEPCION: "/recepcion",
-  RESTAURANTE: "/restaurante/dashboard",
-  BARTENDER: "/bartender/dashboard",
-  LIMPIEZA: "/limpieza/dashboard"
-};
-
-export function permissionForHref(href) {
+export function permissionForHref(href = "") {
+  if (href.startsWith("/superadmin") || href.startsWith("/admin-panel")) return "ADMINISTRADOR:VER";
   if (href.startsWith("/transferencias")) return "INVENTARIO:VER";
   if (href.startsWith("/admin/alimentos-bebidas")) return "INVENTARIO:VER";
   if (href.startsWith("/admin/restaurante") || href.startsWith("/restaurante")) return "RESTAURANTE:VER";
   if (href.startsWith("/admin/bartender") || href.startsWith("/bartender") || href.startsWith("/bar")) return "BARTENDER:VER";
-  if (href.startsWith("/admin/limpieza") || href.startsWith("/limpieza")) return "LIMPIEZA:VER";
+  if (href.startsWith("/admin/limpieza")) return "RECEPCION:VER";
   if (href.startsWith("/incidencias")) return "REPORTES:VER";
   if (href.startsWith("/piscina")) return "RECEPCION:VER";
   if (href.startsWith("/eventos")) return "EVENTOS:VER";
@@ -175,7 +102,6 @@ export function permissionForHref(href) {
   if (href.startsWith("/checkin")) return "CHECK_IN:VER";
   if (href.startsWith("/checkout")) return "CHECK_OUT:VER";
   if (href.startsWith("/recepcion")) return "RECEPCION:VER";
-  if (href.startsWith("/consumos") || href.startsWith("/operaciones") || href.startsWith("/cocina")) return "PEDIDOS:VER";
   if (href.startsWith("/inventario")) return "INVENTARIO:VER";
   if (href.startsWith("/compras")) return "COMPRAS:VER";
   if (href.startsWith("/proveedores")) return "PROVEEDORES:VER";
@@ -186,10 +112,7 @@ export function permissionForHref(href) {
   if (href.startsWith("/roles")) return "ROLES:VER";
   if (href.startsWith("/reportes")) return "REPORTES:VER";
   if (href.startsWith("/auditoria")) return "AUDITORIA:VER";
-  if (href.startsWith("/configuracion")) return "CONFIGURACION:VER";
-  if (href.startsWith("/dashboard")) return "DASHBOARD:VER";
   if (href.startsWith("/accesos")) return "ACCESOS:VER";
   if (href.startsWith("/empleados")) return "EMPLEADOS:VER";
-  if (href.startsWith("/turnos") || href.startsWith("/planilla")) return "TURNOS:VER";
   return null;
 }

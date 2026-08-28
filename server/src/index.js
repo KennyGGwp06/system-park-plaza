@@ -21,6 +21,7 @@ import { completePortioning, completeProcessing, completeProduction, listTransfo
 import { confirmOrdersInventory, getOrderInventoryDetail, transitionOrderInventory } from "./order-inventory.js";
 import { barBottleReferences, closeBarBottle, listBarBottles, measureBarBottle, openBarBottle, serveBarBottle } from "./bar-bottles.js";
 import { inventoryAdminDashboard, inventoryAdminReferences } from "./inventory-admin-dashboard.js";
+import { createStockRequest, listStockRequests, reviewStockRequest, stockRequestReferences } from "./stock-requests.js";
 import { ensureStayAccess, validateOrderSchema } from "./state-stabilization.js";
 import { withOrderTiming } from "./order-operations.js";
 import { dataIntegrityReport, sanitizeDataIntegrity } from "./data-integrity.js";
@@ -97,6 +98,27 @@ app.get("/api/health", async (_req, res, next) => {
   try { await readState(); res.json({ status: "ok", database: "connected", persistence: "postgresql", mode: "demo", realtimeConnections: io.engine.clientsCount }); } catch (error) { next(error); }
 });
 
+// El navegador no lee huellas. El driver de ZKTeco trabaja en Windows y este
+// endpoint recibe solo el identificador externo que entrega el puente local.
+app.post("/api/biometric/clock", biometricBridgeAuth, async (req, res, next) => {
+  try {
+    const result = await mutateState(async (state, client) => {
+      const externalId = String(req.body.externalId || "").trim();
+      if (!externalId) throw httpError(400, "El puente debe enviar el identificador biométrico del empleado");
+      const user = state.users.find((item) => item.status === "ACTIVO" && String(item.biometric?.externalId || "") === externalId);
+      if (!user) throw httpError(404, "No existe un empleado activo asociado a esta huella");
+      const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(user.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
+      const action = open ? "SALIDA" : "INGRESO";
+      const record = await recordAttendance(state, client, user.id, action, user.id);
+      record.source = "BIOMETRIC_ZK9500";
+      record.deviceId = String(req.body.deviceId || state.settings?.biometric?.deviceName || "ZK9500");
+      audit(state, "BIOMETRIA", action, `${user.firstName} ${user.lastName} · ${record.deviceId}`, user.id);
+      return { success: true, user: `${user.firstName} ${user.lastName}`, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null };
+    });
+    res.json(result);
+  } catch (error) { next(error); }
+});
+
 const loginAttempts = new Map();
 function loginRateLimit(req, res, next) {
   const key = req.ip || "unknown";
@@ -162,7 +184,7 @@ app.get("/api/public/catalog", async (_req, res, next) => {
     const experience = experienceCatalog(state);
     experience.restaurantMenu = experience.restaurantMenu.map((item) => publicMenuItem(item));
     const parkingRates = state.settings?.parkingRates || { MOTO: 0, AUTO: 15, CAMIONETA: 20, MINIVAN: 25 };
-    res.json({ services: state.services, roomTypes: roomGroups, menu: state.menuItems.filter((item) => item.active).map(publicMenuItem), eventSpaces: eventSpaces(state), ...experience, parking: { available: parkingSpaces.length, spaces: parkingSpaces, occupiedSpaces: occupiedParkingSpaces, motorcyclePrice: Number(parkingRates.MOTO || 0), carPrice: Number(parkingRates.AUTO || 0), truckPrice: Number(parkingRates.CAMIONETA || 0), vanPrice: Number(parkingRates.MINIVAN || 0) } });
+    res.json({ services: state.services, roomTypes: roomGroups, menu: state.menuItems.filter((item) => item.active).map(publicMenuItem), eventSpaces: eventSpaces(state), experienceMedia: experienceMedia(state), ...experience, parking: { available: parkingSpaces.length, spaces: parkingSpaces, occupiedSpaces: occupiedParkingSpaces, motorcyclePrice: Number(parkingRates.MOTO || 0), carPrice: Number(parkingRates.AUTO || 0), truckPrice: Number(parkingRates.CAMIONETA || 0), vanPrice: Number(parkingRates.MINIVAN || 0) } });
   } catch (error) { next(error); }
 });
 
@@ -474,6 +496,132 @@ app.post("/api/auth/login", loginRateLimit, async (req, res, next) => {
 
 app.use("/api", staffAuth);
 app.get("/api/auth/me", (req, res) => res.json({ user: req.user }));
+app.get("/api/superadmin/v6-state", async (req, res, next) => {
+  try {
+    if (req.user.displayRole !== "SUPERADMIN") throw httpError(403, "Esta vista pertenece únicamente al Superadmin");
+    const state = await readState();
+    const keys = [
+      "services", "rooms", "clients", "bookings", "reservations", "stays", "payments",
+      "passes", "entitlements", "accessLogs", "orders", "requests", "tasks", "events",
+      "inventory", "menuItems", "employees", "shifts", "attendance", "proveedores",
+      "compras", "cochera", "facturacion", "cashMovements", "cashClosings", "audit", "settings"
+    ];
+    res.json(Object.fromEntries(keys.map((key) => [key, state[key] || (key === "settings" ? {} : [])])));
+  } catch (error) { next(error); }
+});
+
+app.get('/api/restaurante/v6-state', async (req, res, next) => {
+  try {
+    if (roleName(req.user) !== 'RESTAURANTE') throw httpError(403, 'Esta estación pertenece únicamente al personal de Restaurante');
+    const state = await readState();
+    const area = 'RESTAURANTE';
+    const payload = {
+      orders: state.orders.filter((item) => item.area === area).map((item) => hydrateOrder(state, item)),
+      inventory: state.inventory.filter((item) => item.area === area && isOperationalProduct(item)).map(hydrateProduct),
+      menuItems: state.menuItems.filter((item) => item.area === area && item.active).map((item) => hydrateMenuItem(state, item)),
+      wasteRecords: state.wasteRecords.filter((item) => item.area === area),
+      dailyInventoryBoxes: (state.dailyInventoryBoxes || []).filter((item) => item.area === area).map((item) => hydrateDailyBox(state, item)),
+      shifts: state.shifts.filter((item) => Number(item.employeeId || item.userId) === Number(req.user.id)),
+      attendance: state.attendance.filter((item) => Number(item.employeeId || item.userId) === Number(req.user.id)),
+      notifications: [],
+    };
+    payload.sessionUser = {
+      id: req.user.id,
+      name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Restaurante',
+      email: req.user.email || '',
+      role: 'RESTAURANTE'
+    };
+    res.json(payload);
+  } catch (error) { next(error); }
+});
+
+app.get('/api/bartender/v6-state', async (req, res, next) => {
+  try {
+    if (roleName(req.user) !== 'BARTENDER') throw httpError(403, 'Esta estación pertenece únicamente al personal de Bar');
+    const state = await readState();
+    const area = 'BARTENDER';
+    const payload = {
+      orders: state.orders.filter((item) => item.area === area).map((item) => hydrateOrder(state, item)),
+      inventory: state.inventory.filter((item) => item.area === area && isOperationalProduct(item)).map(hydrateProduct),
+      menuItems: state.menuItems.filter((item) => item.area === area && item.active).map((item) => hydrateMenuItem(state, item)),
+      wasteRecords: state.wasteRecords.filter((item) => item.area === area),
+      dailyInventoryBoxes: (state.dailyInventoryBoxes || []).filter((item) => item.area === area).map((item) => hydrateDailyBox(state, item)),
+      shifts: state.shifts.filter((item) => Number(item.employeeId || item.userId) === Number(req.user.id)),
+      attendance: state.attendance.filter((item) => Number(item.employeeId || item.userId) === Number(req.user.id)),
+      notifications: [],
+    };
+    payload.sessionUser = {
+      id: req.user.id,
+      name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Bartender',
+      email: req.user.email || '',
+      role: 'BARTENDER'
+    };
+    res.json(payload);
+  } catch (error) { next(error); }
+});
+
+app.get("/api/admin-reception/v6-state", async (req, res, next) => {
+  try {
+    if (roleName(req.user) !== "ADMINISTRADOR" || req.user.displayRole === "SUPERADMIN") {
+      throw httpError(403, "Esta estación pertenece únicamente al Admin de recepción");
+    }
+    const state = await readState();
+    const keys = [
+      "services", "rooms", "clients", "bookings", "reservations", "stays", "payments",
+      "passes", "entitlements", "accessLogs", "orders", "requests", "tasks", "events",
+      "employees", "shifts", "attendance", "cochera", "cashMovements", "cashClosings"
+    ];
+    const payload = Object.fromEntries(keys.map((key) => [key, state[key] || []]));
+    payload.sessionUser = {
+      id: req.user.id,
+      name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim() || "Admin de recepción",
+      email: req.user.email || "",
+      role: "ADMINISTRADOR",
+    };
+    res.json(payload);
+  } catch (error) { next(error); }
+});
+app.get("/api/biometric/status", requireInventoryAdmin, async (_req, res, next) => {
+  try {
+    const state = await readState();
+    const config = state.settings?.biometric || {};
+    const enrolledEmployees = state.users.filter((item) => Boolean(item.biometric?.externalId)).map((item) => ({ id: item.id, name: `${item.firstName} ${item.lastName}`, externalId: item.biometric.externalId, enrolledAt: item.biometric.enrolledAt || null }));
+    res.json({ enabled: Boolean(config.enabled), deviceName: config.deviceName || "ZK9500", bridgeName: config.bridgeName || "Puente local de asistencia", bridgeKeyConfigured: Boolean(config.bridgeKey), enrolledEmployees, lastConfiguredAt: config.updatedAt || null });
+  } catch (error) { next(error); }
+});
+app.put("/api/biometric/config", requireInventoryAdmin, async (req, res, next) => {
+  try {
+    const result = await mutateState((state) => {
+      const previous = state.settings?.biometric || {};
+      const shouldRotate = Boolean(req.body.rotateKey) || !previous.bridgeKey;
+      const bridgeKey = shouldRotate ? randomUUID().replaceAll("-", "") : previous.bridgeKey;
+      state.settings ||= {};
+      state.settings.biometric = { enabled: Boolean(req.body.enabled), deviceName: String(req.body.deviceName || "ZK9500").trim() || "ZK9500", bridgeName: String(req.body.bridgeName || "Puente local de asistencia").trim() || "Puente local de asistencia", bridgeKey, updatedAt: now(), updatedById: req.user.id };
+      audit(state, "BIOMETRIA", shouldRotate ? "CONFIGURAR_Y_ROTAR_CLAVE" : "CONFIGURAR", state.settings.biometric.deviceName, req.user.id);
+      return { enabled: state.settings.biometric.enabled, deviceName: state.settings.biometric.deviceName, bridgeName: state.settings.biometric.bridgeName, bridgeKey: shouldRotate ? bridgeKey : null };
+    });
+    res.json(result);
+  } catch (error) { next(error); }
+});
+app.post("/api/biometric/enroll", requireInventoryAdmin, async (req, res, next) => {
+  try {
+    const result = await mutateState((state) => {
+      const employeeId = Number(req.body.employeeId);
+      const externalId = String(req.body.externalId || "").trim();
+      if (!employeeId || !externalId) throw httpError(400, "Selecciona al empleado e ingresa el identificador leído por el ZK9500");
+      const user = state.users.find((item) => Number(item.id) === employeeId);
+      if (!user) throw httpError(404, "Empleado no encontrado");
+      const usedBy = state.users.find((item) => Number(item.id) !== employeeId && String(item.biometric?.externalId || "") === externalId);
+      if (usedBy) throw httpError(409, "Este identificador biométrico ya está asignado a otro empleado");
+      user.biometric = { externalId, deviceName: String(req.body.deviceName || state.settings?.biometric?.deviceName || "ZK9500"), enrolledAt: now(), enrolledById: req.user.id };
+      const employee = state.employees.find((item) => Number(item.id) === employeeId);
+      if (employee) employee.biometric = user.biometric;
+      audit(state, "BIOMETRIA", "VINCULAR_EMPLEADO", `${user.firstName} ${user.lastName}`, req.user.id);
+      return { id: user.id, name: `${user.firstName} ${user.lastName}`, externalId: user.biometric.externalId };
+    });
+    res.status(201).json(result);
+  } catch (error) { next(error); }
+});
 app.get("/api/attendance/current", async (req, res, next) => {
   try {
     const state = await readState(); const today = hotelToday(state);
@@ -541,7 +689,7 @@ app.get("/api/admin/commercial-settings", requireInventoryAdmin, async (_req, re
       groups[key].rooms += 1;
       return groups;
     }, {}));
-    res.json({ services: state.services.map(({ id, code, name, description, price, capacity }) => ({ id, code, name, description, price: Number(price || 0), capacity })), roomTypes, parkingRates: state.settings?.parkingRates || { MOTO: 0, AUTO: 15, CAMIONETA: 20, MINIVAN: 25 }, eventSpaces: eventSpaces(state), experiencePricing: experiencePricing(state) });
+    res.json({ services: state.services.map(({ id, code, name, description, price, capacity }) => ({ id, code, name, description, price: Number(price || 0), capacity })), roomTypes, parkingRates: state.settings?.parkingRates || { MOTO: 0, AUTO: 15, CAMIONETA: 20, MINIVAN: 25 }, eventSpaces: eventSpaces(state), experiencePricing: experiencePricing(state), experienceMedia: experienceMedia(state) });
   } catch (error) { next(error); }
 });
 
@@ -568,7 +716,18 @@ app.put("/api/admin/commercial-settings", requireInventoryAdmin, async (req, res
         })]));
       }
       if (Array.isArray(payload.eventSpaces) && payload.eventSpaces.length) state.settings.eventSpaces = eventSpaces(state).map((space) => { const update = payload.eventSpaces.find((item) => Number(item.id) === Number(space.id)); return update ? { ...space, name: String(update.name || space.name).trim() || space.name, capacity: Math.max(1, Number(update.capacity || space.capacity)), basePrice: priceOf(update.basePrice, `evento ${space.name}`) } : space; });
-      audit(state, "COMERCIAL", "ACTUALIZAR_TARIFAS", "Tarifas y precios de venta actualizados", req.user.id);
+      if (Array.isArray(payload.experienceMedia)) {
+        const allowed = new Set(["HOSPEDAJE", "BAR", "PISCINA", "EVENTOS", "TERRAZA", "MIRADOR"]);
+        state.settings.experienceMedia = payload.experienceMedia.filter((item) => allowed.has(item.code)).map((item) => ({
+          code: item.code,
+          place: String(item.place || "").trim().slice(0, 80),
+          title: String(item.title || "").trim().slice(0, 80),
+          title2: String(item.title2 || "").trim().slice(0, 80),
+          description: String(item.description || "").trim().slice(0, 500),
+          imageUrl: String(item.imageUrl || "").trim().slice(0, 500),
+        }));
+      }
+      audit(state, "COMERCIAL", "ACTUALIZAR_EXPERIENCIA", "Precios, contenido e imágenes de venta actualizados", req.user.id);
       return { ok: true };
     });
     res.json(result);
@@ -718,19 +877,95 @@ app.get("/api/access/logs", async (_req, res, next) => { try { const state = awa
 
 app.patch("/api/orders/:id/status", async (req, res, next) => {
   try {
+    if (isReceptionAdmin(req.user)) throw httpError(403, "El Admin de recepción puede supervisar pedidos, pero no cambiar su producción");
     const order = await mutateState(async (state, client) => { const item = await transitionOrderInventory(client, state, req.params.id, req.body.status, req.user, req.body); audit(state, "PEDIDOS", "ESTADO", `${item.code}: ${item.status}`, req.user.id); return item; });
     res.json(order);
   } catch (error) { next(error); }
 });
-app.get("/api/orders/:id/inventory", async (req, res, next) => { try { const state=await readState();const order=state.orders.find((item)=>Number(item.id)===Number(req.params.id));if(!order)throw httpError(404,"Pedido no encontrado");if(req.user.role!=="ADMINISTRADOR"&&req.user.role!==order.area)throw httpError(403,"No puedes consultar inventario de otra área");res.json(await getOrderInventoryDetail(req.params.id)); } catch (error) { next(error); } });
+app.get("/api/orders/:id/inventory", async (req, res, next) => { try { const state=await readState();const order=state.orders.find((item)=>Number(item.id)===Number(req.params.id));if(!order)throw httpError(404,"Pedido no encontrado");if(isReceptionAdmin(req.user) || (req.user.role!=="ADMINISTRADOR"&&req.user.role!==order.area))throw httpError(403,"No puedes consultar el detalle de inventario de esta área");res.json(await getOrderInventoryDetail(req.params.id)); } catch (error) { next(error); } });
 app.patch("/api/restaurante/:id/status", updateOrderStatus);
 app.patch("/api/bartender/:id/status", updateOrderStatus);
 
 app.get("/api/employees", async (_req, res, next) => { try { const state = await readState(); const today = hotelToday(state); res.json(state.employees.map((employee) => { const shift = state.shifts.find((item) => item.employeeId === employee.id && item.date === today); return { ...employee, currentAssignment: shift?.area || employee.currentAssignment || null, currentShift: shift || null }; })); } catch (error) { next(error); } });
-app.get("/api/shifts", async (req, res, next) => { try { const state = await readState(); res.json(state.shifts.filter((item) => !req.query.date || item.date === req.query.date)); } catch (error) { next(error); } });
-app.post("/api/shifts", async (req, res, next) => {
-  try { const shift = await mutateState((state) => { const overlap = state.shifts.some((item) => item.employeeId === Number(req.body.employeeId) && item.date === req.body.date && req.body.start < item.end && req.body.end > item.start); if (overlap) throw httpError(409, "El empleado ya tiene un turno superpuesto"); const id = nextId(state, "shift"); const item = { id, employeeId: Number(req.body.employeeId), date: req.body.date, start: req.body.start, end: req.body.end, area: req.body.area, status: "PROGRAMADO", replacementId: null }; state.shifts.push(item); audit(state, "TURNOS", "CREAR", `${item.date} ${item.area}`, req.user.id); return item; }); res.status(201).json(shift); } catch (error) { next(error); }
+
+app.get("/api/shifts", async (req, res, next) => {
+  try {
+    const state = await readState();
+    let rows = state.shifts || [];
+    if (req.query.date) rows = rows.filter((item) => item.date === req.query.date);
+    if (req.query.order) rows = sortRecent(rows, req.query.order);
+    res.json(rows);
+  } catch (error) { next(error); }
 });
+
+app.post("/api/shifts", async (req, res, next) => {
+  try {
+    const shift = await mutateState((state) => {
+      // Unified overlap check if start and end are provided
+      if (req.body.start && req.body.end) {
+        const overlap = state.shifts.some((item) => 
+          (item.employeeId === Number(req.body.employeeId) || item.userId === Number(req.body.userId)) 
+          && item.date === req.body.date 
+          && req.body.start < item.end && req.body.end > item.start
+        );
+        if (overlap) throw httpError(409, "El empleado ya tiene un turno superpuesto");
+      }
+      
+      const id = nextId(state, "shift");
+      const item = { 
+        id, 
+        employeeId: req.body.employeeId ? Number(req.body.employeeId) : null,
+        userId: req.body.userId ? Number(req.body.userId) : null,
+        date: req.body.date, 
+        start: req.body.start || null, 
+        end: req.body.end || null, 
+        area: req.body.area || null,
+        shiftType: req.body.shiftType || req.body.area || null,
+        status: "PROGRAMADO", 
+        replacementId: null,
+        createdAt: now()
+      };
+      
+      state.shifts.push(item);
+      audit(state, "TURNOS", "CREAR", `${item.date} ${item.area || item.shiftType}`, req.user.id);
+      return item;
+    });
+    res.status(201).json(shift);
+  } catch (error) { next(error); }
+});
+app.patch("/api/shifts/:id", requireInventoryAdmin, async (req, res, next) => {
+  try {
+    const shift = await mutateState((state) => {
+      const item = state.shifts.find((entry) => entry.id === Number(req.params.id));
+      if (!item) throw httpError(404, "Turno no encontrado");
+      if (item.status === "CANCELADO") throw httpError(409, "El turno ya fue cancelado");
+      const next = { ...item, ...compact(req.body), employeeId: req.body.employeeId ? Number(req.body.employeeId) : item.employeeId, userId: req.body.userId ? Number(req.body.userId) : item.userId };
+      if (next.start && next.end) {
+        const overlap = state.shifts.some((entry) => entry.id !== item.id && (entry.employeeId === next.employeeId || entry.userId === next.userId) && entry.date === next.date && entry.start < next.end && entry.end > next.start && entry.status !== "CANCELADO");
+        if (overlap) throw httpError(409, "El empleado ya tiene un turno superpuesto");
+      }
+      Object.assign(item, next, { updatedAt: now() });
+      audit(state, "TURNOS", "EDITAR", `${item.date} ${item.area || item.shiftType}`, req.user.id);
+      return item;
+    });
+    res.json(shift);
+  } catch (error) { next(error); }
+});
+app.patch("/api/shifts/:id/cancel", requireInventoryAdmin, async (req, res, next) => {
+  try {
+    const shift = await mutateState((state) => {
+      const item = state.shifts.find((entry) => entry.id === Number(req.params.id));
+      if (!item) throw httpError(404, "Turno no encontrado");
+      item.status = "CANCELADO";
+      item.cancelReason = String(req.body.reason || "Cancelado por Superadmin").trim();
+      item.cancelledAt = now();
+      audit(state, "TURNOS", "CANCELAR", `${item.date} ${item.cancelReason}`, req.user.id);
+      return item;
+    });
+    res.json(shift);
+  } catch (error) { next(error); }
+});
+
 app.post("/api/attendance/check-in", async (req, res, next) => { try { const item = await attendanceAction(req, "INGRESO"); res.json(item); } catch (error) { next(error); } });
 app.post("/api/attendance/check-out", async (req, res, next) => { try { const item = await attendanceAction(req, "SALIDA"); res.json(item); } catch (error) { next(error); } });
 app.get("/api/payroll/weekly", async (req, res, next) => {
@@ -750,6 +985,21 @@ app.post("/api/clients", async (req, res, next) => {
       return hydrateClient(state, item);
     });
     res.status(201).json(result);
+  } catch (error) { next(error); }
+});
+app.put("/api/clients/:id", requireReceptionAdmin, async (req, res, next) => {
+  try {
+    const result = await mutateState((state) => {
+      const client = state.clients.find((item) => item.id === Number(req.params.id));
+      if (!client) throw httpError(404, "Huésped no encontrado");
+      const documentNumber = req.body.documentNumber ? normalizeDocument(req.body.documentNumber) : client.documentNumber;
+      if (!documentNumber) throw httpError(400, "Ingresa un documento válido");
+      if (state.clients.some((item) => item.id !== client.id && normalizeDocument(item.documentNumber) === documentNumber)) throw httpError(409, "Ya existe otro cliente con ese documento");
+      Object.assign(client, compact(req.body), { documentNumber, updatedAt: now() });
+      audit(state, "CLIENTES", "EDITAR", `Cliente ${documentNumber}`, req.user.id);
+      return hydrateClient(state, client);
+    });
+    res.json(result);
   } catch (error) { next(error); }
 });
 app.patch("/api/clients/:id/status", async (req, res, next) => {
@@ -932,6 +1182,7 @@ app.get("/api/dashboard", async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 app.get("/api/rooms", async (_req, res, next) => { try { const state = await readState(); res.json({ rooms: state.rooms }); } catch (error) { next(error); } });
+app.patch("/api/rooms/:id", requireReceptionAdmin, async (req, res, next) => { try { const room = await mutateState((state) => { const item = state.rooms.find((entry) => entry.id === Number(req.params.id)); if (!item) throw httpError(404, "Habitación no encontrada"); const allowedStatus = ["DISPONIBLE", "OCUPADA", "LIMPIEZA", "MANTENIMIENTO", "BLOQUEADA"]; const nextStatus = req.body.status ? String(req.body.status).toUpperCase() : item.status; if (!allowedStatus.includes(nextStatus)) throw httpError(400, "Estado de habitación no válido"); const nextCleaning = req.body.cleaningStatus ? String(req.body.cleaningStatus).toUpperCase() : item.cleaningStatus; Object.assign(item, { status: nextStatus, cleaningStatus: nextCleaning, updatedAt: now(), statusNote: String(req.body.note || item.statusNote || "") }); audit(state, "HABITACIONES", "ESTADO", `${item.number || item.id}: ${nextStatus}`, req.user.id); return item; }); res.json(room); } catch (error) { next(error); } });
 app.get("/api/rooms/:id/check-availability", async (req, res, next) => { try { const state = await readState(); const occupied = state.bookings.some((item) => item.roomId === Number(req.params.id) && overlaps(req.query.checkIn, req.query.checkOut, item.checkIn, item.checkOut)); res.json({ available: !occupied, message: occupied ? "Habitación ocupada en esas fechas" : "Habitación disponible" }); } catch (error) { next(error); } });
 app.get("/api/clients/search", resourceSearch("clients"));
 app.get("/api/pool/client-search", resourceSearch("clients"));
@@ -960,10 +1211,10 @@ app.post("/api/purchasing/orders", requirePurchasingAdmin, async (req, res, next
 app.post("/api/purchasing/orders/:id/receipts", requirePurchasingAdmin, async (req, res, next) => { try { res.status(201).json(await createGoodsReceipt(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
 app.post("/api/purchasing/receipts/:id/verify", requirePurchasingAdmin, async (req, res, next) => { try { res.json(await verifyGoodsReceipt(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
 app.post("/api/purchasing/receipts/:id/post", requirePurchasingAdmin, async (req, res, next) => { try { res.json(await postGoodsReceipt(req.params.id, req.user.id)); } catch (error) { next(error); } });
-app.get("/api/transfers/references", requireTransferUser, async (_req, res, next) => { try { res.json(await transferReferences()); } catch (error) { next(error); } });
-app.get("/api/transfers/stock", requireTransferUser, async (_req, res, next) => { try { res.json(await transferStockOverview()); } catch (error) { next(error); } });
-app.get("/api/transfers", requireTransferUser, async (_req, res, next) => { try { res.json(await listTransfers()); } catch (error) { next(error); } });
-app.get("/api/transfers/:id", requireTransferUser, async (req, res, next) => { try { res.json(await getTransfer(req.params.id)); } catch (error) { next(error); } });
+app.get("/api/transfers/references", requireTransferUser, async (req, res, next) => { try { res.json(await transferReferences(req.user)); } catch (error) { next(error); } });
+app.get("/api/transfers/stock", requireTransferUser, async (req, res, next) => { try { res.json(await transferStockOverview(req.user)); } catch (error) { next(error); } });
+app.get("/api/transfers", requireTransferUser, async (req, res, next) => { try { res.json(await listTransfers(req.user)); } catch (error) { next(error); } });
+app.get("/api/transfers/:id", requireTransferUser, async (req, res, next) => { try { res.json(await getTransfer(req.params.id,req.user)); } catch (error) { next(error); } });
 app.post("/api/transfers", requireTransferUser, async (req, res, next) => { try { res.status(201).json(await createTransfer(req.body, req.user.id)); } catch (error) { next(error); } });
 app.post("/api/transfers/:id/send", requireTransferUser, async (req, res, next) => { try { res.json(await sendTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
 app.post("/api/transfers/:id/receive", requireTransferUser, async (req, res, next) => { try { res.json(await receiveTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
@@ -988,10 +1239,15 @@ app.post("/api/bar/bottles/:id/measure", requireBarBottleUser, async (req,res,ne
 app.post("/api/bar/bottles/:id/close", requireBarBottleUser, async (req,res,next)=>{try{res.json(await closeBarBottle(req.params.id,req.body,req.user.id));}catch(error){next(error);}});
 app.get("/api/inventory-admin/references", requireInventoryAdmin, async (_req,res,next)=>{try{res.json(await inventoryAdminReferences());}catch(error){next(error);}});
 app.get("/api/inventory-admin/dashboard", requireInventoryAdmin, async (req,res,next)=>{try{res.json(await inventoryAdminDashboard(req.query));}catch(error){next(error);}});
+app.get("/api/stock-requests/references", requireStockRequestUser, async (_req,res,next)=>{try{res.json(await stockRequestReferences());}catch(error){next(error);}});
+app.get("/api/stock-requests", requireStockRequestUser, async (req,res,next)=>{try{res.json(await listStockRequests(req.query,req.user));}catch(error){next(error);}});
+app.post("/api/stock-requests", requireStockRequestUser, async (req,res,next)=>{try{res.status(201).json(await createStockRequest(req.body,req.user));}catch(error){next(error);}});
+app.post("/api/stock-requests/:id/review", requireInventoryAdmin, async (req,res,next)=>{try{res.json(await reviewStockRequest(req.params.id,req.body,req.user));}catch(error){next(error);}});
 app.get("/api/data-integrity", requireInventoryAdmin, async (_req,res,next)=>{try{res.json(await dataIntegrityReport());}catch(error){next(error);}});
 app.post("/api/data-integrity/sanitize", requireInventoryAdmin, async (req,res,next)=>{try{res.json(await sanitizeDataIntegrity(req.user.id));}catch(error){next(error);}});
 app.get("/api/technical-recipes/references", requireInventoryAdmin, async (_req, res, next) => { try { res.json(await technicalRecipeReferences()); } catch (error) { next(error); } });
 app.get("/api/technical-recipes", requireInventoryAdmin, async (_req, res, next) => { try { res.json(await listTechnicalRecipes()); } catch (error) { next(error); } });
+app.get("/api/technical-recipes/manual/:area", requireOperationalInventoryUser, async (req,res,next)=>{try{const area=String(req.params.area||"").toUpperCase();if(roleName(req.user)!=="ADMINISTRADOR"&&roleName(req.user)!==area)throw httpError(403,"Solo puedes consultar el manual de tu área");res.json(await operationalRecipeManual(area));}catch(error){next(error);}});
 app.get("/api/technical-recipes/sales", requireInventoryAdmin, async (req, res, next) => { try { res.json(await listRecipeSales(req.query.recipeId)); } catch (error) { next(error); } });
 app.get("/api/operational-recipes/:area", requireFoodOperationsUser, async (req, res, next) => { try { const area=String(req.params.area||"").toUpperCase(); if(roleName(req.user)!=="ADMINISTRADOR"&&roleName(req.user)!==area) throw httpError(403,"Solo puedes consultar el manual de tu área"); res.json(await operationalRecipeManual(area)); } catch (error) { next(error); } });
 app.get("/api/technical-recipes/:id", requireInventoryAdmin, async (req, res, next) => { try { res.json(await getTechnicalRecipe(req.params.id)); } catch (error) { next(error); } });
@@ -1028,15 +1284,130 @@ app.post("/api/inventory/daily-close", async (req, res, next) => {
 });
 app.get("/api/events/spaces", async (_req, res, next) => { try { const state = await readState(); res.json(eventSpaces(state)); } catch (error) { next(error); } });
 app.get("/api/configuracion", async (_req, res, next) => { try { const state = await readState(); res.json([state.settings]); } catch (error) { next(error); } });
-app.get("/api/caja", async (_req, res, next) => { try { const state = await readState(); const paymentRows = state.payments.map((item) => ({ ...hydratePayment(state, item), type: "INGRESO" })); const movements = [...state.cashMovements, ...paymentRows].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))); const income = movements.filter((item) => item.type !== "EGRESO").reduce((sum, item) => sum + Number(item.amount), 0); const expenses = movements.filter((item) => item.type === "EGRESO").reduce((sum, item) => sum + Number(item.amount), 0); res.json({ summary: { income, expenses, balance: round(income - expenses) }, movements }); } catch (error) { next(error); } });
-app.get("/api/caja/cierre-diario", requireCashAdmin, async (_req, res, next) => { try { const state = await readState(); const date = hotelToday(state); const summary = cashClosingSummary(state, date); const closure = (state.cashClosings || []).find((item) => item.date === date) || null; res.json({ date, ...summary, closure }); } catch (error) { next(error); } });
-app.post("/api/caja/cierre-diario", requireCashAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const date = hotelToday(state); state.cashClosings ||= []; const existing = state.cashClosings.find((item) => item.date === date); if (existing) throw httpError(409, "La caja de hoy ya fue cerrada. Revisa el cierre registrado antes de realizar otra acción."); const summary = cashClosingSummary(state, date); const actualCash = Number(req.body.actualCash); if (!Number.isFinite(actualCash) || actualCash < 0) throw httpError(400, "Ingresa el efectivo físico contado para cerrar caja."); const item = { id: nextId(state, "cashClosing"), date, expectedCash: summary.expectedCash, actualCash: round(actualCash), variance: round(actualCash - summary.expectedCash), approvedPayments: summary.approvedPayments, digitalPayments: summary.digitalPayments, cashMovements: summary.cashMovements, notes: String(req.body.notes || "").trim(), status: "CERRADA", closedAt: now(), closedById: req.user.id }; state.cashClosings.unshift(item); audit(state, "CAJA", "CIERRE_DIARIO", `${date}: esperado S/ ${item.expectedCash}, contado S/ ${item.actualCash}`, req.user.id); return item; }); res.status(201).json(result); } catch (error) { next(error); } });
+app.get("/api/caja", requireCashAdmin, async (req, res, next) => { try { if (req.user.displayRole !== "SUPERADMIN") throw httpError(403, "Solo el Superadmin puede acceder al resumen global de caja."); const state = await readState(); const paymentRows = state.payments.map((item) => ({ ...hydratePayment(state, item), type: "INGRESO" })); const movements = [...state.cashMovements, ...paymentRows].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))); const income = movements.filter((item) => item.type !== "EGRESO").reduce((sum, item) => sum + Number(item.amount), 0); const expenses = movements.filter((item) => item.type === "EGRESO").reduce((sum, item) => sum + Number(item.amount), 0); res.json({ summary: { income, expenses, balance: round(income - expenses) }, movements }); } catch (error) { next(error); } });
+
+app.get("/api/cash-sessions/current", requireCashAdmin, async (req, res, next) => {
+  try {
+    const state = await readState();
+    // Assuming each user has one active shift
+    const session = (state.cashSessions || []).find((item) => item.userId === req.user.id && item.status === "ABIERTA");
+    res.json(session || null);
+  } catch (error) { next(error); }
+});
+
+app.get("/api/cash-sessions", requireCashAdmin, async (req, res, next) => {
+  try {
+    const state = await readState();
+    let sessions = state.cashSessions || [];
+    if (req.user.displayRole !== "SUPERADMIN") {
+      sessions = sessions.filter((item) => item.userId === req.user.id);
+    }
+    res.json(sessions);
+  } catch (error) { next(error); }
+});
+
+app.post("/api/cash-sessions", requireCashAdmin, async (req, res, next) => {
+  try {
+    const result = await mutateState((state) => {
+      state.cashSessions ||= [];
+      const date = hotelToday(state);
+      const existing = state.cashSessions.find((item) => 
+        item.userId === req.user.id && 
+        item.date === date && 
+        (item.status === "ABIERTA" || item.status === "EN_REVISION")
+      );
+      if (existing) throw httpError(409, "Ya tienes una sesión abierta o en revisión para el día de hoy.");
+      const initialFund = Number(req.body.initialFund || 0);
+      const item = {
+        id: nextId(state, "cashSession"),
+        date,
+        userId: req.user.id,
+        initialFund,
+        expectedCash: initialFund,
+        status: "ABIERTA",
+        openedAt: now(),
+        movements: [] // Will track IDs or just rely on global cashMovements linked by sessionId
+      };
+      state.cashSessions.unshift(item);
+      audit(state, "CAJA", "APERTURA_TURNO", `Fondo S/ ${initialFund}`, req.user.id);
+      return item;
+    });
+    res.status(201).json(result);
+  } catch (error) { next(error); }
+});
+
+app.post("/api/cash-sessions/:id/submit", requireCashAdmin, async (req, res, next) => {
+  try {
+    const result = await mutateState((state) => {
+      const session = (state.cashSessions || []).find((item) => item.id === Number(req.params.id));
+      if (!session) throw httpError(404, "Sesión de caja no encontrada.");
+      if (req.user.displayRole !== "SUPERADMIN" && session.userId !== req.user.id) {
+        throw httpError(403, "Solo puedes enviar a revisión tu propia sesión de caja.");
+      }
+      if (req.user.displayRole === "SUPERADMIN") {
+        throw httpError(403, "SUPERADMIN no debe enviar rendiciones en nombre del Admin desde esta ruta.");
+      }
+      if (session.status !== "ABIERTA") throw httpError(409, "La sesión no está abierta.");
+      
+      const actualCash = Number(req.body.actualCash);
+      if (!Number.isFinite(actualCash) || actualCash < 0) throw httpError(400, "Ingresa el efectivo físico contado.");
+      
+      // Calculate expected from movements
+      const sessionMovements = (state.cashMovements || []).filter(m => m.sessionId === session.id);
+      const income = sessionMovements.filter(m => m.type !== "EGRESO").reduce((acc, m) => acc + Number(m.amount), 0);
+      const expenses = sessionMovements.filter(m => m.type === "EGRESO").reduce((acc, m) => acc + Number(m.amount), 0);
+      
+      session.expectedCash = session.initialFund + income - expenses;
+      session.actualCash = round(actualCash);
+      session.variance = round(actualCash - session.expectedCash);
+      session.notes = String(req.body.notes || "").trim();
+      session.status = "EN_REVISION";
+      session.submittedAt = now();
+      
+      audit(state, "CAJA", "ENVIO_RENDICION", `ID ${session.id}: esperado S/ ${session.expectedCash}, contado S/ ${session.actualCash}`, req.user.id);
+      return session;
+    });
+    res.json(result);
+  } catch (error) { next(error); }
+});
+
+app.patch("/api/cash-sessions/:id/status", requireCashAdmin, async (req, res, next) => {
+  try {
+    const result = await mutateState((state) => {
+      if (req.user.displayRole !== "SUPERADMIN") throw httpError(403, "Solo el Superadmin puede aprobar o rechazar cajas.");
+      const session = (state.cashSessions || []).find((item) => item.id === Number(req.params.id));
+      if (!session) throw httpError(404, "Sesión de caja no encontrada.");
+      if (session.status !== "EN_REVISION") throw httpError(409, "La sesión no está pendiente de revisión.");
+      if (req.body.status !== "APROBADA" && req.body.status !== "RECHAZADA") {
+        throw httpError(400, "El estado solo puede ser APROBADA o RECHAZADA.");
+      }
+      
+      session.status = req.body.status;
+      session.reviewedAt = now();
+      session.reviewedById = req.user.id;
+      
+      audit(state, "CAJA", "REVISION_RENDICION", `ID ${session.id}: ${session.status}`, req.user.id);
+      return session;
+    });
+    res.json(result);
+  } catch (error) { next(error); }
+});
+
+app.get("/api/caja/cierre-diario", requireCashAdmin, async (req, res, next) => { try { if (req.user.displayRole !== "SUPERADMIN") throw httpError(403, "Solo el Superadmin puede acceder al cierre diario definitivo."); const state = await readState(); const date = hotelToday(state); const summary = cashClosingSummary(state, date); const closure = (state.cashClosings || []).find((item) => item.date === date) || null; res.json({ date, ...summary, closure }); } catch (error) { next(error); } });
+app.post("/api/caja/cierre-diario", requireCashAdmin, async (req, res, next) => { try { if (req.user.displayRole !== "SUPERADMIN") throw httpError(403, "Solo el Superadmin puede realizar el cierre diario definitivo."); const result = await mutateState((state) => { const date = hotelToday(state); state.cashClosings ||= []; const existing = state.cashClosings.find((item) => item.date === date); if (existing) throw httpError(409, "La caja de hoy ya fue cerrada. Revisa el cierre registrado antes de realizar otra acción."); const summary = cashClosingSummary(state, date); const actualCash = Number(req.body.actualCash); if (!Number.isFinite(actualCash) || actualCash < 0) throw httpError(400, "Ingresa el efectivo físico contado para cerrar caja."); const item = { id: nextId(state, "cashClosing"), date, expectedCash: summary.expectedCash, actualCash: round(actualCash), variance: round(actualCash - summary.expectedCash), approvedPayments: summary.approvedPayments, digitalPayments: summary.digitalPayments, cashMovements: summary.cashMovements, notes: String(req.body.notes || "").trim(), status: "CERRADA", closedAt: now(), closedById: req.user.id }; state.cashClosings.unshift(item); audit(state, "CAJA", "CIERRE_DIARIO", `${date}: esperado S/ ${item.expectedCash}, contado S/ ${item.actualCash}`, req.user.id); return item; }); res.status(201).json(result); } catch (error) { next(error); } });
 
 app.get("/api/cleaning/tasks", async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.tasks.filter((item) => !req.query.status || item.status === req.query.status), req.query.order).map((item) => hydrateTask(state, item))); } catch (error) { next(error); } });
 app.patch("/api/cleaning/tasks/:id/start", requireActiveStaffShift, taskStatus("EN_LIMPIEZA"));
 app.patch("/api/cleaning/tasks/:id/finish", requireActiveStaffShift, taskStatus("FINALIZADA"));
 app.post("/api/cleaning/tasks/:id/evidence", requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const task = state.tasks.find((item) => item.id === Number(req.params.id)); if (!task) throw httpError(404, "Tarea no encontrada"); task.evidences ||= []; const entries = (req.body.files?.length ? req.body.files : [{ fileUrl: "/demo-evidence.svg" }]).map((file, index) => ({ id: Date.now() + index, ...file, description: req.body.description || "Evidencia", createdAt: now() })); task.evidences.push(...entries); audit(state, "LIMPIEZA", "EVIDENCIA", task.code, req.user.id); return hydrateTask(state, task); }); res.status(201).json(result); } catch (error) { next(error); } });
 app.post("/api/cleaning/tasks/:id/report", requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const task = state.tasks.find((item) => item.id === Number(req.params.id)); if (!task) throw httpError(404, "Tarea no encontrada"); const report = createReport(state, { ...req.body, area: "LIMPIEZA", location: `Habitacion ${task.room?.number || task.roomId}`, requiresMaintenance: ["MANTENIMIENTO", "DANO_INFRAESTRUCTURA"].includes(req.body.type) }); task.operationalReports ||= []; task.operationalReports.unshift(report); return report; }); res.status(201).json(result); } catch (error) { next(error); } });
+// Consola de Recepción: el personal operativo no entra al ERP. Las fotos y
+// mensajes recibidos por WhatsApp se registran aquí con trazabilidad.
+app.get("/api/reception/tasks", requireReceptionAdmin, async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.tasks.filter((item) => !req.query.status || item.status === req.query.status), req.query.order).map((item) => hydrateTask(state, item))); } catch (error) { next(error); } });
+app.patch("/api/reception/tasks/:id/assign", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const task = state.tasks.find((item) => item.id === Number(req.params.id)); if (!task) throw httpError(404, "Tarea no encontrada"); const assignedTo = String(req.body.assignedTo || "").trim(); if (!assignedTo) throw httpError(400, "Indica a quién avisaste por WhatsApp"); task.assignedTo = assignedTo; task.assignedAt = now(); task.assignedById = req.user.id; task.assignedVia = "WHATSAPP"; task.updatedAt = now(); audit(state, "HABITACIONES", "ASIGNAR_WHATSAPP", `${task.code}: ${assignedTo}`, req.user.id); return hydrateTask(state, task); }); res.json(result); } catch (error) { next(error); } });
+app.patch("/api/reception/tasks/:id/start", requireReceptionAdmin, receptionTaskStatus("EN_LIMPIEZA"));
+app.patch("/api/reception/tasks/:id/finish", requireReceptionAdmin, receptionTaskStatus("FINALIZADA"));
+app.post("/api/reception/tasks/:id/evidence", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const task = state.tasks.find((item) => item.id === Number(req.params.id)); if (!task) throw httpError(404, "Tarea no encontrada"); const stage = req.body.stage === "SALIDA" ? "SALIDA" : "ENTRADA"; const files = Array.isArray(req.body.files) ? req.body.files : []; if (!files.length) throw httpError(400, "Adjunta la evidencia recibida por WhatsApp"); task.evidences ||= []; task.evidences.push(...files.map((file, index) => ({ id: Date.now() + index, ...file, stage, description: `${stage === "ENTRADA" ? "Evidencia de entrada" : "Evidencia de salida"} · WhatsApp: ${String(req.body.description || "Sin detalle").trim()}`, receivedVia: "WHATSAPP", registeredById: req.user.id, createdAt: now() }))); task.updatedAt = now(); audit(state, "HABITACIONES", `EVIDENCIA_${stage}`, task.code, req.user.id); return hydrateTask(state, task); }); res.status(201).json(result); } catch (error) { next(error); } });
 app.post(
   ["/api/cleaning/evidence/upload", "/api/reports/evidence/upload"],
   express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "10mb" }),
@@ -1071,7 +1442,7 @@ app.patch("/api/cochera/entries/:id/finish", async (req, res, next) => { try { c
 app.patch("/api/compras/:id/receive", (_req, res) => res.status(410).json({ message: "La recepción automática fue retirada: registra cantidades físicas en Compras y recepción.", endpoint: "/api/purchasing/orders/:id/receipts" }));
 app.post("/api/compras", (_req, res) => res.status(410).json({ message: "Usa el flujo trazable de órdenes de compra.", endpoint: "/api/purchasing/orders" }));
 
-app.post("/api/caja/movements", async (req, res, next) => { try { const result = await mutateState((state) => { const item = { id: Date.now(), ...req.body, amount: Number(req.body.amount), createdAt: now() }; state.cashMovements.unshift(item); audit(state, "CAJA", item.type, item.concept, req.user.id); return item; }); res.status(201).json(result); } catch (error) { next(error); } });
+app.post("/api/caja/movements", async (req, res, next) => { try { const result = await mutateState((state) => { const activeSession = (state.cashSessions || []).find(s => s.userId === req.user.id && s.status === "ABIERTA"); const sessionId = activeSession ? activeSession.id : null; const item = { id: Date.now(), ...req.body, amount: Number(req.body.amount), createdAt: now(), sessionId }; state.cashMovements.unshift(item); audit(state, "CAJA", item.type, item.concept, req.user.id); return item; }); res.status(201).json(result); } catch (error) { next(error); } });
 app.put("/api/configuracion", async (req, res, next) => { try { const result = await mutateState((state) => { state.settings = { ...state.settings, ...req.body, taxRate: Number(req.body.taxRate ?? state.settings.taxRate), updatedAt: now() }; audit(state, "CONFIGURACION", "EDITAR", "Parametros del hotel", req.user.id); return state.settings; }); res.json(result); } catch (error) { next(error); } });
 
 app.post("/api/events", async (req, res, next) => { try { const result = await mutateState((state) => createEvent(state, req.body, req.user.id)); res.status(201).json(result); } catch (error) { next(error); } });
@@ -1084,6 +1455,7 @@ app.post("/api/facturacion", async (req, res, next) => { try { const result = aw
 
 app.post("/api/usuarios", async (req, res, next) => { try { const result = await mutateState((state) => saveUser(state, null, req.body, req.user.id)); res.status(201).json(result); } catch (error) { next(error); } });
 app.put("/api/usuarios/:id", async (req, res, next) => { try { const result = await mutateState((state) => saveUser(state, Number(req.params.id), req.body, req.user.id)); res.json(result); } catch (error) { next(error); } });
+app.patch("/api/usuarios/:id/status", requireInventoryAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const user = state.users.find((item) => item.id === Number(req.params.id)); if (!user) throw httpError(404, "Trabajador no encontrado"); const status = String(req.body.status || "").toUpperCase(); if (!["ACTIVO", "INACTIVO"].includes(status)) throw httpError(400, "Estado no válido"); if (user.id === req.user.id && status !== "ACTIVO") throw httpError(409, "No puedes desactivar tu propia cuenta"); user.status = status; user.updatedAt = now(); const employee = state.employees.find((item) => item.id === user.id); if (employee) Object.assign(employee, { status, updatedAt: user.updatedAt }); audit(state, "USUARIOS", status === "ACTIVO" ? "REACTIVAR" : "ARCHIVAR", user.email, req.user.id); return hydrateUser(state, user); }); res.json(result); } catch (error) { next(error); } });
 app.put("/api/roles/:id/permissions", async (req, res, next) => { try { const result = await mutateState((state) => { const role = state.roles.find((item) => item.id === Number(req.params.id)); if (!role) throw httpError(404, "Rol no encontrado"); const catalog = state.roles.find((item) => item.name === "ADMINISTRADOR")?.permissions || []; role.permissions = catalog.filter((permission) => req.body.permissionIds.map(Number).includes(permission.id)); state.users.filter((user) => user.role === role.name).forEach((user) => { user.permissions = role.permissions.map((permission) => permission.code); }); audit(state, "ROLES", "PERMISOS", role.name, req.user.id); return hydrateRole(role); }); res.json(result); } catch (error) { next(error); } });
 
 app.post("/api/pool", async (req, res, next) => { try { const result = await mutateState((state) => { const client = state.clients.find((item) => item.id === Number(req.body.clientId)); if (!client) throw httpError(404, "Cliente no encontrado"); const id = Date.now(); const entry = { id, qrCode: `MAN-${String(id).slice(-6)}`, clientId: client.id, client, type: req.body.type || "HUESPED", people: Number(req.body.people || 1), status: "ACTIVO", enteredAt: now(), employeeId: req.user.id }; state.poolEntries.unshift(entry); audit(state, "PISCINA", "INGRESO_MANUAL", `${entry.people} personas`, req.user.id); return entry; }); res.status(201).json(result); } catch (error) { next(error); } });
@@ -1093,25 +1465,40 @@ app.post("/api/pool/reports", async (req, res, next) => { try { const result = a
 app.get("/api/attendance", async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.attendance || [], req.query.order)); } catch (error) { next(error); } });
 app.post("/api/attendance/clock", async (req, res, next) => { try { const result = await mutateState(async (state, client) => { const user = state.users.find(u => u.pin === String(req.body.pin)); if (!user) throw httpError(401, "PIN incorrecto o usuario no encontrado"); const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(user.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut)); const action = open ? "SALIDA" : "INGRESO"; const record = await recordAttendance(state, client, user.id, action, user.id); return { success: true, user: user.firstName, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null }; }); res.json(result); } catch (error) { next(error); } });
 
-app.get("/api/shifts", async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.shifts || [], req.query.order)); } catch (error) { next(error); } });
-app.post("/api/shifts", async (req, res, next) => { try { const result = await mutateState((state) => { const shift = { id: Math.max(0, ...state.shifts.map(s=>s.id))+1, userId: Number(req.body.userId), shiftType: req.body.shiftType, date: req.body.date, createdAt: now() }; state.shifts.push(shift); audit(state, "TURNOS", "ASIGNAR", `${shift.shiftType} a Usuario ${shift.userId}`, req.user.id); return shift; }); res.status(201).json(result); } catch (error) { next(error); } });
+
 
 const resourceMap = { clients: "clients", events: "events", eventos: "events", restaurante: "orders", bartender: "orders", cleaning: "tasks", products: "inventory", proveedores: "proveedores", compras: "compras", orders: "orders", cochera: "cochera", pagos: "payments", facturacion: "facturacion", auditoria: "audit", usuarios: "users", roles: "roles", pool: "poolEntries", requests: "requests" };
-app.get("/api/:resource", async (req, res, next) => { try { const state = await readState(); const key = resourceMap[req.params.resource]; if (!key) return res.status(404).json({ message: "Recurso no encontrado" }); let rows = state[key]; if (["restaurante", "bartender"].includes(req.params.resource)) rows = rows.filter((item) => item.area === req.params.resource.toUpperCase()); if (req.params.resource === "products" && req.query.includeArchived !== "true") rows = rows.filter(isOperationalProduct); if (req.query.status) rows = rows.filter((item) => item.status === req.query.status); if (["clients", "events", "orders", "payments", "requests", "tasks", "facturacion", "cashMovements", "poolEntries", "compras", "audit"].includes(key)) rows = sortRecent(rows, req.query.order); const hydrators = { restaurante: (item) => hydrateOrder(state, item), bartender: (item) => hydrateOrder(state, item), orders: (item) => hydrateOrder(state, item), products: (item) => hydrateProduct(item), pagos: (item) => hydratePayment(state, item), facturacion: (item) => hydrateInvoice(state, item), usuarios: (item) => hydrateUser(state, item), roles: (item) => hydrateRole(item), auditoria: (item) => ({ ...item, user: state.users.find((user) => user.id === item.userId) }), compras: (item) => ({ ...item, supplier: state.proveedores.find((supplier) => supplier.id === Number(item.supplierId)) }), cochera: (item) => ({ ...item, entries: (item.entries || []).map((entry) => hydrateParkingEntry(state, entry)) }) }; res.json(rows.map(hydrators[req.params.resource] || ((item) => item))); } catch (error) { next(error); } });
-app.post("/api/:resource", async (req, res, next) => { try { const key = resourceMap[req.params.resource]; if (!key) return res.status(404).json({ message: "Recurso no encontrado" }); const item = await mutateState(async (state, client) => { const id = Math.max(0, ...state[key].map((row) => Number(row.id) || 0)) + 1; let value = { id, ...req.body, createdAt: now() }; if (["restaurante", "bartender", "orders"].includes(req.params.resource)) { value.items = (value.items || []).map(entry => { const found = state.menuItems.find(m => Number(m.id) === Number(entry.menuItemId)) || state.menuItems.find(m => m.code === entry.code); return found ? { ...entry, menuItemId: found.id, name: found.name, price: Number(found.price), area: found.area, recipe: found.recipe || [] } : entry; }); value.code = value.code || code("PED", id); value.area ||= req.params.resource === "bartender" ? "BARTENDER" : req.params.resource === "restaurante" ? "RESTAURANTE" : value.area; validateOrderSchema(state, value); } if (req.params.resource === "products") value = { ...value, categoryId: Number(req.body.categoryId || 1), stock: Number(req.body.stock || 0), reserved: 0, minStock: Number(req.body.minStock || 0), cost: Number(req.body.cost || 0), price: Number(req.body.price || 0) }; if (req.params.resource === "compras") value = { ...value, supplierId: Number(req.body.supplierId), items: (req.body.items || []).map((line) => ({ ...line, productId: Number(line.productId), quantity: Number(line.quantity), cost: Number(line.cost) })), total: round((req.body.items || []).reduce((sum, line) => sum + Number(line.quantity) * Number(line.cost), 0)), status: "PENDIENTE" }; state[key].push(value); audit(state, req.params.resource.toUpperCase(), "CREAR", String(value.name || value.code || value.id), req.user.id); if (["restaurante", "bartender", "orders"].includes(req.params.resource)) { await confirmOrdersInventory(client, state, [value], req.user.id); } return value; }); res.status(201).json(item); } catch (error) { next(error); } });
+app.get("/api/:resource", async (req, res, next) => { try { const state = await readState(); const key = resourceMap[req.params.resource]; if (!key) return res.status(404).json({ message: "Recurso no encontrado" }); if (["restaurante", "bartender"].includes(req.params.resource)) { const allowedRoles = ["SUPERADMIN", "ADMINISTRADOR", req.params.resource.toUpperCase()]; if (!allowedRoles.includes(req.user.role)) { return res.status(403).json({ message: "No tienes permisos para esta área" }); } } let rows = state[key]; if (["restaurante", "bartender"].includes(req.params.resource)) rows = rows.filter((item) => item.area === req.params.resource.toUpperCase()); if (req.params.resource === "products" && req.query.includeArchived !== "true") rows = rows.filter(isOperationalProduct); if (req.query.status) rows = rows.filter((item) => item.status === req.query.status); if (["clients", "events", "orders", "payments", "requests", "tasks", "facturacion", "cashMovements", "poolEntries", "compras", "audit"].includes(key)) rows = sortRecent(rows, req.query.order); const hydrators = { restaurante: (item) => hydrateOrder(state, item), bartender: (item) => hydrateOrder(state, item), orders: (item) => hydrateOrder(state, item), products: (item) => hydrateProduct(item), pagos: (item) => hydratePayment(state, item), facturacion: (item) => hydrateInvoice(state, item), usuarios: (item) => hydrateUser(state, item), roles: (item) => hydrateRole(item), auditoria: (item) => ({ ...item, user: state.users.find((user) => user.id === item.userId) }), compras: (item) => ({ ...item, supplier: state.proveedores.find((supplier) => supplier.id === Number(item.supplierId)) }), cochera: (item) => ({ ...item, entries: (item.entries || []).map((entry) => hydrateParkingEntry(state, entry)) }) }; res.json(rows.map(hydrators[req.params.resource] || ((item) => item))); } catch (error) { next(error); } });
+app.post("/api/:resource", async (req, res, next) => { try { const key = resourceMap[req.params.resource]; if (!key) return res.status(404).json({ message: "Recurso no encontrado" }); if (["restaurante", "bartender"].includes(req.params.resource)) { const allowedRoles = ["SUPERADMIN", "ADMINISTRADOR", req.params.resource.toUpperCase()]; if (!allowedRoles.includes(req.user.role)) { return res.status(403).json({ message: "No tienes permisos para esta área" }); } } const item = await mutateState(async (state, client) => { const id = Math.max(0, ...state[key].map((row) => Number(row.id) || 0)) + 1; let value = { id, ...req.body, createdAt: now() }; if (["restaurante", "bartender", "orders"].includes(req.params.resource)) { value.items = (value.items || []).map(entry => { const found = state.menuItems.find(m => Number(m.id) === Number(entry.menuItemId)) || state.menuItems.find(m => m.code === entry.code); return found ? { ...entry, menuItemId: found.id, name: found.name, price: Number(found.price), area: found.area, recipe: found.recipe || [] } : entry; }); value.code = value.code || code("PED", id); value.area ||= req.params.resource === "bartender" ? "BARTENDER" : req.params.resource === "restaurante" ? "RESTAURANTE" : value.area; validateOrderSchema(state, value); } if (req.params.resource === "products") value = { ...value, categoryId: Number(req.body.categoryId || 1), stock: Number(req.body.stock || 0), reserved: 0, minStock: Number(req.body.minStock || 0), cost: Number(req.body.cost || 0), price: Number(req.body.price || 0) }; if (req.params.resource === "compras") value = { ...value, supplierId: Number(req.body.supplierId), items: (req.body.items || []).map((line) => ({ ...line, productId: Number(line.productId), quantity: Number(line.quantity), cost: Number(line.cost) })), total: round((req.body.items || []).reduce((sum, line) => sum + Number(line.quantity) * Number(line.cost), 0)), status: "PENDIENTE" }; state[key].push(value); audit(state, req.params.resource.toUpperCase(), "CREAR", String(value.name || value.code || value.id), req.user.id); if (["restaurante", "bartender", "orders"].includes(req.params.resource)) { await confirmOrdersInventory(client, state, [value], req.user.id); } return value; }); res.status(201).json(item); } catch (error) { next(error); } });
 app.all("/api/*", (req, res) => res.status(404).json({ message: `La operacion ${req.method} ${req.path} aun no existe` }));
 
 app.use((error, _req, res, _next) => { console.error(error); res.status(error.status || 500).json({ message: error.status ? error.message : "Error interno del servidor", fieldErrors: error.fieldErrors, details: process.env.NODE_ENV === "production" ? undefined : error.stack }); });
 
 async function clientAuth(req, res, next) { try { const payload = jwt.verify(req.headers.authorization?.replace(/^Bearer\s+/i, "") || "", jwtSecret); if (payload.kind !== "CLIENT") throw new Error(); const state = await readState(); req.client = state.clients.find((item) => item.id === Number(payload.sub)); if (!req.client || ["BLOQUEADO", "INACTIVO"].includes(req.client.status)) throw new Error(); next(); } catch { res.status(401).json({ message: "Identificación del cliente no válida o cuenta deshabilitada" }); } }
-async function staffAuth(req, res, next) { try { const payload = jwt.verify(req.headers.authorization?.replace(/^Bearer\s+/i, "") || "", jwtSecret); if (payload.kind !== "STAFF") throw new Error(); const state = await readState(); req.user = state.users.find((item) => item.id === Number(payload.sub)); if (!req.user || req.user.status !== "ACTIVO") throw new Error(); next(); } catch { void writeSecurityAudit({ req, eventType: "AUTH_REJECTED", operation: "STAFF_AUTH", reason: "Token inválido, expirado o cuenta deshabilitada", status: 401 }); res.status(401).json({ message: "Sesión no válida o expirada" }); } }
+async function biometricBridgeAuth(req, res, next) {
+  try {
+    const state = await readState();
+    const configuredKey = String(state.settings?.biometric?.bridgeKey || "");
+    const receivedKey = String(req.headers["x-biometric-key"] || "");
+    if (!state.settings?.biometric?.enabled || !configuredKey || receivedKey !== configuredKey) throw new Error();
+    next();
+  } catch { res.status(401).json({ message: "Puente biométrico no autorizado o no configurado" }); }
+}
+async function staffAuth(req, res, next) { try { const payload = jwt.verify(req.headers.authorization?.replace(/^Bearer\s+/i, "") || "", jwtSecret); if (payload.kind !== "STAFF") throw new Error(); const state = await readState(); const identity = state.users.find((item) => item.id === Number(payload.sub)); if (!identity || identity.status !== "ACTIVO") throw new Error(); req.user = identity.role === "SUPERADMIN" ? { ...identity, role: "ADMINISTRADOR", displayRole: "SUPERADMIN" } : identity; next(); } catch { void writeSecurityAudit({ req, eventType: "AUTH_REJECTED", operation: "STAFF_AUTH", reason: "Token inválido, expirado o cuenta deshabilitada", status: 401 }); res.status(401).json({ message: "Sesión no válida o expirada" }); } }
 function roleName(user) { return normalizeStaffRole(typeof user?.role === "string" ? user.role : user?.role?.name); }
 function guarded(operation, roles, message) { return async (req, res, next) => { if (!roles.includes(roleName(req.user))) { void writeSecurityAudit({ req, user: req.user, eventType: "AUTHORIZATION_REJECTED", operation, reason: `Rol ${roleName(req.user) || "SIN_ROL"} no autorizado`, status: 403 }); return res.status(403).json({ message }); } res.once("finish", () => { if (res.statusCode >= 200 && res.statusCode < 400) void writeSecurityAudit({ req, user: req.user, eventType: "API_OPERATION", operation, reason: "Operación autorizada", status: res.statusCode }); }); next(); }; }
-function requireInventoryAdmin(req, res, next) { return guarded("ADMIN_INVENTORY", ["ADMINISTRADOR"], "Solo Administración puede realizar esta operación de inventario")(req, res, next); }
+function isReceptionAdmin(user) { return roleName(user) === "ADMINISTRADOR" && (user?.position === "ADMIN_RECEPCION" || user?.operationalArea === "RECEPCION" || String(user?.email || "").toLowerCase() === "recepcion@parkplaza.com"); }
+function requireFullAdministration(operation, message) { return async (req, res, next) => { if (roleName(req.user) !== "ADMINISTRADOR" || isReceptionAdmin(req.user)) { void writeSecurityAudit({ req, user: req.user, eventType: "AUTHORIZATION_REJECTED", operation, reason: "El Admin de recepción no posee control central", status: 403 }); return res.status(403).json({ message }); } res.once("finish", () => { if (res.statusCode >= 200 && res.statusCode < 400) void writeSecurityAudit({ req, user: req.user, eventType: "API_OPERATION", operation, reason: "Operación autorizada", status: res.statusCode }); }); next(); }; }
+function requireInventoryAdmin(req, res, next) { return requireFullAdministration("ADMIN_INVENTORY", "Solo el Superadmin puede administrar costos, recetas e inventario central")(req, res, next); }
 function requireCashAdmin(req, res, next) { return guarded("CASH_CLOSING", ["ADMINISTRADOR"], "Solo Administración puede cerrar la caja diaria")(req, res, next); }
-function requirePurchasingAdmin(req, res, next) { return guarded("PURCHASING", ["ADMINISTRADOR"], "Solo Administración puede gestionar compras y recepciones")(req, res, next); }
+function requireReceptionAdmin(req, res, next) { return guarded("RECEPTION_TASKS", ["ADMINISTRADOR"], "Solo el Admin de recepción puede registrar evidencias y cerrar tareas")(req, res, next); }
+function requirePurchasingAdmin(req, res, next) { return requireFullAdministration("PURCHASING", "Solo el Superadmin puede gestionar compras y recepciones")(req, res, next); }
 function requireTransferUser(req, res, next) { return guarded("WAREHOUSE_TRANSFER", ["ADMINISTRADOR", "RESTAURANTE", "BARTENDER"], "Tu rol no participa en transferencias de almacén")(req, res, next); }
 function requireOperationalInventoryUser(req, res, next) { return guarded("OPERATIONAL_INVENTORY", ["ADMINISTRADOR", "RESTAURANTE", "BARTENDER"], "Tu rol no participa en inventarios operativos")(req, res, next); }
+function requireStockRequestUser(req, res, next) {
+  if (["RESTAURANTE", "BARTENDER"].includes(roleName(req.user))) return next();
+  return requireInventoryAdmin(req, res, next);
+}
 function requireFoodOperationsUser(req, res, next) { return guarded("OPERATIONAL_RECIPE_MANUAL", ["ADMINISTRADOR", "RESTAURANTE", "BARTENDER"], "Tu rol no puede consultar manuales de producción")(req, res, next); }
 function requireBarBottleUser(req, res, next) { return guarded("BAR_BOTTLES", ["ADMINISTRADOR", "BARTENDER"], "Solo Bar o Administración pueden controlar botellas")(req, res, next); }
 function requireTransformationUser(req, res, next) { return guarded("KITCHEN_TRANSFORMATION", ["ADMINISTRADOR", "RESTAURANTE"], "Solo Cocina o Administración pueden procesar, producir o porcionar")(req, res, next); }
@@ -1221,6 +1608,7 @@ function summaryReports(rows) { return { open: rows.filter((item) => item.status
 
 async function updateOrderStatus(req, res, next) {
   try {
+    if (isReceptionAdmin(req.user)) throw httpError(403, "El Admin de recepción puede supervisar pedidos, pero no cambiar su producción");
     const expectedArea = req.path.includes("/bartender/") ? "BARTENDER" : "RESTAURANTE";
     const order = await mutateState(async (state, client) => { const existing = state.orders.find((item) => Number(item.id) === Number(req.params.id)); if (existing?.area !== expectedArea) throw httpError(404, "Pedido no encontrado en esta área"); const item = await transitionOrderInventory(client, state, req.params.id, req.body.status, req.user, req.body); audit(state, "PEDIDOS", "ESTADO", `${item.code}: ${item.status}`, req.user.id); return item; });
     res.json(order);
@@ -1303,6 +1691,36 @@ function taskStatus(status) {
   };
 }
 
+function receptionTaskStatus(status) {
+  return async (req, res, next) => {
+    try {
+      const result = await mutateState((state) => {
+        const task = state.tasks.find((item) => item.id === Number(req.params.id));
+        if (!task) throw httpError(404, "Tarea no encontrada");
+        const evidence = task.evidences || [];
+        if (status === "FINALIZADA") {
+          const hasEntry = evidence.some((item) => item.stage === "ENTRADA" || /entrada/i.test(item.description || item.notes || ""));
+          const hasExit = evidence.some((item) => item.stage === "SALIDA" || /salida/i.test(item.description || item.notes || ""));
+          if (!hasEntry || !hasExit) throw httpError(409, "Registra la foto inicial y la foto final enviadas por WhatsApp antes de liberar la habitación");
+        }
+        task.status = status;
+        task.updatedAt = now();
+        if (status === "EN_LIMPIEZA") task.startedAt ||= now();
+        if (status === "FINALIZADA") {
+          task.finishedAt = now();
+          const sourceRequest = state.requests.find((item) => item.id === Number(task.requestId));
+          if (sourceRequest) { sourceRequest.status = "RESUELTO"; sourceRequest.resolvedAt = now(); sourceRequest.resolvedById = req.user.id; }
+          const room = state.rooms.find((item) => item.id === Number(task.roomId));
+          if (room && !task.requestId) room.status = "LIBRE";
+        }
+        audit(state, "HABITACIONES", status, task.code, req.user.id);
+        return hydrateTask(state, task);
+      });
+      res.json(result);
+    } catch (error) { next(error); }
+  };
+}
+
 function createReport(state, payload) {
   const id = nextId(state, "request");
   const requiresMaintenance = Boolean(payload.requiresMaintenance || ["MANTENIMIENTO", "DANO_EQUIPO", "DANO_INFRAESTRUCTURA"].includes(payload.type));
@@ -1332,6 +1750,18 @@ function experiencePricing(state) { const defaults = {
   EXTRAS_MIRADOR: [{ id: "VENTANA", name: "Mesa junto a la vista", price: 20 }, { id: "DECORACION", name: "Detalle de celebración", price: 45 }],
   EQUIPO_EVENTO: [{ id: "SONIDO", name: "Sonido y micrófonos", price: 350 }, { id: "PROYECTOR", name: "Proyector y pantalla", price: 180 }, { id: "DECORACION", name: "Decoración temática", price: 500 }, { id: "DJ", name: "DJ por 4 horas", price: 650 }]
 }; return { ...defaults, ...(state?.settings?.experiencePricing || {}) }; }
+function experienceMedia(state) {
+  const defaults = [
+    { code: "HOSPEDAJE", place: "Hotel Park Plaza", title: "HOTEL", title2: "PARK PLAZA", description: "Hospedaje pensado para descansar con reservas y accesos conectados.", imageUrl: "/images/experiences/hospedaje.webp" },
+    { code: "BAR", place: "Bar Park Plaza", title: "BAR", title2: "NOCTURNO", description: "Cócteles, bebidas y una atmósfera especial.", imageUrl: "/images/landing/park-plaza-bar-v1.png" },
+    { code: "PISCINA", place: "Días bajo el sol", title: "PISCINA", title2: "PARK PLAZA", description: "Accesos, acompañantes y pase QR en una sola experiencia.", imageUrl: "/images/experiences/piscina.webp" },
+    { code: "EVENTOS", place: "Celebra a tu manera", title: "ZONA DE", title2: "EVENTOS", description: "Ambiente, invitados, comida, bebidas, equipo y cochera.", imageUrl: "/images/experiences/eventos.webp" },
+    { code: "TERRAZA", place: "Terraza · Cocina", title: "SABORES", title2: "EN TERRAZA", description: "Platos, atención de cocina y un ambiente para compartir.", imageUrl: "/images/landing/park-plaza-terraza-v1.png" },
+    { code: "MIRADOR", place: "La ciudad desde arriba", title: "MIRADOR", title2: "PARK PLAZA", description: "Horarios, disponibilidad y una vista diferente de Pucallpa.", imageUrl: "/images/experiences/mirador.webp" },
+  ];
+  const saved = Array.isArray(state?.settings?.experienceMedia) ? state.settings.experienceMedia : [];
+  return defaults.map((item) => ({ ...item, ...(saved.find((entry) => entry.code === item.code) || {}) }));
+}
 function experienceCatalog(state) {
   const pricing = experiencePricing(state);
   return {

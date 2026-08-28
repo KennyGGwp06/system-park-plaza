@@ -15,8 +15,16 @@ const ReservationsPage = lazyPage(() => import("./modules/reservations/Reservati
 const ReceptionPage = lazyPage(() => import("./modules/reception/ReceptionPage"), "ReceptionPage");
 const CheckInPage = lazyPage(() => import("./modules/reception/CheckInPage"), "CheckInPage");
 const CheckOutPage = lazyPage(() => import("./modules/reception/CheckOutPage"), "CheckOutPage");
-const KitchenStationPage = lazyPage(() => import("./modules/employees/KitchenStationPage"), "KitchenStationPage");
-const BarStationPage = lazyPage(() => import("./modules/employees/BarStationPage"), "BarStationPage");
+const RestaurantLegacyFallback = lazyPage(() => import("./modules/employees/RestaurantLegacyFallback"), "RestaurantLegacyFallback");
+const RestaurantDashboard = lazyPage(() => import("./modules/employees/RestaurantDashboard"), "RestaurantDashboard");
+const RestaurantOrdersPage = lazyPage(() => import("./modules/employees/RestaurantOrdersPage"), "RestaurantOrdersPage");
+const RestaurantRecipesPage = lazyPage(() => import("./modules/employees/RestaurantRecipesPage"), "RestaurantRecipesPage");
+const RestaurantInventoryPage = lazyPage(() => import("./modules/employees/RestaurantInventoryPage"), "RestaurantInventoryPage");
+const BarDashboard = lazyPage(() => import("./modules/employees/BarPages"), "BarDashboard");
+const BarOrdersPage = lazyPage(() => import("./modules/employees/BarPages"), "BarOrdersPage");
+const BarRecipesPage = lazyPage(() => import("./modules/employees/BarPages"), "BarRecipesPage");
+const BarInventoryPage = lazyPage(() => import("./modules/employees/BarPages"), "BarInventoryPage");
+const BarLegacyFallback = lazyPage(() => import("./modules/employees/BarLegacyFallback"), "BarLegacyFallback");
 const PoolPage = lazyPage(() => import("./modules/employees/PoolPage"), "PoolPage");
 const CleaningPage = lazyPage(() => import("./modules/employees/CleaningPage"), "CleaningPage");
 const EventsPage = lazyPage(() => import("./modules/events/EventsPage"), "EventsPage");
@@ -37,9 +45,14 @@ const AdminBartenderPage = lazyPage(() => import("./modules/admin/AdminBartender
 const AdminRestaurantPage = lazyPage(() => import("./modules/admin/AdminRestaurantPage"), "AdminRestaurantPage");
 const FoodBeverageControlPage = lazyPage(() => import("./modules/admin/FoodBeverageControlPage"), "FoodBeverageControlPage");
 const AdminMaintenancePage = lazyPage(() => import("./modules/admin/AdminMaintenancePage"), "AdminMaintenancePage");
+const SuperAdminV6Page = lazyPage(() => import("./modules/admin/SuperAdminV6Page"), "SuperAdminV6Page");
+const SuperAdminLegacyFallback = lazyPage(() => import("./modules/admin/SuperAdminLegacyFallback"), "SuperAdminLegacyFallback");
+const AdminReceptionV6Page = lazyPage(() => import("./modules/admin/AdminReceptionV6Page"), "AdminReceptionV6Page");
+const AdminReceptionLegacyFallback = lazyPage(() => import("./modules/admin/AdminReceptionLegacyFallback"), "AdminReceptionLegacyFallback");
 const InventoryAdminDashboardPage = lazyPage(() => import("./modules/admin/InventoryAdminDashboardPage"), "InventoryAdminDashboardPage");
 const AdminMasterDashboard = lazyPage(() => import("./modules/admin/AdminCommandCenter"), "AdminCommandCenter");
 const CentralCashRegister = lazyPage(() => import("./modules/finance/CentralCashRegister"), "CentralCashRegister");
+const AdminMiCajaPage = lazyPage(() => import("./modules/finance/AdminMiCajaPage"), "AdminMiCajaPage");
 const AccessControlPage = lazyPage(() => import("./modules/admin/AccessControlPage"), "AccessControlPage");
 const AttendanceClockPage = lazyPage(() => import("./modules/employees/AttendanceClockPage"), "AttendanceClockPage");
 const WorkforcePage = lazyPage(() => import("./modules/admin/WorkforcePage"), "WorkforcePage");
@@ -54,17 +67,30 @@ const preloadersByRole = {
     () => import("./modules/admin/DataIntegrityPage")
   ],
   RECEPCION: [() => import("./modules/reception/ReceptionPage"), () => import("./modules/reception/CheckInPage")],
-  RESTAURANTE: [() => import("./modules/employees/KitchenStationPage")],
-  BARTENDER: [() => import("./modules/employees/BarStationPage")],
+  RESTAURANTE: [
+    () => import("./modules/employees/RestaurantDashboard"),
+    () => import("./modules/employees/RestaurantOrdersPage"),
+    () => import("./modules/employees/RestaurantRecipesPage"),
+    () => import("./modules/employees/RestaurantInventoryPage"),
+    () => import("./modules/employees/RestaurantLegacyFallback")
+  ],
+  BARTENDER: [
+    () => import("./modules/employees/BarPages"),
+    () => import("./modules/employees/BarLegacyFallback")
+  ],
   LIMPIEZA: [() => import("./modules/employees/CleaningPage")]
 };
 
 const protectedRoutes = [
   ["/dashboard", "DASHBOARD:VER", <Dashboard />],
-  ["/admin-panel", "ADMINISTRADOR:VER", <AdminMasterDashboard />, ["ADMINISTRADOR"]],
-  ["/admin-panel/caja-central", "ADMINISTRADOR:VER", <CentralCashRegister />, ["ADMINISTRADOR"]],
-  ["/admin/comercial", "INVENTARIO:VER", <CommercialSettingsPage />, ["ADMINISTRADOR"]],
-  ["/admin/alimentos-bebidas", "INVENTARIO:VER", <FoodBeverageControlPage />, ["ADMINISTRADOR"]],
+  ["/superadmin", "ADMINISTRADOR:VER", <SuperAdminV6Page />, ["SUPERADMIN"]],
+  ["/superadmin-legacy", "ADMINISTRADOR:VER", <SuperAdminLegacyFallback />, ["SUPERADMIN"]],
+  ["/admin-panel", "ADMINISTRADOR:VER", <AdminReceptionV6Page />, ["ADMINISTRADOR"]],
+  ["/admin-panel-legacy", "ADMINISTRADOR:VER", <AdminReceptionLegacyFallback />, ["ADMINISTRADOR"]],
+  ["/admin-panel/mi-caja", "ADMINISTRADOR:VER", <AdminMiCajaPage />, ["ADMINISTRADOR"]],
+  ["/admin-panel/caja-central", "ADMINISTRADOR:VER", <CentralCashRegister />, ["SUPERADMIN"]],
+  ["/admin/comercial", "INVENTARIO:VER", <CommercialSettingsPage />, ["SUPERADMIN"]],
+  ["/admin/alimentos-bebidas", "INVENTARIO:VER", <FoodBeverageControlPage />, ["SUPERADMIN"]],
   ["/clientes", "CLIENTES:VER", <ClientsPage />],
   ["/habitaciones", "HABITACIONES:VER", <RoomsPage />],
   ["/reservas", "RESERVAS:VER", <ReservationsPage />],
@@ -73,13 +99,15 @@ const protectedRoutes = [
   ["/recepcion", "RECEPCION:VER", <ReceptionPage />],
   ["/operaciones", "RECEPCION:CREAR", <AdminResourcePage type="operaciones" />],
   ["/consumos", "PEDIDOS:VER", <AdminResourcePage type="consumos" />],
-  ["/restaurante/dashboard", "RESTAURANTE:VER", <KitchenStationPage view="DASHBOARD" />],
-  ["/restaurante/pedidos", "RESTAURANTE:VER", <KitchenStationPage view="PEDIDOS" />],
-  ["/restaurante/inventario/insumos", "RESTAURANTE:VER", <KitchenStationPage view="INVENTARIO" />],
-  ["/restaurante/inventario/recetas", "RESTAURANTE:VER", <KitchenStationPage view="RECETAS" />],
-  ["/restaurante/inventario/mermas", "RESTAURANTE:VER", <KitchenStationPage view="MERMAS" />],
-  ["/restaurante/inventario/cierre", "RESTAURANTE:VER", <KitchenStationPage view="CIERRE" />],
-  ["/cocina/estacion", "RESTAURANTE:VER", <KitchenStationPage view="PEDIDOS" />],
+  ["/restaurante", "RESTAURANTE:VER", <RestaurantDashboard />, ["RESTAURANTE"]],
+  ["/restaurante/dashboard", "RESTAURANTE:VER", <RestaurantDashboard />],
+  ["/restaurante/pedidos", "RESTAURANTE:VER", <RestaurantOrdersPage />],
+  ["/restaurante/inventario/insumos", "RESTAURANTE:VER", <RestaurantInventoryPage />],
+  ["/restaurante/inventario/recetas", "RESTAURANTE:VER", <RestaurantRecipesPage />],
+  ["/restaurante/inventario/mermas", "RESTAURANTE:VER", <RestaurantInventoryPage />],
+  ["/restaurante/inventario/cierre", "RESTAURANTE:VER", <RestaurantInventoryPage />],
+  ["/restaurante-legacy", "RESTAURANTE:VER", <RestaurantLegacyFallback />],
+  ["/cocina/estacion", "RESTAURANTE:VER", <RestaurantOrdersPage />],
   ["/admin/restaurante/resumen", "RESTAURANTE:VER", <AdminRestaurantPage view="resumen" />],
   ["/admin/restaurante/pedidos", "RESTAURANTE:VER", <AdminRestaurantPage view="pedidos" />],
   ["/admin/restaurante/cocina", "RESTAURANTE:VER", <AdminRestaurantPage view="cocina" />],
@@ -87,14 +115,16 @@ const protectedRoutes = [
   ["/admin/restaurante/listos", "RESTAURANTE:VER", <AdminRestaurantPage view="listos" />],
   ["/admin/restaurante/entregados", "RESTAURANTE:VER", <AdminRestaurantPage view="entregados" />],
   ["/admin/restaurante/incidencias", "RESTAURANTE:VER", <AdminRestaurantPage view="incidencias" />],
-  ["/bartender/dashboard", "BARTENDER:VER", <BarStationPage view="DASHBOARD" />],
-  ["/bartender/pedidos", "BARTENDER:VER", <BarStationPage view="PEDIDOS" />],
-  ["/bartender/inventario/insumos", "BARTENDER:VER", <BarStationPage view="INVENTARIO" />],
-  ["/bartender/inventario/recetas", "BARTENDER:VER", <BarStationPage view="RECETAS" />],
-  ["/bartender/inventario/mermas", "BARTENDER:VER", <BarStationPage view="MERMAS" />],
-  ["/bartender/inventario/cierre", "BARTENDER:VER", <BarStationPage view="CIERRE" />],
-  ["/bartender/botellas", "BARTENDER:VER", <BarBottlePage />, ["ADMINISTRADOR"]],
-  ["/bar/estacion", "BARTENDER:VER", <BarStationPage view="PEDIDOS" />],
+  ["/bartender", "BARTENDER:VER", <BarDashboard />, ["BARTENDER"]],
+  ["/bartender/dashboard", "BARTENDER:VER", <BarDashboard />],
+  ["/bartender/pedidos", "BARTENDER:VER", <BarOrdersPage />],
+  ["/bartender/inventario/insumos", "BARTENDER:VER", <BarInventoryPage />],
+  ["/bartender/inventario/recetas", "BARTENDER:VER", <BarRecipesPage />],
+  ["/bartender/inventario/mermas", "BARTENDER:VER", <BarInventoryPage />],
+  ["/bartender/inventario/cierre", "BARTENDER:VER", <BarInventoryPage />],
+  ["/bartender-legacy", "BARTENDER:VER", <BarLegacyFallback />, ["BARTENDER"]],
+  ["/bartender/botellas", "BARTENDER:VER", <BarBottlePage />, ["SUPERADMIN"]],
+  ["/bar/estacion", "BARTENDER:VER", <BarOrdersPage />],
   ["/admin/bartender/resumen", "BARTENDER:VER", <AdminBartenderPage view="resumen" />],
   ["/admin/bartender/pedidos", "BARTENDER:VER", <AdminBartenderPage view="pedidos" />],
   ["/admin/bartender/historial", "BARTENDER:VER", <AdminBartenderPage view="historial" />],
@@ -120,27 +150,27 @@ const protectedRoutes = [
   ["/admin/limpieza/finalizadas", "LIMPIEZA:VER", <AdminCleaningPage view="finalizadas" />],
   ["/admin/limpieza/evidencias", "LIMPIEZA:VER", <AdminCleaningPage view="evidencias" />],
   ["/admin/limpieza/incidencias", "LIMPIEZA:VER", <AdminCleaningPage view="incidencias" />],
-  ["/incidencias", "REPORTES:VER", <AdminMaintenancePage view="resumen" />, ["ADMINISTRADOR", "RECEPCION"]],
-  ["/incidencias/abiertas", "REPORTES:VER", <AdminMaintenancePage view="solicitudes" />, ["ADMINISTRADOR", "RECEPCION"]],
-  ["/incidencias/seguimiento", "REPORTES:VER", <AdminMaintenancePage view="reparacion" />, ["ADMINISTRADOR", "RECEPCION"]],
-  ["/incidencias/cerradas", "REPORTES:VER", <AdminMaintenancePage view="finalizados" />, ["ADMINISTRADOR", "RECEPCION"]],
+  ["/incidencias", "REPORTES:VER", <AdminMaintenancePage view="resumen" />, ["SUPERADMIN", "ADMINISTRADOR", "RECEPCION"]],
+  ["/incidencias/abiertas", "REPORTES:VER", <AdminMaintenancePage view="solicitudes" />, ["SUPERADMIN", "ADMINISTRADOR", "RECEPCION"]],
+  ["/incidencias/seguimiento", "REPORTES:VER", <AdminMaintenancePage view="reparacion" />, ["SUPERADMIN", "ADMINISTRADOR", "RECEPCION"]],
+  ["/incidencias/cerradas", "REPORTES:VER", <AdminMaintenancePage view="finalizados" />, ["SUPERADMIN", "ADMINISTRADOR", "RECEPCION"]],
   ["/inventario", "INVENTARIO:VER", <InventoryPage />],
-  ["/admin/inventario", "INVENTARIO:VER", <InventoryAdminDashboardPage />, ["ADMINISTRADOR"]],
-  ["/admin/integridad", "INVENTARIO:VER", <DataIntegrityPage />, ["ADMINISTRADOR"]],
-  ["/inventario/kardex", "INVENTARIO:VER", <InventoryPage />, ["ADMINISTRADOR"]],
-  ["/inventario/turnos", "INVENTARIO:VER", <OperationalInventoryPage />, ["ADMINISTRADOR"]],
-  ["/inventario/recetas", "INVENTARIO:VER", <TechnicalRecipesPage />, ["ADMINISTRADOR"]],
-  ["/inventario/produccion", "INVENTARIO:VER", <TransformationsPage />, ["ADMINISTRADOR"]],
-  ["/inventario/catalogo", "INVENTARIO:VER", <ProductCatalogPage />, ["ADMINISTRADOR"]],
-  ["/transferencias", "INVENTARIO:VER", <TransfersPage />, ["ADMINISTRADOR"]],
-  ["/compras", "COMPRAS:VER", <PurchasesPage />, ["ADMINISTRADOR"]],
+  ["/admin/inventario", "INVENTARIO:VER", <InventoryAdminDashboardPage />, ["SUPERADMIN"]],
+  ["/admin/integridad", "INVENTARIO:VER", <DataIntegrityPage />, ["SUPERADMIN"]],
+  ["/inventario/kardex", "INVENTARIO:VER", <InventoryPage />, ["SUPERADMIN"]],
+  ["/inventario/turnos", "INVENTARIO:VER", <OperationalInventoryPage />, ["SUPERADMIN"]],
+  ["/inventario/recetas", "INVENTARIO:VER", <TechnicalRecipesPage />, ["SUPERADMIN"]],
+  ["/inventario/produccion", "INVENTARIO:VER", <TransformationsPage />, ["SUPERADMIN"]],
+  ["/inventario/catalogo", "INVENTARIO:VER", <ProductCatalogPage />, ["SUPERADMIN"]],
+  ["/transferencias", "INVENTARIO:VER", <TransfersPage />, ["SUPERADMIN"]],
+  ["/compras", "COMPRAS:VER", <PurchasesPage />, ["SUPERADMIN"]],
   ["/proveedores", "PROVEEDORES:VER", <AdminResourcePage type="proveedores" />],
   ["/pagos", "PAGOS:VER", <AdminResourcePage type="pagos" />],
   ["/facturacion", "FACTURACION:VER", <AdminResourcePage type="facturacion" />],
   ["/caja", "CAJA:VER", <AdminResourcePage type="caja" />],
   ["/usuarios", "USUARIOS:VER", <UsersPage />],
   ["/roles", "ROLES:VER", <RolesPage />],
-  ["/reportes", "REPORTES:VER", <ReportsPage />, ["ADMINISTRADOR"]],
+  ["/reportes", "REPORTES:VER", <ReportsPage />, ["SUPERADMIN"]],
   ["/auditoria", "AUDITORIA:VER", <AdminResourcePage type="auditoria" />],
   ["/configuracion", "CONFIGURACION:VER", <AdminResourcePage type="configuracion" />]
   ,["/accesos", "ACCESOS:VER", <AccessControlPage />]

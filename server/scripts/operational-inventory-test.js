@@ -35,9 +35,9 @@ try {
   assert.equal(lunch.status,"OPEN");assert.equal(lunch.openingSource,"OPENING_COUNT");assert.equal(Number(lunch.lines[0].openingQuantity),100);
   pass("Apertura normal sin cierre anterior","El primer turno exigió conteo físico y congeló 100 kg como stock inicial");
 
-  const dinnerPending=await inventory.createOperationalInventory({area:"RESTAURANTE",shift:"CENA",date},kitchenUser.id);
-  await assert.rejects(inventory.openOperationalInventory(dinnerPending.id,{openingCounts:[{productId:ids.product,quantity:100}]},kitchenUser.id),/otro inventario activo/i);
-  pass("Un solo inventario abierto por área","La base y el servicio rechazaron un turno superpuesto");
+  let dinnerPending;
+  await assert.rejects(inventory.createOperationalInventory({area:"RESTAURANTE",shift:"CENA",date},kitchenUser.id),/sigue ABIERTO/i);
+  pass("Un solo inventario abierto por área","El servicio rechazó crear un turno mientras el anterior seguía abierto");
 
   await movement("shift-entry-lunch",10); lunch=await inventory.getOperationalInventory(lunch.id,kitchenUser);
   assert.equal(Number(lunch.lines[0].confirmedEntries),10);assert.equal(Number(lunch.lines[0].expectedQuantity),110);
@@ -67,6 +67,7 @@ try {
   pass("Reapertura administrativa auditada","Solo Administración reabrió; el ajuste anterior fue revertido sin borrar historial");
 
   lunch=await inventory.submitOperationalCount(lunch.id,{counts:[{productId:ids.product,quantity:109}],notes:"Conteo corregido"},kitchenUser.id);lunch=await inventory.closeOperationalInventory(lunch.id,admin.id);assert.equal(lunch.closing.revision,2);
+  dinnerPending=await inventory.createOperationalInventory({area:"RESTAURANTE",shift:"CENA",date},kitchenUser.id);
   await movement("shift-entry-after-close",3);
   let dinner=await inventory.openOperationalInventory(dinnerPending.id,{},kitchenUser.id);assert.equal(dinner.openingSource,"PREVIOUS_CLOSE");assert.equal(Number(dinner.lines[0].openingQuantity),109);assert.equal(Number(dinner.lines[0].confirmedEntries),3);assert.equal(Number(dinner.lines[0].expectedQuantity),112);
   const lunchFrozen=await inventory.getOperationalInventory(lunch.id,kitchenUser);assert.equal(Number(lunchFrozen.lines[0].confirmedEntries),10);assert.equal(Number(lunchFrozen.lines[0].expectedQuantity),109);
