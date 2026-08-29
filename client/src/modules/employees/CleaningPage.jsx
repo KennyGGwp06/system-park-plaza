@@ -14,16 +14,15 @@ import { apiOrigin } from "../../config/api";
 const API_ROOT = apiOrigin;
 
 export function CleaningPage({ view = "DASHBOARD" }) {
-  const { can, user } = useAuth();
-  const { data: currentShift, setData: setCurrentShift } = useFetch("/attendance/current", { initialData: { active: false }, realtime: true, pollInterval: 15000 });
+  const { can } = useAuth();
+  const { data: currentShift } = useFetch("/attendance/current", { initialData: { active: false }, realtime: true, pollInterval: 2000 });
   const shiftActive = Boolean(currentShift?.active);
   const canCreate = can("LIMPIEZA", "CREAR") && shiftActive;
   const canEdit = can("LIMPIEZA", "EDITAR") && shiftActive;
   
-  const { data, loading, reload } = useFetch("/cleaning/tasks", { initialData: [], realtime: true, pollInterval: 15000 });
+  const { data, loading, reload } = useFetch("/cleaning/tasks", { initialData: [], realtime: true, pollInterval: 2000 });
   const tasks = Array.isArray(data) ? data.filter((task) => task && typeof task === "object") : [];
   const [toast, setToast] = useState("");
-  const [shiftBusy, setShiftBusy] = useState(false);
   
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(null);
@@ -51,13 +50,6 @@ export function CleaningPage({ view = "DASHBOARD" }) {
     reload();
   }
 
-  async function changeShift(action) {
-    setShiftBusy(true);
-    try { const record = await api(`/attendance/${action}`, { method: "POST", body: { employeeId: user.id } }); const active = action === "check-in"; setCurrentShift((current) => ({ ...(current || {}), active, record: active ? record : null })); setToast(active ? "Turno iniciado. Ya puedes atender habitaciones." : "Turno cerrado y asistencia registrada."); }
-    catch (error) { setToast(error.message); }
-    finally { setShiftBusy(false); }
-  }
-
   if (loading) return <LoadingSpinner />;
 
   const titleMap = {
@@ -73,13 +65,10 @@ export function CleaningPage({ view = "DASHBOARD" }) {
       <Toast message={toast} onClose={() => setToast("")} />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader eyebrow="Limpieza" title={titleMap[view] || "Limpieza"} description="Tu estación de trabajo. Atiende solo las habitaciones asignadas a tu cuenta." />
-        <div className="flex gap-2 mt-1">
-          {user?.role !== "ADMINISTRADOR" ? <Button loading={shiftBusy} variant={shiftActive ? "secondary" : "gold"} onClick={() => changeShift(shiftActive ? "check-out" : "check-in")}>{shiftActive ? "Cerrar turno" : "Iniciar turno"}</Button> : null}
-          <Button onClick={reload} variant="secondary">Actualizar</Button>
-        </div>
+        <Button className="mt-1" onClick={reload} variant="secondary">Actualizar</Button>
       </div>
 
-      <section className={`rounded-card border p-4 shadow-card ${shiftActive ? "border-park-green bg-park-green-soft" : "border-amber-300 bg-amber-50"}`}><div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}><Clock size={19}/></span><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">Jornada de housekeeping</p><h2 className="font-black text-park-dark">{shiftActive ? "Turno activo · evidencia obligatoria" : "Operación bloqueada hasta iniciar turno"}</h2><p className="text-sm text-park-muted">{shiftActive ? "Atiende por prioridad, registra foto de entrada y salida, y reporta cualquier daño a Mantenimiento." : "Puedes revisar las tareas asignadas, pero todavía no iniciarlas ni finalizarlas."}</p></div></div></section>
+      <section className={`rounded-card border p-4 shadow-card ${shiftActive ? "border-park-green bg-park-green-soft" : "border-amber-300 bg-amber-50"}`}><div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}><Clock size={19}/></span><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">Jornada de housekeeping</p><h2 className="font-black text-park-dark">{shiftActive ? "Asistencia registrada · evidencia obligatoria" : "Operación bloqueada hasta registrar asistencia"}</h2><p className="text-sm text-park-muted">{shiftActive ? "Atiende por prioridad, registra foto de entrada y salida, y reporta cualquier daño a Mantenimiento." : "Marca tu ingreso en el reloj de asistencia. La estación se habilitará automáticamente, sin recargar la página."}</p></div></div></section>
 
       {view === "DASHBOARD" && <DashboardTab pending={pendingTasks} finished={finishedTasks} incidents={incidents} maintenanceReports={maintenanceReports} />}
       {view === "PENDIENTES" && <TaskList tasks={pendingTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} />}

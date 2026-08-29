@@ -14,6 +14,7 @@ export function AdminCleaningPage({ view = "resumen" }) {
   const { data, loading, reload } = useFetch("/reception/tasks", { initialData: [] });
   const { data: employeesData } = useFetch("/reception/cleaning-employees", { initialData: [] });
   const [selected, setSelected] = useState(null);
+  const [inspected, setInspected] = useState(null);
   const tasks = Array.isArray(data) ? data : [];
   const employees = Array.isArray(employeesData) ? employeesData : [];
   const reports = useMemo(() => tasks.flatMap((task) => (task.operationalReports || []).map((report) => ({ ...report, task }))), [tasks]);
@@ -29,7 +30,7 @@ export function AdminCleaningPage({ view = "resumen" }) {
         description="Asigna cada habitación a una cuenta de Limpieza, revisa sus fotos reales y valida el resultado. El trabajador ejecuta la tarea desde su estación móvil."
       />
 
-      {view === "resumen" ? <CleaningSummary reports={reports} tasks={tasks} onSelect={setSelected} /> : null}
+      {view === "resumen" ? <CleaningWorkspace reports={reports} tasks={tasks} inspected={inspected} onInspect={setInspected} onManage={setSelected} /> : null}
       {["pendientes", "finalizadas"].includes(view) ? <TaskGrid tasks={visibleTasks} onSelect={setSelected} /> : null}
       {view === "evidencias" ? <EvidenceList tasks={tasks.filter((task) => task.evidences?.length)} onSelect={setSelected} /> : null}
       {view === "incidencias" ? <IncidentList reports={reports} onSelect={(report) => setSelected(report.task)} /> : null}
@@ -38,6 +39,58 @@ export function AdminCleaningPage({ view = "resumen" }) {
     </div>
   );
 }
+
+function CleaningWorkspace({ tasks, reports, inspected, onInspect, onManage }) {
+  const [tab, setTab] = useState("FINALIZADA");
+  const pending = tasks.filter((task) => task.status === "PENDIENTE");
+  const inProgress = tasks.filter((task) => task.status === "EN_LIMPIEZA");
+  const finished = tasks.filter((task) => task.status === "FINALIZADA");
+  const withIncidents = tasks.filter((task) => task.operationalReports?.length);
+  const tabs = [
+    ["PENDIENTE", "Por atender", pending],
+    ["EN_LIMPIEZA", "En limpieza", inProgress],
+    ["FINALIZADA", "Limpiadas", finished],
+    ["INCIDENCIAS", "Incidencias", withIncidents]
+  ];
+  const rows = (tabs.find(([key]) => key === tab)?.[2] || []).slice(0, 12);
+  const detail = inspected || rows[0] || tasks[0] || null;
+  const metrics = [
+    [Clock, "Por atender", pending.length, "bg-amber-50 text-amber-700"],
+    [BedDouble, "En limpieza", inProgress.length, "bg-blue-50 text-blue-700"],
+    [CheckCircle2, "Limpiadas hoy", finished.filter((task) => isToday(task.finishedAt)).length, "bg-park-green-soft text-park-green"],
+    [AlertTriangle, "Con incidencias", withIncidents.length, "bg-red-50 text-park-danger"]
+  ];
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="min-w-0 space-y-5">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map(([Icon, label, value, tone]) => <article className="border border-park-border bg-white p-5 shadow-card" key={label}><span className={`grid h-11 w-11 place-items-center rounded-button ${tone}`}><Icon size={20} /></span><p className="mt-4 text-sm font-semibold text-park-muted">{label}</p><strong className="font-display text-3xl text-park-dark">{value}</strong><p className="text-xs text-park-muted">Habitaciones</p></article>)}
+        </section>
+
+        <section className="border border-park-border bg-white shadow-card">
+          <div className="flex overflow-x-auto border-b border-park-border">
+            {tabs.map(([key, label, items]) => <button className={`min-w-max border-b-2 px-5 py-4 text-sm font-black ${tab === key ? "border-park-green text-park-green" : "border-transparent text-park-muted hover:text-park-dark"}`} key={key} onClick={() => setTab(key)} type="button">{label} ({items.length})</button>)}
+          </div>
+          <div className="p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-xl font-semibold text-park-dark">{tabs.find(([key]) => key === tab)?.[1]} de habitaciones</h2><p className="text-sm text-park-muted">Control operativo y evidencias recibidas desde la estación de limpieza.</p></div><input className="h-10 w-full max-w-56 rounded-input border border-park-border px-3 text-sm outline-none focus:border-park-green" placeholder="Buscar habitación..." /></div>
+            {rows.length ? <div className="overflow-x-auto border border-park-border"><table className="min-w-[760px] w-full text-left text-sm"><thead className="bg-park-bg text-xs uppercase text-park-muted"><tr><th className="px-4 py-3">Habitación</th><th>Tipo</th><th>Trabajador</th><th>Estado</th><th>Fotos</th><th>Incidencia</th><th>Resultado</th><th></th></tr></thead><tbody className="divide-y divide-park-border">{rows.map((task) => <tr className="cursor-pointer hover:bg-park-green-soft/30" key={task.id} onClick={() => onInspect(task)}><td className="px-4 py-4 font-black text-park-green">{task.room?.number || "-"}</td><td>{task.requestId ? "Solicitada" : "Check-out"}</td><td><WorkerLabel name={task.assignedTo} /></td><td><StatusBadge value={task.status} /></td><td>{task.evidences?.length || 0}</td><td>{task.operationalReports?.length ? <span className="font-semibold text-park-danger">{task.operationalReports.length} reporte(s)</span> : <span className="text-park-green">-</span>}</td><td><StatusBadge value={task.status === "FINALIZADA" ? "FINALIZADA" : task.status} /></td><td className="pr-4"><Button icon={Eye} onClick={(event) => { event.stopPropagation(); onManage(task); }} size="sm" type="button" variant="secondary">Ver detalle</Button></td></tr>)}</tbody></table></div> : <EmptyState title="Sin habitaciones en este estado" description="Las nuevas tareas aparecerán aquí automáticamente." />}
+          </div>
+        </section>
+      </div>
+      <CleaningInspector reports={reports} task={detail} onManage={onManage} />
+    </section>
+  );
+}
+
+function CleaningInspector({ task, reports, onManage }) {
+  if (!task) return <aside className="border border-park-border bg-white p-5 shadow-card"><EmptyState title="Selecciona una habitación" description="Aquí se mostrará el detalle operativo de limpieza." /></aside>;
+  const relatedReports = reports.filter((report) => Number(report.task?.id) === Number(task.id));
+  return <aside className="h-fit border border-park-border bg-white shadow-card xl:sticky xl:top-5"><div className="flex items-start justify-between border-b border-park-border p-5"><div><p className="text-xs font-black uppercase text-park-gold">Detalle operativo</p><h2 className="font-display text-2xl font-semibold text-park-dark">Habitación {task.room?.number}</h2></div><StatusBadge value={task.status} /></div><div className="space-y-5 p-5"><div className="grid gap-3 text-sm"><DetailLine label="Tipo de limpieza" value={task.requestId ? "Solicitada" : "Check-out"} /><DetailLine label="Trabajador" value={task.assignedTo || "Sin asignar"} /><DetailLine label="Inicio" value={formatDateTime(task.startedAt)} /><DetailLine label="Finalización" value={formatDateTime(task.finishedAt)} /></div><div className="border-t border-park-border pt-4"><div className="mb-3 flex justify-between"><h3 className="font-black text-park-dark">Evidencias ({task.evidences?.length || 0})</h3><span className="text-sm font-semibold text-park-green">Revisar</span></div><div className="grid grid-cols-4 gap-2">{task.evidences?.slice(0, 4).map((item) => <Thumb evidence={item} key={item.id} large />) || null}</div>{!task.evidences?.length ? <p className="text-sm text-park-muted">Aún no se adjuntaron fotografías.</p> : null}</div><div className="border-t border-park-border pt-4"><h3 className="mb-3 font-black text-park-dark">Incidencias reportadas</h3>{relatedReports.length ? relatedReports.map((report) => <div className="mb-2 border border-amber-200 bg-amber-50 p-3 text-sm" key={report.id}><p className="font-bold text-amber-800">{report.description}</p><p className="mt-1 text-xs text-park-muted">{formatDateTime(report.createdAt)}</p></div>) : <p className="text-sm text-park-muted">Sin incidencias registradas.</p>}</div><Button className="w-full" onClick={() => onManage(task)} type="button">Gestionar habitación</Button></div></aside>;
+}
+
+function WorkerLabel({ name }) { const initials = String(name || "Sin asignar").split(" ").map((word) => word[0]).join("").slice(0, 2); return <span className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-park-green text-[10px] font-black text-white">{initials}</span>{name || "Sin asignar"}</span>; }
+function DetailLine({ label, value }) { return <div className="flex items-center justify-between gap-3"><span className="text-park-muted">{label}</span><strong className="text-right text-park-dark">{value || "No registrado"}</strong></div>; }
 
 function CleaningSummary({ tasks, reports, onSelect }) {
   const pending = tasks.filter((task) => task.status === "PENDIENTE");

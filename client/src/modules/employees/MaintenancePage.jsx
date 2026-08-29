@@ -15,21 +15,24 @@ const API_ROOT = apiOrigin;
 
 export function MaintenancePage({ view = "pendientes" }) {
   const { user, can } = useAuth();
-  const canCreate = can("MANTENIMIENTO", "CREAR");
-  const canEdit = can("MANTENIMIENTO", "EDITAR");
-  const { data, loading, reload } = useFetch("/reports", { initialData: { reports: [] } });
+  const { data: currentShift } = useFetch("/attendance/current", { initialData: { active: false }, realtime: true, pollInterval: 2000 });
+  const shiftActive = Boolean(currentShift?.active);
+  const canCreate = can("MANTENIMIENTO", "CREAR") && shiftActive;
+  const canEdit = can("MANTENIMIENTO", "EDITAR") && shiftActive;
+  const { data, loading, reload } = useFetch("/maintenance/reports", { initialData: [], realtime: true, pollInterval: 2000 });
   const [selected, setSelected] = useState(null);
   const [finalizing, setFinalizing] = useState(null);
   const [filters, setFilters] = useState({ search: "", priority: "", type: "", location: "" });
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
-  const reports = useMemo(() => (data?.reports || []).filter((report) => report.requiresMaintenance), [data]);
+  const reports = useMemo(() => Array.isArray(data) ? data.filter((report) => report.requiresMaintenance) : [], [data]);
   const visible = useMemo(() => applyFilters(filterReports(view, reports, user), filters), [filters, reports, user, view]);
 
   async function changeStatus(report, status, payload = {}) {
     setError("");
     try {
-      await api(`/reports/${report.id}/status`, { method: "PATCH", body: { status, ...payload } });
+      const endpoint = status === "EN_REVISION" ? `/maintenance/reports/${report.id}/start` : `/maintenance/reports/${report.id}/finish`;
+      await api(endpoint, { method: "PATCH", body: payload });
       setToast(status === "EN_REVISION" ? "Reparacion iniciada." : "Trabajo finalizado.");
       await reload();
       setSelected(null);
@@ -52,7 +55,7 @@ export function MaintenancePage({ view = "pendientes" }) {
       });
       const uploaded = await response.json();
       if (!response.ok) throw new Error(uploaded?.message || "No se pudo subir la evidencia.");
-      await api(`/reports/${report.id}/evidence`, { method: "POST", body: { files: uploaded.files || [] } });
+      await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { files: uploaded.files || [] } });
       setToast("Evidencia adjuntada.");
       await reload();
     } catch (err) {
@@ -67,6 +70,16 @@ export function MaintenancePage({ view = "pendientes" }) {
       <Toast message={toast} onClose={() => setToast("")} />
       <PageHeader eyebrow="Mantenimiento" title={pageTitle(view)} description="Gestiona trabajos tecnicos derivados desde reportes operativos del hotel." />
       {error ? <p className="rounded-card bg-park-danger-soft p-4 font-semibold text-park-danger">{error}</p> : null}
+      <section className={`rounded-card border p-4 shadow-card ${shiftActive ? "border-park-green bg-park-green-soft" : "border-amber-300 bg-amber-50"}`}>
+        <div className="flex items-start gap-3">
+          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}><Clock size={19} /></span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-park-muted">Jornada de mantenimiento</p>
+            <h2 className="font-black text-park-dark">{shiftActive ? "Asistencia registrada · operación habilitada" : "Operación bloqueada hasta registrar asistencia"}</h2>
+            <p className="text-sm text-park-muted">{shiftActive ? "Puedes iniciar, documentar y finalizar los trabajos asignados a tu cuenta." : "Marca tu ingreso en el reloj de asistencia. Esta estación se habilitará automáticamente."}</p>
+          </div>
+        </div>
+      </section>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Metric icon={Clock} label="Pendientes" tone="gold" value={reports.filter((item) => item.status === "ABIERTO").length} />
         <Metric icon={Wrench} label="En reparacion" tone="blue" value={reports.filter((item) => item.status === "EN_REVISION").length} />
