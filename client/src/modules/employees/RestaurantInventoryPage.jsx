@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { Boxes, Trash2, ClipboardList, AlertCircle, Save, CheckCircle2 } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch";
-import { useAuth } from "../../context/AuthContext";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { api } from "../../services/api";
 
 export function RestaurantInventoryPage() {
-  const { user } = useAuth();
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [sessionStatus, setSessionStatus] = useState(null);
   const [explanations, setExplanations] = useState({});
@@ -69,7 +67,7 @@ export function RestaurantInventoryPage() {
     setProcessing(true);
     setActionError(null);
     try {
-      await api(`/api/operational-inventory/sessions/${activeSessionId}/start-count`, { method: "POST" });
+      await api(`/operational-inventory/sessions/${activeSessionId}/start-count`, { method: "POST" });
       setSessionStatus("COUNTING");
       await refreshDetail();
       setActiveTab("cierre");
@@ -132,7 +130,7 @@ export function RestaurantInventoryPage() {
     setProcessing(true);
     setActionError(null);
     try {
-      await api(`/api/operational-inventory/sessions/${activeSessionId}/submit`, {
+      await api(`/operational-inventory/sessions/${activeSessionId}/submit`, {
         method: "POST",
         body: payload
       });
@@ -168,7 +166,7 @@ export function RestaurantInventoryPage() {
     setProcessing(true);
     setActionError(null);
     try {
-      await api(`/api/operational-inventory/sessions/${activeSessionId}/waste`, {
+      await api(`/operational-inventory/sessions/${activeSessionId}/waste`, {
         method: "POST",
         body: {
           productId: line.productId,

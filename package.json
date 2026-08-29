@@ -5,11 +5,12 @@
   "workspaces": [
     "client",
     "customer",
+    "operations",
     "server"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace server\" \"npm run dev --workspace client\" \"npm run dev --workspace customer\"",
-    "build": "npm run build --workspace client && npm run build --workspace customer",
+    "dev": "concurrently \"npm run dev --workspace server\" \"npm run dev --workspace client\" \"npm run dev --workspace customer\" \"npm run dev --workspace operations\"",
+    "build": "npm run build --workspace client && npm run build --workspace customer && npm run build --workspace operations",
     "install:all": "npm install",
     "db:migrate": "npm run migrate --workspace server -- up",
     "db:rollback": "npm run migrate --workspace server -- down",

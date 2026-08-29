@@ -5,12 +5,20 @@ customer/node_modules/
 server/node_modules/
 client/dist/
 customer/dist/
+operations/dist/
 
 # Runtime output
 *.out.log
 *.err.log
 *.log
 server/uploads/
+
+# Material local de diagnóstico o hardware no requerido para ejecutar el demo
+scratch/
+biometric-bridge/
+session_analysis_report.md
+task.md
+server/get-users.js
 
 # Local configuration and editor files
 .env
@@ -20,3 +28,5 @@ client/.env
 !.env.*.example
 .DS_Store
 Thumbs.db
+
+client/src/modules/admin/BiometricSetupPage.jsx

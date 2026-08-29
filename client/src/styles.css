@@ -23,6 +23,7 @@
 .reception-v6-section-toggle:hover, .reception-v6-section-toggle.is-open { color: var(--v6-gold, #d4af37); }
 .reception-v6-section-toggle svg { transition: transform .25s ease; }
 .reception-v6-section-toggle.is-open svg { transform: rotate(90deg); }
+.reception-v6-subsection-label { color: #7f9387; font-size: .58rem; font-weight: 900; letter-spacing: .1em; margin: .2rem .65rem .15rem; text-transform: uppercase; }
 .reception-v6-sidebar .sidebar-user-card { background: rgba(255,255,255,.07); }
 .reception-v6-navbar { border-bottom-color: #d9e5de; background: rgba(255,255,255,.97); }
 .v6-sidebar-link { color: #cbd5e1; min-height: 40px; position: relative; }

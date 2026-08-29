@@ -50,7 +50,7 @@ export function RoomsPage() {
               {room.status === "LIBRE" ? <Button as={Link} to={`/reservas?nueva=1&habitacion=${room.id}`} className="w-full" variant="secondary">Crear reserva</Button> : null}
               {room.status === "OCUPADA" ? <Button as="a" href="/checkout" className="w-full" variant="secondary">Ver estadia</Button> : null}
               {room.status === "RESERVADA" ? <Button as="a" href="/reservas" className="w-full" variant="secondary">Ver reserva</Button> : null}
-              {room.status === "EN_LIMPIEZA" ? <Button as="a" href="/limpieza/pendientes" className="w-full" variant="secondary">Ver limpieza</Button> : null}
+              {room.status === "EN_LIMPIEZA" ? <Button as="a" href="/admin/limpieza/pendientes" className="w-full" variant="secondary">Supervisar limpieza</Button> : null}
               {["MANTENIMIENTO", "FUERA_SERVICIO"].includes(room.status) ? <span className="block rounded-card bg-park-danger-soft px-3 py-2 text-center text-sm font-semibold text-park-danger">No disponible</span> : null}
             </div>
           </article>

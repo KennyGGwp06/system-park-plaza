@@ -26,7 +26,7 @@ async function actor(client, actorId) {
   const state = (await client.query("SELECT data FROM app_state WHERE id=1")).rows[0].data;
   const user = (state.users || []).find((item) => n(item.id) === n(actorId));
   if (!user) fail(401, "Usuario no encontrado");
-  return { user, state };
+  return { user: user.role === "SUPERADMIN" ? { ...user, role: "ADMINISTRADOR", displayRole: "SUPERADMIN" } : user, state };
 }
 
 function authorizeArea(user, area) {

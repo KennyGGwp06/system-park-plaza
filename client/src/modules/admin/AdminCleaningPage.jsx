@@ -12,8 +12,10 @@ const API_ROOT = apiOrigin;
 
 export function AdminCleaningPage({ view = "resumen" }) {
   const { data, loading, reload } = useFetch("/reception/tasks", { initialData: [] });
+  const { data: employeesData } = useFetch("/reception/cleaning-employees", { initialData: [] });
   const [selected, setSelected] = useState(null);
   const tasks = Array.isArray(data) ? data : [];
+  const employees = Array.isArray(employeesData) ? employeesData : [];
   const reports = useMemo(() => tasks.flatMap((task) => (task.operationalReports || []).map((report) => ({ ...report, task }))), [tasks]);
   const visibleTasks = useMemo(() => filterTasks(view, tasks), [view, tasks]);
 
@@ -24,7 +26,7 @@ export function AdminCleaningPage({ view = "resumen" }) {
       <PageHeader
         eyebrow="Administrador"
         title={pageTitle(view)}
-        description="Recepción coordina por WhatsApp, registra las fotos recibidas y libera la habitación al finalizar. Limpieza y mantenimiento no ingresan al ERP."
+        description="Asigna cada habitación a una cuenta de Limpieza, revisa sus fotos reales y valida el resultado. El trabajador ejecuta la tarea desde su estación móvil."
       />
 
       {view === "resumen" ? <CleaningSummary reports={reports} tasks={tasks} onSelect={setSelected} /> : null}
@@ -32,7 +34,7 @@ export function AdminCleaningPage({ view = "resumen" }) {
       {view === "evidencias" ? <EvidenceList tasks={tasks.filter((task) => task.evidences?.length)} onSelect={setSelected} /> : null}
       {view === "incidencias" ? <IncidentList reports={reports} onSelect={(report) => setSelected(report.task)} /> : null}
 
-      {selected ? <CleaningDetail task={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await reload(); }} /> : null}
+      {selected ? <CleaningDetail task={selected} employees={employees} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await reload(); }} /> : null}
     </div>
   );
 }
@@ -200,17 +202,12 @@ function IncidentList({ reports, onSelect }) {
   );
 }
 
-function CleaningDetail({ task, onClose, onSaved }) {
+function CleaningDetail({ task, employees, onClose, onSaved }) {
   const groups = splitEvidence(task.evidences);
-  const [assignedTo, setAssignedTo] = useState(task.assignedTo || "");
-  const [note, setNote] = useState("");
-  const [file, setFile] = useState(null);
-  const [stage, setStage] = useState("ENTRADA");
+  const [assignedEmployeeId, setAssignedEmployeeId] = useState(task.assignedEmployeeId ? String(task.assignedEmployeeId) : "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  async function assign() { setBusy(true); try { await api(`/reception/tasks/${task.id}/assign`, { method: "PATCH", body: { assignedTo } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
-  async function changeStatus(action) { setBusy(true); try { await api(`/reception/tasks/${task.id}/${action}`, { method: "PATCH" }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
-  async function registerEvidence(event) { event.preventDefault(); if (!file) { setMessage("Selecciona la foto que el personal envió por WhatsApp."); return; } setBusy(true); try { const uploaded = await uploadWhatsappEvidence(file); await api(`/reception/tasks/${task.id}/evidence`, { method: "POST", body: { stage, description: note, files: [uploaded] } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
+  async function assign() { setBusy(true); try { await api(`/reception/tasks/${task.id}/assign`, { method: "PATCH", body: { employeeId: Number(assignedEmployeeId) } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
   return (
     <div className="fixed inset-0 z-40 bg-slate-950/30 p-4">
       <aside className="ml-auto h-full max-w-5xl overflow-auto rounded-card bg-white p-5 shadow-drawer">
@@ -232,14 +229,11 @@ function CleaningDetail({ task, onClose, onSaved }) {
               <InfoTile label="Finalizacion" value={formatDateTime(task.finishedAt)} />
             </div>
           </Panel>
-          <Panel title="Control desde recepción">
-            <p className="mb-3 text-sm text-park-muted">Comunícate por WhatsApp; luego registra aquí la evidencia que te envíen.</p>
+          <Panel title="Asignación y revisión">
+            <p className="mb-3 text-sm text-park-muted">Asigna la habitación a una cuenta activa. El trabajador inicia, toma fotos y finaliza desde su estación; Recepción revisa el resultado.</p>
             {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
-            <label className="block text-sm font-black text-park-black">Personal avisado por WhatsApp<input className="mt-2 h-11 w-full rounded-input border border-park-border px-3 font-normal" value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)} placeholder="Ej. Ana Operaciones" /></label>
-            <Button className="mt-3 w-full" disabled={busy || !assignedTo.trim()} onClick={assign} type="button" variant="secondary">Guardar responsable avisado</Button>
-            {task.status === "PENDIENTE" ? <Button className="mt-3 w-full" disabled={busy} onClick={() => changeStatus("start")} type="button">Registrar inicio informado</Button> : null}
-            {task.status !== "FINALIZADA" ? <form className="mt-4 border-t border-park-border pt-4" onSubmit={registerEvidence}><p className="text-sm font-black text-park-black">Evidencia recibida por WhatsApp</p><select className="mt-2 h-11 w-full rounded-input border border-park-border px-3 text-sm" value={stage} onChange={(event) => setStage(event.target.value)}><option value="ENTRADA">Foto inicial · cómo se encontró</option><option value="SALIDA">Foto final · trabajo terminado</option></select><textarea className="mt-2 min-h-20 w-full rounded-input border border-park-border p-3 text-sm" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Detalle enviado por el personal" /><input className="mt-2 block w-full text-sm" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setFile(event.target.files?.[0] || null)} /><Button className="mt-3 w-full" disabled={busy} type="submit">Adjuntar evidencia</Button></form> : null}
-            {task.status !== "FINALIZADA" ? <Button className="mt-3 w-full" disabled={busy} onClick={() => changeStatus("finish")} type="button" variant="gold">Confirmar terminado y liberar</Button> : <p className="mt-4 rounded-card bg-park-green-soft p-3 text-sm font-black text-park-green">Tarea cerrada y habitación liberada.</p>}
+            <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-2 h-11 w-full rounded-input border border-park-border px-3 font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
+            {task.status !== "FINALIZADA" ? <Button className="mt-3 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">Asignar a esta cuenta</Button> : <p className="mt-4 rounded-card bg-park-green-soft p-3 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
           </Panel>
           <Panel title="Evidencias">
             <EvidenceBlock items={groups.entry} label="Entrada" />

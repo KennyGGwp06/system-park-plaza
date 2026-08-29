@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db.js";
 
-const n=value=>Number(value||0);const r6=value=>Math.round((n(value)+Number.EPSILON)*1_000_000)/1_000_000;const ALLOWED_ROLES=new Set(["ADMINISTRADOR","RESTAURANTE","BARTENDER"]);
+const n=value=>Number(value||0);const r6=value=>Math.round((n(value)+Number.EPSILON)*1_000_000)/1_000_000;const ALLOWED_ROLES=new Set(["SUPERADMIN","ADMINISTRADOR","RESTAURANTE","BARTENDER"]);
 function fail(status,message,fieldErrors={}){const error=new Error(message);error.status=status;error.fieldErrors=fieldErrors;throw error;}
 async function tx(work){const client=await db.connect();try{await client.query("BEGIN");const result=await work(client);await client.query("COMMIT");return result;}catch(error){await client.query("ROLLBACK");if(error.code==="23505")fail(409,"El código o lote de salida ya existe");throw error;}finally{client.release();}}
-async function actor(client,actorId){const state=(await client.query("SELECT data FROM app_state WHERE id=1 FOR UPDATE")).rows[0].data;const user=(state.users||[]).find(item=>n(item.id)===n(actorId));if(!user||!ALLOWED_ROLES.has(user.role))fail(403,"Tu rol no participa en transformación de inventario");return{state,user};}
+async function actor(client,actorId){const state=(await client.query("SELECT data FROM app_state WHERE id=1 FOR UPDATE")).rows[0].data;const identity=(state.users||[]).find(item=>n(item.id)===n(actorId));if(!identity||!ALLOWED_ROLES.has(identity.role))fail(403,"Tu rol no participa en transformación de inventario");const user=identity.role==="SUPERADMIN"?{...identity,role:"ADMINISTRADOR",displayRole:"SUPERADMIN"}:identity;return{state,user};}
 function authorize(user,warehouse){if(user.role!=="ADMINISTRADOR"&&user.role!==warehouse.code)fail(403,`Tu rol no puede operar el almacén ${warehouse.name}`);}
 async function audit(client,type,entityType,id,actorId,reason,after){await client.query(`INSERT INTO inventory_audit_events(event_type,entity_type,entity_id,actor_legacy_user_id,reason,after_data,correlation_id) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7)`,[type,entityType,id,actorId,reason,JSON.stringify(after||{}),`${entityType.toLowerCase()}:${id}`]);}
 async function warehouse(client,id){const row=(await client.query("SELECT * FROM inventory_warehouses WHERE id=$1 AND active",[n(id)])).rows[0];if(!row)fail(404,"Almacén no encontrado");return row;}

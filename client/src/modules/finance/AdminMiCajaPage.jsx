@@ -50,7 +50,7 @@ export function AdminMiCajaPage() {
       });
       setSession(data);
       setShowSubmit(false);
-      setSuccess("Arqueo enviado a revisión.");
+      setSuccess("Cierre de caja enviado al Superadmin para revisión.");
       setError("");
     } catch (err) {
       setError(err.message);
@@ -64,7 +64,7 @@ export function AdminMiCajaPage() {
       <PageHeader 
         eyebrow="Recepción" 
         title="Mi caja y cierre de turno" 
-        description="Apertura y rendición de la caja asignada a tu turno." 
+        description="Cuenta y cierra únicamente el efectivo recibido en tu turno. Yape, Plin, tarjeta y transferencias se registran aparte para el Superadmin."
         actions={<Button variant="secondary" onClick={loadSession} disabled={loading}>Actualizar</Button>}
       />
 
@@ -133,18 +133,20 @@ export function AdminMiCajaPage() {
           </div>
           
           {session.status === "ABIERTA" && (
-            <div className="flex justify-end">
-              <Button onClick={() => setShowSubmit(true)}>Enviar rendición de caja</Button>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 md:flex md:items-center md:justify-between md:gap-6">
+              <div><p className="font-bold text-amber-950">Antes de cerrar, cuenta solo el efectivo físico.</p><p className="mt-1 text-sm text-amber-800">Los pagos con Yape, Plin, tarjeta o transferencia no entran en tu efectivo contado; el Superadmin los ve en el control central.</p></div>
+              <Button className="mt-4 md:mt-0" onClick={() => setShowSubmit(true)}>Cerrar mi caja de turno</Button>
             </div>
           )}
+          {session.status === "EN_REVISION" && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"><strong>Tu cierre fue enviado.</strong> El efectivo contado, la diferencia y tu observación están bloqueados hasta que el Superadmin lo apruebe o rechace.</div>}
         </div>
       )}
 
       {showSubmit && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4">
           <form className="w-full max-w-md rounded-2xl bg-white p-6 shadow-drawer" onSubmit={submitSession}>
-            <h2 className="text-2xl font-black text-slate-900">Enviar arqueo de caja</h2>
-            <p className="mt-2 text-sm text-slate-600">Cuenta el efectivo físico en caja y envíalo a revisión. Una vez enviado, la sesión se bloqueará para el cierre.</p>
+            <h2 className="text-2xl font-black text-slate-900">Cerrar mi caja de turno</h2>
+            <p className="mt-2 text-sm text-slate-600">Cuenta únicamente el efectivo físico que recibiste y envíalo al Superadmin. Los pagos digitales quedan fuera de este arqueo.</p>
             <label className="mt-4 block text-sm font-bold text-slate-800">
               Efectivo físico contado
               <input className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-3 text-lg font-black outline-none focus:border-blue-500" type="number" min="0" step="0.01" required autoFocus value={actualCash} onChange={(event) => setActualCash(event.target.value)} placeholder="0.00" />
@@ -155,7 +157,7 @@ export function AdminMiCajaPage() {
             </label>
             <div className="mt-6 flex gap-2">
               <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowSubmit(false)}>Cancelar</Button>
-              <Button type="submit" className="flex-1" loading={submitting}>Enviar a revisión</Button>
+              <Button type="submit" className="flex-1" loading={submitting}>Cerrar y enviar al Superadmin</Button>
             </div>
           </form>
         </div>

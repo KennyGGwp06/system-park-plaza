@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Camera, CheckCircle2, Eye, FileWarning, Upload, X, Clock, AlertTriangle, ShieldCheck, MapPin, Wrench, ClipboardCheck } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api, getToken } from "../../services/api";
 import { useFetch } from "../../hooks/useFetch";
 import { EmptyState } from "../../components/EmptyState";
@@ -15,14 +15,12 @@ const API_ROOT = apiOrigin;
 
 export function CleaningPage({ view = "DASHBOARD" }) {
   const { can, user } = useAuth();
-  const { data: currentShift, setData: setCurrentShift } = useFetch("/attendance/current", { initialData: { active: user?.role === "ADMINISTRADOR" }, cacheTime: 0, realtime: false });
-  const shiftActive = user?.role === "ADMINISTRADOR" || currentShift?.active;
+  const { data: currentShift, setData: setCurrentShift } = useFetch("/attendance/current", { initialData: { active: false }, realtime: true, pollInterval: 15000 });
+  const shiftActive = Boolean(currentShift?.active);
   const canCreate = can("LIMPIEZA", "CREAR") && shiftActive;
   const canEdit = can("LIMPIEZA", "EDITAR") && shiftActive;
   
-  // En modular, fetch todo y lo filtramos en cliente si no es excesivo, o fetch por status.
-  const { data, loading, reload } = useFetch("/cleaning/tasks", { initialData: [] });
-  const { data: reportsData } = useFetch("/reports", { initialData: { reports: [] } });
+  const { data, loading, reload } = useFetch("/cleaning/tasks", { initialData: [], realtime: true, pollInterval: 15000 });
   const tasks = Array.isArray(data) ? data.filter((task) => task && typeof task === "object") : [];
   const [toast, setToast] = useState("");
   const [shiftBusy, setShiftBusy] = useState(false);
@@ -36,9 +34,9 @@ export function CleaningPage({ view = "DASHBOARD" }) {
   const finishedTasks = useMemo(() => tasks.filter(t => t.status === "FINALIZADA"), [data]);
   const evidenceTasks = useMemo(() => tasks.filter(t => t.evidences && t.evidences.length > 0), [data]);
   const incidents = useMemo(() => tasks.filter(t => t.operationalReports && t.operationalReports.length > 0), [data]);
-  const maintenanceReports = useMemo(() => (reportsData?.reports || [])
+  const maintenanceReports = useMemo(() => tasks.flatMap((task) => task.operationalReports || [])
     .filter((report) => report?.requiresMaintenance)
-    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), [reportsData]);
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), [tasks]);
 
   async function startTask(task) {
     await api(`/cleaning/tasks/${task.id}/start`, { method: "PATCH" });
@@ -63,9 +61,9 @@ export function CleaningPage({ view = "DASHBOARD" }) {
   if (loading) return <LoadingSpinner />;
 
   const titleMap = {
-    DASHBOARD: "Dashboard de Limpieza",
-    PENDIENTES: "Habitaciones por Atender",
-    FINALIZADAS: "Limpiezas Finalizadas",
+    DASHBOARD: "Alertas de limpieza",
+    PENDIENTES: "En atención",
+    FINALIZADAS: "Historial de limpieza",
     EVIDENCIAS: "Galería de Evidencias",
     INCIDENCIAS: "Novedades y Mantenimiento"
   };
@@ -74,7 +72,7 @@ export function CleaningPage({ view = "DASHBOARD" }) {
     <div className="space-y-4">
       <Toast message={toast} onClose={() => setToast("")} />
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader eyebrow="Operaciones - Limpieza" title={titleMap[view] || "Limpieza"} description="Módulo independiente para el personal de housekeeping." />
+        <PageHeader eyebrow="Limpieza" title={titleMap[view] || "Limpieza"} description="Tu estación de trabajo. Atiende solo las habitaciones asignadas a tu cuenta." />
         <div className="flex gap-2 mt-1">
           {user?.role !== "ADMINISTRADOR" ? <Button loading={shiftBusy} variant={shiftActive ? "secondary" : "gold"} onClick={() => changeShift(shiftActive ? "check-out" : "check-in")}>{shiftActive ? "Cerrar turno" : "Iniciar turno"}</Button> : null}
           <Button onClick={reload} variant="secondary">Actualizar</Button>
@@ -151,8 +149,8 @@ function DashboardTab({ pending, finished, incidents, maintenanceReports }) {
       {openMaintenance.length > 0 && (
         <section className="rounded-card border border-amber-200 bg-amber-50 p-4 shadow-card">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white"><Wrench size={19}/></span><div><p className="text-xs font-black uppercase tracking-wide text-amber-800">Mantenimiento coordinado</p><h3 className="font-black text-park-dark">{openMaintenance.length} {openMaintenance.length === 1 ? "incidencia sigue" : "incidencias siguen"} en seguimiento</h3><p className="mt-1 text-sm text-park-muted">Recepción coordina al técnico externo. Aquí puedes verificar qué reportaste y su estado.</p></div></div>
-            <Button as={Link} to="/limpieza/incidencias" variant="secondary" className="w-full sm:w-auto">Ver novedades</Button>
+            <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white"><Wrench size={19}/></span><div><p className="text-xs font-black uppercase tracking-wide text-amber-800">Mantenimiento coordinado</p><h3 className="font-black text-park-dark">{openMaintenance.length} {openMaintenance.length === 1 ? "incidencia sigue" : "incidencias siguen"} en seguimiento</h3><p className="mt-1 text-sm text-park-muted">Recepción y Superadmin revisan esta incidencia. Puedes verla desde la tarea asignada.</p></div></div>
+            <Button as={Link} to="/limpieza/pendientes" variant="secondary" className="w-full sm:w-auto">Ver tareas</Button>
           </div>
         </section>
       )}
@@ -279,7 +277,7 @@ function IncidentsTab({ tasks, maintenanceReports }) {
 
 function IncidentCard({ report, roomNumber: location }) {
   const maintenance = report.requiresMaintenance || ["MANTENIMIENTO", "DANO_INFRAESTRUCTURA", "DANO_EQUIPO"].includes(report.type);
-  return <article className={`rounded-card border p-4 shadow-card ${maintenance ? "border-amber-200 bg-amber-50" : "border-park-border bg-white"}`}><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">{maintenance ? "Mantenimiento" : "Novedad operativa"}</p><h3 className="mt-1 font-black text-park-dark">{location}</h3></div><StatusBadge value={report.priority} /></div><p className="mt-3 text-sm font-semibold text-park-dark">{report.description || "Sin detalle registrado"}</p><div className="mt-4 flex items-center justify-between gap-2 border-t border-park-border/70 pt-3"><span className="text-xs font-bold text-park-muted">{String(report.type || "INCIDENCIA").replaceAll("_", " ")}</span><StatusBadge value={report.status || (maintenance ? "ABIERTO" : "PENDIENTE")} /></div>{maintenance ? <p className="mt-3 text-xs text-amber-900">Recepción dará seguimiento con el proveedor externo.</p> : null}</article>;
+  return <article className={`rounded-card border p-4 shadow-card ${maintenance ? "border-amber-200 bg-amber-50" : "border-park-border bg-white"}`}><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">{maintenance ? "Mantenimiento" : "Novedad operativa"}</p><h3 className="mt-1 font-black text-park-dark">{location}</h3></div><StatusBadge value={report.priority} /></div><p className="mt-3 text-sm font-semibold text-park-dark">{report.description || "Sin detalle registrado"}</p><div className="mt-4 flex items-center justify-between gap-2 border-t border-park-border/70 pt-3"><span className="text-xs font-bold text-park-muted">{String(report.type || "INCIDENCIA").replaceAll("_", " ")}</span><StatusBadge value={report.status || (maintenance ? "ABIERTO" : "PENDIENTE")} /></div>{maintenance ? <p className="mt-3 text-xs text-amber-900">Recepción y Superadmin darán seguimiento a esta incidencia.</p> : null}</article>;
 }
 
 function EvidenceSummary({ task }) {

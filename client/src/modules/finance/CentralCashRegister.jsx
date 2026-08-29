@@ -6,6 +6,7 @@ import clsx from "clsx";
 
 export function CentralCashRegister() {
   const [payments, setPayments] = useState([]);
+  const [cashSessions, setCashSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dailyClosing, setDailyClosing] = useState(null);
   const [showClosing, setShowClosing] = useState(false);
@@ -22,9 +23,10 @@ export function CentralCashRegister() {
 
   async function loadPayments() {
     try {
-      const [data, closing] = await Promise.all([api("/pagos"), api("/caja/cierre-diario")]);
+      const [data, closing, sessions] = await Promise.all([api("/pagos"), api("/caja/cierre-diario"), api("/cash-sessions")]);
       setPayments(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       setDailyClosing(closing);
+      setCashSessions(sessions);
     } catch (error) {
       console.error(error);
     } finally {
@@ -41,6 +43,16 @@ export function CentralCashRegister() {
       await loadPayments();
     } catch (error) { setMessage(error.message); }
     finally { setClosingBusy(false); }
+  }
+
+  async function reviewSession(session, status) {
+    const reviewNotes = status === "RECHAZADA" ? window.prompt("Indica el motivo del rechazo para Recepción:", "") : "";
+    if (status === "RECHAZADA" && reviewNotes === null) return;
+    try {
+      await api(`/cash-sessions/${session.id}/status`, { method: "PATCH", body: { status, reviewNotes } });
+      setMessage(status === "APROBADA" ? "Rendición aprobada y registrada en auditoría." : "Rendición rechazada; Recepción recibirá el motivo.");
+      await loadPayments();
+    } catch (error) { setMessage(error.message); }
   }
 
   const kpis = {
@@ -109,6 +121,16 @@ export function CentralCashRegister() {
           </div>
         </Card>
       </div>
+
+      <Card>
+        <div className="border-b p-5"><p className="text-xs font-black uppercase tracking-wide text-slate-500">Control de rendiciones</p><h2 className="mt-1 text-lg font-black text-slate-900">Cierres de caja de Recepción</h2><p className="mt-1 text-sm text-slate-600">Recepción cuenta su efectivo; tú comparas el esperado, contado, diferencia y observación antes de resolverlo.</p></div>
+        <div className="divide-y">
+          {cashSessions.length === 0 ? <p className="p-6 text-sm text-slate-500">No hay sesiones de caja registradas.</p> : cashSessions.map((session) => <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between" key={session.id}>
+            <div><div className="flex flex-wrap items-center gap-2"><strong className="text-slate-900">{session.operatorName || `Recepción #${session.userId}`}</strong><span className={clsx("rounded-full px-2.5 py-1 text-xs font-bold", session.status === "EN_REVISION" ? "bg-amber-100 text-amber-800" : session.status === "APROBADA" ? "bg-emerald-100 text-emerald-800" : session.status === "RECHAZADA" ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-700")}>{session.status.replace("_", " ")}</span></div><p className="mt-1 text-sm text-slate-600">{session.date} · Esperado <strong>S/ {Number(session.expectedCash || 0).toFixed(2)}</strong> · Contado <strong>S/ {Number(session.actualCash || 0).toFixed(2)}</strong> · Diferencia <strong className={Number(session.variance || 0) === 0 ? "text-emerald-700" : "text-amber-800"}>S/ {Number(session.variance || 0).toFixed(2)}</strong></p>{session.notes ? <p className="mt-1 text-sm text-slate-500">Recepción: {session.notes}</p> : null}{session.reviewNotes ? <p className="mt-1 text-sm text-red-700">Motivo de rechazo: {session.reviewNotes}</p> : null}</div>
+            {session.status === "EN_REVISION" ? <div className="flex gap-2"><Button variant="secondary" onClick={() => reviewSession(session, "RECHAZADA")}>Rechazar</Button><Button onClick={() => reviewSession(session, "APROBADA")}>Aprobar</Button></div> : null}
+          </div>)}
+        </div>
+      </Card>
 
       <Card>
         <div className="p-5 border-b flex justify-between items-center">

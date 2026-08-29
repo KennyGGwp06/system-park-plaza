@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Bell, CalendarDays, LogOut, Menu, Search, SquarePlus, X } from "lucide-react";
+import { Bell, CalendarDays, LogOut, Menu, Search, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { menuByRole, routeTitles } from "../constants/menu";
@@ -15,10 +15,10 @@ export function Navbar({ onMenu }) {
   const today = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium" }).format(new Date());
   const userName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Usuario";
   const userRole = user?.role === "SUPERADMIN" ? "Superadmin" : user?.role === "ADMINISTRADOR" ? "Admin de recepción" : user?.role || "ERP";
-  const isExecutiveControl = ["ADMINISTRADOR", "SUPERADMIN"].includes(user?.role);
   const isV6Role = ["SUPERADMIN", "ADMINISTRADOR", "RESTAURANTE", "BARTENDER"].includes(user?.role);
   const isRoleHome = ["/admin-panel", "/superadmin", "/restaurante", "/restaurante/dashboard", "/bartender", "/bartender/dashboard"].includes(location.pathname);
-  const displayTitle = isV6Role && isRoleHome ? "Panel operativo" : title;
+  const roleHomeTitle = user?.role === "SUPERADMIN" ? "Centro Superadmin" : user?.role === "ADMINISTRADOR" ? "Centro de Recepción" : user?.role === "RESTAURANTE" ? "Centro de Restaurante" : user?.role === "BARTENDER" ? "Centro de Bar" : "Panel operativo";
+  const displayTitle = isV6Role && isRoleHome ? roleHomeTitle : title;
   const subtitle = user?.role === "RESTAURANTE" ? "Centro de Restaurante" : user?.role === "BARTENDER" ? "Centro de Bar" : "Resumen del estado compartido";
   const alerts = useMemo(() => {
     const metrics = dashboard?.metrics || {};
@@ -44,8 +44,6 @@ export function Navbar({ onMenu }) {
         <label className="v6-global-search"><Search size={17}/><input aria-label="Buscar en el sistema" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en el hotel" /></label>
         {search.trim() ? <div className="v6-search-results">{(menuByRole[user?.role] || []).filter(([label]) => label.toLowerCase().includes(search.toLowerCase())).slice(0, 6).map(([label, href]) => <Link key={`${label}-${href}`} to={href} onClick={() => setSearch("")}>{label}<span>→</span></Link>)}{!(menuByRole[user?.role] || []).some(([label]) => label.toLowerCase().includes(search.toLowerCase())) ? <p>Sin resultados</p> : null}</div> : null}
       </div> : null}
-      {user?.role === "SUPERADMIN" ? <Link className="v6-top-action secondary hidden xl:inline-flex" to="/admin/comercial">Precios reales</Link> : null}
-      {isExecutiveControl ? <Link className="v6-top-action hidden lg:inline-flex" to="/reservas"><SquarePlus size={17}/> Nueva reserva</Link> : null}
       <div className="hidden h-11 items-center gap-2 border-l border-park-border/70 px-5 text-sm font-black text-park-dark lg:flex">
         <CalendarDays size={17} className="text-park-green" />
         {today}

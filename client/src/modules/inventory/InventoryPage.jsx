@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ChefHat, CircleDollarSign, Package, Pencil, Scale, Search, UtensilsCrossed, Wine } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChefHat, CircleDollarSign, Package, Pencil, Plus, Scale, Search, UtensilsCrossed, Wine } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Alert, Button, Input, PageHeader, Tabs } from "../../components/ui";
 import { EmptyState } from "../../components/EmptyState";
@@ -141,6 +141,8 @@ function AdminInventory() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: "", price: "", prepMinutes: "", active: true });
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: "", area: "RESTAURANTE", category: "", price: "", prepMinutes: "", description: "" });
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState("");
   const [allocationFailure, setAllocationFailure] = useState("");
@@ -167,6 +169,19 @@ function AdminInventory() {
     finally { setSaving(false); }
   }
 
+  async function createMenuItem(event) {
+    event.preventDefault();
+    setSaving(true); setFailure("");
+    try {
+      await api("/admin/menu-items", { method: "POST", body: { ...createForm, price: Number(createForm.price), prepMinutes: Number(createForm.prepMinutes || 0) } });
+      setCreateForm({ name: "", area: "RESTAURANTE", category: "", price: "", prepMinutes: "", description: "" });
+      setCreating(false);
+      setToast("Producto agregado. Ahora crea su receta técnica antes de habilitar su venta con inventario.");
+      await reload();
+    } catch (error) { setFailure(error.message); }
+    finally { setSaving(false); }
+  }
+
   async function assign(event) {
     event.preventDefault();
     setSaving(true); setAllocationFailure("");
@@ -183,7 +198,7 @@ function AdminInventory() {
   return (
     <div className="space-y-5">
       <Toast message={toast} onClose={() => setToast("")} />
-      <PageHeader eyebrow="Administración" title="Productos, recetas y precios" description="Un único lugar para mantener los insumos y los precios que ve todo el hotel." actions={<div className="flex flex-wrap gap-2"><Button as={Link} to="/inventario/catalogo" variant="secondary" icon={Package}>Administrar insumos</Button><Button as={Link} to="/inventario/recetas" icon={ChefHat}>Editar recetas</Button></div>} />
+      <PageHeader eyebrow="Administración" title="Productos, recetas y precios" description="Un único lugar para mantener los insumos y los precios que ve todo el hotel." actions={<div className="flex flex-wrap gap-2"><Button as={Link} to="/inventario/catalogo" variant="secondary" icon={Package}>Administrar insumos</Button><Button as={Link} to="/inventario/recetas" icon={ChefHat}>Editar recetas</Button><Button icon={Plus} onClick={() => { setCreating(true); setEditing(null); setFailure(""); }}>Nuevo producto de venta</Button></div>} />
 
       <section className="grid gap-3 sm:grid-cols-3">
         <Metric label="Productos de venta" value={menu.length} icon={UtensilsCrossed} />
@@ -203,6 +218,8 @@ function AdminInventory() {
           <Tabs tabs={[{ value: "TODAS", label: "Todos" }, { value: "RESTAURANTE", label: "Restaurante" }, { value: "BARTENDER", label: "Bar" }]} value={area} onChange={setArea} />
         </div>
       </section>
+
+      {creating ? <section className="rounded-card border border-park-green bg-white p-5 shadow-card"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase text-park-gold">Carta interna</p><h2 className="text-balance text-xl font-black text-park-dark">Agregar plato o bebida</h2><p className="text-pretty text-sm text-park-muted">Se crea con una imagen temporal del área. Define su ficha técnica antes de usarlo para descontar inventario.</p></div><Button type="button" variant="ghost" onClick={() => setCreating(false)}>Cerrar</Button></div>{failure ? <div className="mt-4"><Alert tone="danger" title="No se pudo agregar">{failure}</Alert></div> : null}<form className="mt-5 grid gap-3 md:grid-cols-3" onSubmit={createMenuItem}><Input label="Nombre" value={createForm.name} onChange={(event) => setCreateForm({ ...createForm, name: event.target.value })} required /><label><span className="mb-1 block text-sm font-bold text-park-dark">Área</span><select className="h-10 w-full rounded-input border border-park-border bg-white px-3 text-sm" value={createForm.area} onChange={(event) => setCreateForm({ ...createForm, area: event.target.value })}><option value="RESTAURANTE">Restaurante</option><option value="BARTENDER">Bar</option></select></label><Input label="Categoría" placeholder="Ej. Saltados y chaufas" value={createForm.category} onChange={(event) => setCreateForm({ ...createForm, category: event.target.value })} required /><Input label="Precio de venta (S/)" type="number" min="0" step="0.01" value={createForm.price} onChange={(event) => setCreateForm({ ...createForm, price: event.target.value })} required /><Input label="Preparación (minutos)" type="number" min="0" value={createForm.prepMinutes} onChange={(event) => setCreateForm({ ...createForm, prepMinutes: event.target.value })} /><Input label="Descripción (opcional)" value={createForm.description} onChange={(event) => setCreateForm({ ...createForm, description: event.target.value })} /><div className="md:col-span-3 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-park-muted">La foto temporal se reemplaza desde el catálogo cuando tengas la foto real.</p><Button loading={saving} icon={Plus}>Agregar a la carta</Button></div></form></section> : null}
 
       <section className="overflow-x-auto rounded-card border border-park-border bg-white shadow-card">
         <table className="min-w-[760px] w-full text-left text-sm">

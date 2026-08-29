@@ -36,7 +36,7 @@ async function saveState(client, state) {
 function userFrom(state, actorId) {
   const user = (state.users || []).find((item) => n(item.id) === n(actorId));
   if (!user) fail(401, "Usuario no encontrado");
-  return user;
+  return user.role === "SUPERADMIN" ? { ...user, role: "ADMINISTRADOR", displayRole: "SUPERADMIN" } : user;
 }
 
 function warehouseAllowed(user, code) {

@@ -1,1 +1,0 @@
-function e(e,t,n,r){let i=e=>e.ok?(n(r.title,r.message,r.type||`success`),!0):(n(`Operacion rechazada`,e.error||e.message||`No se pudo completar la operacion.`,`error`),!1),a=e(t);return a&&typeof a.then==`function`?a.then(i).catch(e=>(n(`Error inesperado`,e.message||`Fallo al contactar el servidor.`,`error`),!1)):i(a)}export{e as t};

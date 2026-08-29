@@ -138,7 +138,9 @@ function upgradeState(state) {
   const catalog = modules.flatMap((module, moduleIndex) => ["VER", "CREAR", "EDITAR", "ELIMINAR"].map((action, actionIndex) => ({ id: moduleIndex * 4 + actionIndex + 1, code: `${module}:${action}`, module, action })));
   const allowed = {
     SUPERADMIN: modules,
-    ADMINISTRADOR: modules,
+    // ADMINISTRADOR representa exclusivamente al Admin de recepción. El control
+    // global, costos, usuarios, auditoría y configuración pertenecen al dueño.
+    ADMINISTRADOR: ["DASHBOARD", "RECEPCION", "CLIENTES", "HABITACIONES", "RESERVAS", "CHECK_IN", "CHECK_OUT", "PEDIDOS", "RESTAURANTE", "BARTENDER", "EVENTOS", "COCHERA", "LIMPIEZA", "MANTENIMIENTO", "PAGOS", "CAJA", "REPORTES", "ACCESOS"],
     RESTAURANTE: ["RESTAURANTE", "PEDIDOS", "INVENTARIO", "REPORTES"],
     BARTENDER: ["BARTENDER", "PEDIDOS", "INVENTARIO", "REPORTES"],
     LIMPIEZA: ["LIMPIEZA", "REPORTES"],
@@ -153,12 +155,26 @@ function upgradeState(state) {
       user.operationalArea = "RECEPCION";
     }
   });
-  state.roles = state.roles.filter((role) => !["MANTENIMIENTO", "RECEPCION"].includes(role.name));
+  // La antigua cuenta OPERATIVO de limpieza se convierte en una estación real
+  // de trabajador. No se reutiliza para otros módulos ni para Administración.
+  const cleaningAccount = state.users.find((user) => String(user.email || "").toLowerCase() === "limpieza@parkplaza.com");
+  if (cleaningAccount && (cleaningAccount.role === "OPERATIVO" || cleaningAccount.status === "SIN_ACCESO_ERP")) {
+    Object.assign(cleaningAccount, { role: "LIMPIEZA", status: "ACTIVO", position: "LIMPIEZA", operationalArea: "LIMPIEZA" });
+  }
+  state.roles = state.roles.filter((role) => role.name !== "RECEPCION");
+  if (!state.roles.some((role) => role.name === "LIMPIEZA")) {
+    state.roles.push({ id: Math.max(0, ...state.roles.map((role) => Number(role.id) || 0)) + 1, name: "LIMPIEZA", description: "Estación operativa de limpieza", permissions: [] });
+  }
+  if (!state.roles.some((role) => role.name === "MANTENIMIENTO")) {
+    state.roles.push({ id: Math.max(0, ...state.roles.map((role) => Number(role.id) || 0)) + 1, name: "MANTENIMIENTO", description: "Estación operativa de mantenimiento", permissions: [] });
+  }
   if (!state.roles.some((role) => role.name === "SUPERADMIN")) {
     state.roles.push({ id: Math.max(0, ...state.roles.map((role) => Number(role.id) || 0)) + 1, name: "SUPERADMIN", description: "Control integral del sistema", permissions: [] });
   }
-  state.users = state.users.filter((user) => (user.role?.name || user.role) !== "MANTENIMIENTO");
-  state.employees = state.employees.filter((employee) => (employee.baseRole || employee.role?.name || employee.role) !== "MANTENIMIENTO");
+  if (!state.users.some((user) => String(user.email || "").toLowerCase() === "mantenimiento@parkplaza.com")) {
+    const id = Math.max(0, ...state.users.map((user) => Number(user.id) || 0)) + 1;
+    state.users.push({ id, firstName: "Jorge", lastName: "Mantenimiento", email: "mantenimiento@parkplaza.com", role: "MANTENIMIENTO", status: "ACTIVO", dailyRate: 70, pin: "6666", documentNumber: `7000000${id}`, phone: `99910000${id}`, position: "MANTENIMIENTO", operationalArea: "MANTENIMIENTO" });
+  }
   state.shifts = state.shifts.filter((shift) => state.employees.some((employee) => employee.id === shift.employeeId));
   state.roles.forEach((role) => { role.permissions = catalog.filter((permission) => (allowed[role.name] || []).includes(permission.module)); });
   // Compatibilidad con bases antiguas: si todavía no existe dueño, la antigua cuenta
@@ -189,10 +205,16 @@ function upgradeState(state) {
     user.hireDate ||= today;
     user.position ||= user.role;
   });
+  state.users.forEach((user) => {
+    if (!state.employees.some((employee) => Number(employee.id) === Number(user.id))) {
+      state.employees.push({ ...user, baseRole: user.role, attendanceStatus: "FUERA_DE_TURNO", currentAssignment: null });
+    }
+  });
   state.employees.forEach((employee) => {
     const user = state.users.find((item) => item.id === employee.id);
     Object.assign(employee, user || {});
     employee.baseRole = employee.role === "SUPERADMIN" ? "SUPERADMIN" : (employee.baseRole || employee.role);
+    if (String(employee.email || "").toLowerCase() === "limpieza@parkplaza.com") employee.baseRole = "LIMPIEZA";
     employee.attendanceStatus ||= "FUERA_DE_TURNO";
   });
   state.attendance.forEach((record) => {
@@ -241,8 +263,9 @@ function upgradeState(state) {
   state.orders.forEach((order) => { if (order.status === "RECIBIDO") order.status = "PENDIENTE"; order.items ||= []; });
   state.rooms.forEach((room) => {
     // LIBRE es el único estado canónico para una habitación limpia y preparada.
-    if (room.status === "LIMPIA") room.status = "LIBRE";
-    if (room.status === "SUCIA") room.status = "EN_LIMPIEZA";
+    if (["LIMPIA", "DISPONIBLE", "LIBRE"].includes(room.status)) room.status = "LIBRE";
+    if (["SUCIA", "LIMPIEZA", "EN_LIMPIEZA"].includes(room.status)) room.status = "EN_LIMPIEZA";
+    if (room.status === "FUERA_SERVICIO") room.status = "BLOQUEADA";
   });
   stabilizeLegacyState(state, isoNow);
   state.requests.forEach((request) => { if (request.requiresMaintenance && request.status === "PENDIENTE") request.status = "ABIERTO"; request.evidences ||= []; });

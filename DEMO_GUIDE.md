@@ -40,16 +40,20 @@ Contraseña común: `ParkPlaza123*`.
 
 ### Limpieza — `limpieza@parkplaza.com`
 
+Abre la estación de Operaciones: http://localhost:4174
+
 - Revisa habitaciones pendientes y prioridad.
 - Inicia la tarea, adjunta evidencia de entrada/salida y reporta daños.
 - Finaliza la tarea y confirma que la habitación vuelve a estar libre.
 
 ### Mantenimiento — `mantenimiento@parkplaza.com`
 
+Abre la estación de Operaciones: http://localhost:4174
+
 - Revisa incidencias creadas por clientes, limpieza, cocina o bar.
 - Inicia reparación, registra diagnóstico/costo/evidencia y finaliza el trabajo.
 
-### Administrador — `admin@parkplaza.com`
+### Superadmin — `superadmin@parkplaza.com`
 
 - Supervisa dashboard, reservas, caja, accesos, pedidos, limpieza e incidencias.
 - Crea trabajadores, cambia roles y administra permisos.

@@ -1,13 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChefHat, Clock, CheckCircle2, Play, AlertCircle } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch";
-import { useAuth } from "../../context/AuthContext";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { api } from "../../services/api";
 
 export function RestaurantOrdersPage() {
-  const { user } = useAuth();
   const { data: ordersData, loading, error, reload: refresh } = useFetch("/restaurante", {
     initialData: [],
     realtime: true,
@@ -33,7 +31,7 @@ export function RestaurantOrdersPage() {
     setActionError(null);
 
     try {
-      await api(`/api/restaurante/${orderId}/status`, {
+      await api(`/restaurante/${orderId}/status`, {
         method: "PATCH",
         body: { status: targetStatus }
       });

@@ -1,22 +1,26 @@
 # Hotel Park Plaza — demo integral
 
-Sistema local para demostrar la experiencia conectada del cliente y la operación del hotel. Incluye una PWA para huéspedes, un ERP por roles, una API Express y persistencia PostgreSQL.
+Sistema local para demostrar la experiencia del cliente, el ERP por roles y las estaciones de operaciones. Usa una sola API Express y una sola base PostgreSQL para que los tres portales trabajen con los mismos datos.
 
 ## Servicios
 
 - Experiencia del cliente: http://localhost:4173
 - ERP del personal: http://localhost:5173
+- Operaciones (Limpieza y Mantenimiento): http://localhost:4174
 - Estado de la API: http://localhost:3000/api/health
 - PostgreSQL: `localhost:5433`
 
 ## Levantar con Docker Desktop
 
-Desde esta carpeta:
+Requisitos: Docker Desktop abierto y Git. Desde PowerShell, después de clonar el repositorio:
 
 ```powershell
+Copy-Item .env.example .env
 docker compose up -d --build
 docker compose ps
 ```
+
+La primera ejecución crea las tablas, aplica las migraciones y carga los datos de demostración automáticamente. No copies tu archivo `.env` personal al repositorio: cada equipo crea el suyo desde `.env.example`.
 
 Para ver registros:
 
@@ -46,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Esto inicia API, ERP y experiencia del cliente simultáneamente.
+Esto inicia API, ERP, experiencia del cliente y Operaciones simultáneamente. Para una instalación manual también se requiere PostgreSQL y un archivo `.env` configurado.
 
 ## Cuentas del personal
 
@@ -54,8 +58,8 @@ Todas usan la contraseña `ParkPlaza123*`.
 
 | Rol | Correo | Vista inicial |
 |---|---|---|
-| Administrador | `admin@parkplaza.com` | Dashboard general |
-| Recepción | `recepcion@parkplaza.com` | Operación de recepción |
+| Superadmin | `superadmin@parkplaza.com` | Control total del negocio |
+| Admin de recepción | `recepcion@parkplaza.com` | Operación, cobros y rendición de caja |
 | Restaurante | `restaurante@parkplaza.com` | Pedidos de cocina |
 | Bartender | `bartender@parkplaza.com` | Pedidos del bar |
 | Limpieza | `limpieza@parkplaza.com` | Habitaciones asignadas |
@@ -78,3 +82,14 @@ Piscina no es un rol humano separado. Sus accesos son validados desde Recepción
 - Compras, proveedores, recepción de mercadería, kardex, caja, pagos, facturación, auditoría y configuración.
 
 Consulta [DEMO_GUIDE.md](./DEMO_GUIDE.md) para el recorrido recomendado de presentación.
+
+## Para trabajar desde otra laptop
+
+```powershell
+git clone https://github.com/KennyGGwp06/system-park-plaza.git
+cd system-park-plaza
+Copy-Item .env.example .env
+docker compose up -d --build
+```
+
+Luego abre los tres portales en los enlaces de arriba. Para detenerlos sin perder los datos, usa `docker compose down`. No uses `docker compose down -v` salvo que quieras borrar por completo la base de demostración.

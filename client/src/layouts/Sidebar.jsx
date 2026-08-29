@@ -9,6 +9,8 @@ export function Sidebar({ open, onClose }) {
   const location = useLocation();
   const sections = filterSectionsByPermission(menuSectionsByRole[user?.role] || [], hasPermission);
   const [expanded, setExpanded] = useState({});
+  const [openV6Section, setOpenV6Section] = useState(null);
+  const [hasChosenV6Section, setHasChosenV6Section] = useState(false);
   const isV6Role = ["SUPERADMIN", "ADMINISTRADOR", "RESTAURANTE", "BARTENDER"].includes(user?.role);
   const roleTheme = user?.role === "RESTAURANTE" ? "theme-restaurant" : user?.role === "BARTENDER" ? "theme-bar" : "theme-hotel";
 
@@ -22,7 +24,11 @@ export function Sidebar({ open, onClose }) {
       </div>
 
       <nav className="sidebar-scroll grid gap-6 overflow-y-auto px-4 py-6">
-        {isV6Role ? sections.map((section) => <ReceptionSidebarSection key={section.label} section={section} expanded={Boolean(expanded[`section:${section.label}`]) || section.items.some((item) => Array.isArray(item) ? location.pathname === item[1] : item.children?.some((child) => location.pathname === child[1]))} onClose={onClose} onToggle={() => setExpanded((state) => ({ ...state, [`section:${section.label}`]: !state[`section:${section.label}`] }))} />) : sections.map((section) => (
+        {isV6Role ? sections.map((section) => {
+          const containsCurrentRoute = section.items.some((item) => Array.isArray(item) ? location.pathname === item[1] : item.children?.some((child) => location.pathname === child[1]));
+          const isExpanded = hasChosenV6Section ? openV6Section === section.label : containsCurrentRoute;
+          return <ReceptionSidebarSection key={section.label} section={section} expanded={isExpanded} onClose={onClose} onToggle={() => { setHasChosenV6Section(true); setOpenV6Section(isExpanded ? null : section.label); }} />;
+        }) : sections.map((section) => (
           <div key={section.label}>
             <p className="mb-2 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/45">{section.label}</p>
             <div className="grid gap-1.5">
@@ -51,13 +57,15 @@ export function Sidebar({ open, onClose }) {
 }
 
 function ReceptionSidebarSection({ section, expanded, onToggle, onClose }) {
-  const children = section.items.flatMap((item) => Array.isArray(item) ? [item] : (item.children || []));
   return <section className="reception-v6-section">
     <button className={`reception-v6-section-toggle ${expanded ? "is-open" : ""}`} onClick={onToggle} type="button" aria-expanded={expanded}>
       <span>{section.label}</span><ChevronRight size={16} />
     </button>
     <div className={`grid transition-all duration-300 ${expanded ? "grid-rows-[1fr] opacity-100 pt-1" : "grid-rows-[0fr] opacity-0"}`}>
-      <div className="overflow-hidden"><div className="grid gap-1 px-1 pb-1">{children.map((item) => <SidebarLink child item={item} key={item[1]} onClose={onClose} receptionTheme />)}</div></div>
+      <div className="overflow-hidden"><div className="grid gap-1 px-1 pb-1">{section.items.map((item) => Array.isArray(item)
+        ? <SidebarLink child item={item} key={item[1]} onClose={onClose} receptionTheme />
+        : <div className="pt-2" key={item.label}><p className="reception-v6-subsection-label">{item.label}</p>{item.children.map((child) => <SidebarLink child item={child} key={child[1]} onClose={onClose} receptionTheme />)}</div>
+      )}</div></div>
     </div>
   </section>;
 }

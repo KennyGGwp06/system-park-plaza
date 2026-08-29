@@ -39,8 +39,8 @@ export function FoodBeverageControlPage() {
       />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Metric label="Pedidos pagados por aceptar" value={paidPending.length} tone="amber" href="/admin/restaurante/pedidos" />
-        <Metric label="Pedidos listos para entrega" value={ready.length} tone="blue" href="/admin/restaurante/pedidos" />
+        <Metric label="Pedidos pagados por aceptar" value={paidPending.length} tone="amber" href="/control-gastronomico/restaurante" />
+        <Metric label="Pedidos listos para entrega" value={ready.length} tone="blue" href="/control-gastronomico/restaurante" />
         <Metric label="Turnos operativos activos" value={activeSessions.length} tone="green" href="/inventario/turnos" />
         <Metric label="Cierres para revisar" value={pendingClosures.length} tone={pendingClosures.length ? "red" : "slate"} href="/inventario/turnos" />
         <Metric label="Costo de alimentos + bebidas" value={money(Number(metrics.food || 0) + Number(metrics.beverage || 0))} tone="slate" href="/inventario/recetas" compact />
@@ -68,8 +68,8 @@ export function FoodBeverageControlPage() {
         <article className="rounded-card border border-park-border bg-white p-5 shadow-card">
           <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-park-green-soft text-park-green"><ClipboardList size={20} /></span><div><h2 className="font-black text-park-dark">Operación en vivo</h2><p className="mt-1 text-sm text-park-muted">Los pedidos solo llegan a la estación cuando están pagados y el consumo se confirma al entregar.</p></div></div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <AreaSummary icon={ChefHat} title="Restaurante" orders={restaurantOrders} href="/admin/restaurante/resumen" />
-            <AreaSummary icon={Wine} title="Bar" orders={barOrders} href="/admin/bartender/resumen" />
+            <AreaSummary icon={ChefHat} title="Restaurante" orders={restaurantOrders} href="/control-gastronomico/restaurante" />
+            <AreaSummary icon={Wine} title="Bar" orders={barOrders} href="/control-gastronomico/bar" />
           </div>
         </article>
 
@@ -78,7 +78,7 @@ export function FoodBeverageControlPage() {
           <div className="mt-4 space-y-2">
             <Priority href="/admin/inventario" label="Productos con stock crítico" value={critical.length} />
             <Priority href="/inventario/turnos" label="Cierres pendientes de aprobación" value={pendingClosures.length} />
-            <Priority href="/admin/restaurante/pedidos" label="Pedidos pagados sin aceptar" value={paidPending.length} />
+            <Priority href="/control-gastronomico/restaurante" label="Pedidos pagados sin aceptar" value={paidPending.length} />
           </div>
         </article>
       </section>

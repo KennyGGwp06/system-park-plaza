@@ -38,6 +38,7 @@ services:
       DEMO_STAFF_PASSWORD: ${DEMO_STAFF_PASSWORD:-ParkPlaza123*}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       CUSTOMER_URL: ${CUSTOMER_URL:-http://localhost:4173}
+      OPERATIONS_URL: ${OPERATIONS_URL:-http://localhost:4174}
       UPLOAD_DIR: /app/uploads
     ports:
       - "${BACKEND_PORT:-3000}:3000"
@@ -74,6 +75,21 @@ services:
     restart: unless-stopped
     ports:
       - "${CUSTOMER_PORT:-4173}:80"
+    depends_on:
+      - backend
+    networks:
+      - park_plaza_network
+
+  operations:
+    build:
+      context: .
+      dockerfile: operations/Dockerfile
+      args:
+        VITE_API_URL: ${OPERATIONS_API_URL:-/api}
+    container_name: park_plaza_operations
+    restart: unless-stopped
+    ports:
+      - "${OPERATIONS_PORT:-4174}:80"
     depends_on:
       - backend
     networks:

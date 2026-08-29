@@ -1,9 +1,8 @@
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowRight, BedDouble, CalendarCheck, ChefHat, CircleDollarSign, ClipboardCheck, Users, Waves, ShieldCheck, Receipt, Wrench, Boxes } from "lucide-react";
+import { AlertTriangle, ArrowRight, BedDouble, CalendarCheck, ChefHat, CircleDollarSign, ClipboardCheck, Waves, ShieldCheck, Wrench } from "lucide-react";
 import { Button } from "../../components/ui";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
-import { useAuth } from "../../context/AuthContext";
 import { useFetch } from "../../hooks/useFetch";
 
 const adminGroups = [
@@ -19,11 +18,11 @@ const adminGroups = [
     icon: BedDouble, tone: "blue", 
     items: [["Reservas y huéspedes", "/reservas"], ["Llegadas y salidas", "/checkin"], ["Clientes", "/clientes"], ["Mi caja y cierre de turno", "/admin-panel/mi-caja"]] 
   },
-  { 
-    title: "3. Servicios y accesos", 
-    description: "Habilitación de servicios pagados.", 
+  {
+    title: "3. Servicios y accesos",
+    description: "Cada servicio conserva su propio QR, horario y pago.",
     icon: Waves, tone: "amber", 
-    items: [["Validación de pago", "/pagos"], ["Servicios contratados", "/eventos/reservas"], ["Accesos de clientes", "/accesos"]] 
+    items: [["Pagos registrados", "/pagos"], ["Piscina y Mirador", "/recepcion"], ["Eventos", "/eventos/reservas"], ["Validar QR y accesos", "/accesos"]]
   },
   { 
     title: "4. Coordinación hotelera", 
@@ -31,22 +30,15 @@ const adminGroups = [
     icon: Wrench, tone: "slate", 
     items: [["Pedidos de clientes", "/consumos"], ["Habitaciones y evidencias", "/admin/limpieza/resumen"], ["Incidencias y mantenimiento", "/incidencias"], ["Cochera", "/cochera"]] 
   },
-  { 
-    title: "5. Coordinación de personal", 
-    description: "Vigilar quién está trabajando.", 
-    icon: Users, tone: "blue", 
-    items: [["Turnos asignados", "/turnos"], ["Personal activo", "/empleados"], ["Solicitudes operativas", "/operaciones"]] 
-  },
-  { 
-    title: "6. Supervisión gastronómica", 
+  {
+    title: "5. Supervisión gastronómica",
     description: "Solo lectura. Las áreas operan solas, tú supervisas.", 
     icon: ChefHat, tone: "green", 
-    items: [["Pedidos de Restaurante", "/admin/restaurante/pedidos"], ["Pedidos de Bar", "/admin/bartender/pedidos"]] 
+    items: [["Monitor de Restaurante", "/control-gastronomico/restaurante"], ["Monitor de Bar", "/control-gastronomico/bar"]]
   }
 ];
 
 export function AdminReceptionControlPage() {
-  const { user } = useAuth();
   
   const { data: dashData, loading: dashLoading, error: dashError } = useFetch("/dashboard", { 
     initialData: { metrics: {}, modules: { orders: [], cleaning: [] }, lowStockProducts: [] }, 
@@ -67,7 +59,7 @@ export function AdminReceptionControlPage() {
   const orders = dashData.modules?.orders || [];
   const cleaning = dashData.modules?.cleaning || [];
   const alerts = [
-    { label: "Pedidos atrasados", value: metrics.delayedOrders || 0, href: "/admin/restaurante/resumen", urgent: metrics.delayedOrders > 0, origin: "Tiempo real" },
+    { label: "Pedidos atrasados", value: metrics.delayedOrders || 0, href: "/control-gastronomico/restaurante", urgent: metrics.delayedOrders > 0, origin: "Tiempo real" },
     { label: "Pagos pendientes", value: metrics.pendingPayments || 0, href: "/pagos", urgent: metrics.pendingPayments > 0, origin: "Tiempo real" },
     { label: "Incidencias abiertas", value: metrics.incidentsOpen || 0, href: "/incidencias", urgent: metrics.incidentsHighPriority > 0, origin: "Tiempo real" }
   ];
@@ -126,7 +118,7 @@ export function AdminReceptionControlPage() {
         <div className="mb-3">
           <p className="text-xs font-black uppercase tracking-[.16em] text-blue-600">Módulos de responsabilidad</p>
           <h2 className="text-xl font-black text-park-dark">Tu estación de control</h2>
-          <p className="text-sm text-park-muted">Dirige la operación diaria. La configuración global y cierres contables son exclusivos del Superadmin.</p>
+          <p className="text-sm text-park-muted">Atiende clientes, cobra y coordina la operación. Precios, compras, personal, inventario y cierres definitivos son exclusivos del Superadmin.</p>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
           {adminGroups.map((group) => <ModuleGroup group={group} key={group.title} />)}

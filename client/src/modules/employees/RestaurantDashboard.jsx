@@ -9,6 +9,11 @@ export function RestaurantDashboard() {
     realtime: true,
     pollInterval: 15000
   });
+  const { data: orders = [], error: ordersError } = useFetch("/restaurante", {
+    initialData: [],
+    realtime: true,
+    pollInterval: 15000
+  });
   const [activeSession, setActiveSession] = useState(null);
 
   useEffect(() => {
@@ -20,7 +25,11 @@ export function RestaurantDashboard() {
   }, [sessions]);
 
   if (loading) return <div className="p-8 text-center text-gray-500">Cargando turno...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">Error al cargar el turno: {error}</div>;
+  if (error || ordersError) return <div className="p-8 text-center text-red-500">Error al cargar la estación: {(error || ordersError).message || String(error || ordersError)}</div>;
+
+  const pendingOrders = orders.filter((item) => ["PENDIENTE", "EN_COCINA"].includes(item.status)).length;
+  const preparingOrders = orders.filter((item) => item.status === "PREPARANDO").length;
+  const readyOrders = orders.filter((item) => item.status === "LISTO").length;
 
   if (!activeSession) {
     return (
@@ -29,7 +38,7 @@ export function RestaurantDashboard() {
           <div><p>RESTAURANTE · OPERACIÓN INDEPENDIENTE</p><h1>Centro de Restaurante</h1><span>Pedidos, preparación, recetas e inventario de cocina en una sola estación.</span></div>
         </section>
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[['Turno', 'Sin apertura'], ['Pedidos activos', '0'], ['Preparaciones', '0'], ['Stock asignado', 'Pendiente']].map(([label, value]) => <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={label}><p className="text-xs font-black uppercase text-park-muted">{label}</p><strong className="mt-3 block text-2xl text-park-dark">{value}</strong></article>)}
+          {[["Turno", "Sin apertura"], ["Pedidos por aceptar", pendingOrders], ["En preparación", preparingOrders], ["Listos para entregar", readyOrders]].map(([label, value]) => <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={label}><p className="text-xs font-black uppercase text-park-muted">{label}</p><strong className="mt-3 block text-2xl text-park-dark">{value}</strong></article>)}
         </section>
         <Alert tone="warning" title="Turno pendiente de apertura">
           El Superadmin debe abrir el turno y asignar el inventario de Restaurante. La estación permanecerá en solo lectura hasta entonces.
@@ -53,6 +62,10 @@ export function RestaurantDashboard() {
           {activeSession.status}
         </div>
       </div>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[["Pedidos por aceptar", pendingOrders], ["En preparación", preparingOrders], ["Listos para entregar", readyOrders], ["Inventario", isCounting ? "Conteo físico" : "Operativo"]].map(([label, value]) => <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={label}><p className="text-xs font-black uppercase text-park-muted">{label}</p><strong className="mt-3 block text-2xl text-park-dark">{value}</strong></article>)}
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg border border-[#0f3d2e]/10 shadow-sm">

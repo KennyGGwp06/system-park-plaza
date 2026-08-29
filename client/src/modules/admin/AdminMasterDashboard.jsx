@@ -30,8 +30,8 @@ const MODULES = [
     border: "border-orange-500/30",
     icon: <ChefHat className="text-orange-400 mb-2" size={28} />,
     items: [
-      { name: "Monitor Restaurante", desc: "KDS y tickets", icon: Activity, href: "/admin/restaurante/resumen" },
-      { name: "Monitor Bar", desc: "Cola de tragos", icon: Wine, href: "/admin/bartender/resumen" },
+      { name: "Monitor Restaurante", desc: "Pedidos en tiempo real", icon: Activity, href: "/control-gastronomico/restaurante" },
+      { name: "Monitor Bar", desc: "Cola de bebidas", icon: Wine, href: "/control-gastronomico/bar" },
       { name: "Terminal POS", desc: "Venta directa", icon: ShoppingCart, href: "/consumos" },
       { name: "Recetas", desc: "Fichas técnicas", icon: Menu, href: "/inventario/recetas" }
     ]

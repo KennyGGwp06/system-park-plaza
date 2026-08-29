@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY client/package.json ./client/package.json
 COPY customer/package.json ./customer/package.json
+COPY operations/package.json ./operations/package.json
 COPY server/package.json ./server/package.json
 RUN npm ci --workspace client --include-workspace-root=false
 
