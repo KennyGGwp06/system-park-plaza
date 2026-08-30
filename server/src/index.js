@@ -138,6 +138,24 @@ function loginRateLimit(req, res, next) {
   return next();
 }
 
+// El reloj es una terminal compartida. El límite se aplica por DNI e IP para
+// evitar bloquear a todo el personal por los errores de una sola persona.
+const attendanceAttempts = new Map();
+function attendanceAttemptKey(req) { return `${req.ip || "unknown"}:${String(req.body?.documentNumber || "").replace(/\D/g, "")}`; }
+function attendanceClockRateLimit(req, res, next) {
+  const key = attendanceAttemptKey(req);
+  const nowMs = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const record = attendanceAttempts.get(key);
+  if (!record || record.resetAt <= nowMs) {
+    attendanceAttempts.set(key, { count: 1, resetAt: nowMs + windowMs });
+    return next();
+  }
+  if (record.count >= 5) return res.status(429).json({ message: "Demasiados intentos. Solicita ayuda a Recepción." });
+  record.count += 1;
+  return next();
+}
+
 app.post("/api/public/identify", loginRateLimit, async (req, res, next) => {
   try {
     const documentNumber = normalizeDocument(req.body.documentNumber);
@@ -508,7 +526,9 @@ app.post("/api/auth/login", loginRateLimit, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.use("/api", staffAuth);
+// El reloj es una terminal compartida. Solo su marcación pública queda fuera
+// de la sesión ERP y exige DNI + PIN personal; lo demás mantiene staffAuth.
+app.use("/api", (req, res, next) => (req.path === "/attendance/clock" ? next() : staffAuth(req, res, next)));
 app.get("/api/auth/me", (req, res) => res.json({ user: req.user }));
 app.get("/api/superadmin/control-state", async (req, res, next) => {
   try {
@@ -1387,7 +1407,7 @@ app.post("/api/cleaning/tasks/:id/report", requireCleaningWorker, requireActiveS
 // Estación de Mantenimiento: consume los mismos reportes operativos, sin crear
 // una segunda entidad de trabajo ni dar acceso al ERP administrativo.
 app.get("/api/maintenance/reports", requireMaintenanceWorker, async (req, res, next) => { try { const state = await readState(); const rows = state.requests.filter((item) => item.requiresMaintenance && Number(item.assignedMaintenanceEmployeeId) === Number(req.user.id)); res.json(sortRecent(rows, req.query.order)); } catch (error) { next(error); } });
-app.patch("/api/maintenance/reports/:id/start", requireMaintenanceWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const report = requireOwnedMaintenanceReport(state, req.params.id, req.user); if (report.status !== "ABIERTO") throw httpError(409, "Este trabajo ya no está pendiente."); report.status = "EN_REVISION"; report.startedAt = now(); report.assignedMaintenanceEmployeeId = req.user.id; audit(state, "MANTENIMIENTO", "INICIAR", report.code, req.user.id); return report; }); res.json(result); } catch (error) { next(error); } });
+app.patch("/api/maintenance/reports/:id/start", requireMaintenanceWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const report = requireOwnedMaintenanceReport(state, req.params.id, req.user); if (report.status !== "ABIERTO") throw httpError(409, "Este trabajo ya no está pendiente."); report.status = "EN_REVISION"; report.startedAt = now(); report.assignedMaintenanceEmployeeId = req.user.id; report.assignedMaintenanceTo = `${req.user.firstName} ${req.user.lastName}`.trim(); report.assignedTo = { id: req.user.id, firstName: req.user.firstName, lastName: req.user.lastName }; audit(state, "MANTENIMIENTO", "INICIAR", report.code, req.user.id); return report; }); res.json(result); } catch (error) { next(error); } });
 app.post("/api/maintenance/reports/:id/evidence", requireMaintenanceWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const report = requireOwnedMaintenanceReport(state, req.params.id, req.user); const files = Array.isArray(req.body.files) ? req.body.files.filter((file) => String(file?.fileUrl || "").trim()) : []; if (!files.length) throw httpError(400, "Adjunta al menos una foto real como evidencia."); report.evidences ||= []; report.evidences.push(...files.map((file, index) => ({ id: Date.now() + index, ...file, createdAt: now(), uploadedById: req.user.id, area: "MANTENIMIENTO" }))); audit(state, "MANTENIMIENTO", "EVIDENCIA", report.code, req.user.id); return report; }); res.status(201).json(result); } catch (error) { next(error); } });
 app.patch("/api/maintenance/reports/:id/finish", requireMaintenanceWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const report = requireOwnedMaintenanceReport(state, req.params.id, req.user); if (report.status !== "EN_REVISION") throw httpError(409, "Inicia el trabajo antes de finalizarlo."); if (!(report.evidences || []).length) throw httpError(409, "Adjunta al menos una evidencia antes de finalizar."); const workDescription = String(req.body.workDescription || "").trim(); if (!workDescription) throw httpError(400, "Describe el trabajo realizado."); Object.assign(report, { status: "RESUELTO", workDescription, observations: String(req.body.observations || "").trim(), resolvedAt: now(), resolvedById: req.user.id }); audit(state, "MANTENIMIENTO", "FINALIZAR", report.code, req.user.id); return report; }); res.json(result); } catch (error) { next(error); } });
 // Consola de Recepción: el personal operativo no entra al ERP. Las fotos y
@@ -1456,7 +1476,23 @@ app.patch("/api/pool/:id/finish", requireReceptionAdmin, async (req, res, next) 
 app.get("/api/pool/reports", requireReceptionAdmin, async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.poolReports, req.query.order)); } catch (error) { next(error); } });
 app.post("/api/pool/reports", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const item = { id: Date.now(), ...req.body, clientId: Number(req.body.clientId || 0) || null, status: "PENDIENTE", createdAt: now() }; state.poolReports.unshift(item); audit(state, "PISCINA", "REPORTE", item.description, req.user.id); return item; }); res.status(201).json(result); } catch (error) { next(error); } });
 app.get("/api/attendance", requireFullAdministration("consultar asistencia global"), async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.attendance || [], req.query.order)); } catch (error) { next(error); } });
-app.post("/api/attendance/clock", async (req, res, next) => { try { const result = await mutateState(async (state, client) => { const user = state.users.find(u => u.pin === String(req.body.pin)); if (!user) throw httpError(401, "PIN incorrecto o usuario no encontrado"); const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(user.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut)); const action = open ? "SALIDA" : "INGRESO"; const record = await recordAttendance(state, client, user.id, action, user.id); return { success: true, user: user.firstName, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null }; }); res.json(result); } catch (error) { next(error); } });
+app.post("/api/attendance/clock", attendanceClockRateLimit, async (req, res, next) => {
+  try {
+    const documentNumber = String(req.body.documentNumber || "").replace(/\D/g, "");
+    const pin = String(req.body.pin || "");
+    if (!/^\d{8}$/.test(documentNumber) || !/^\d{4}$/.test(pin)) throw httpError(400, "Ingresa tu DNI y PIN de 4 dígitos.");
+    const result = await mutateState(async (state, client) => {
+      const user = state.users.find((item) => item.status === "ACTIVO" && String(item.documentNumber || "") === documentNumber && String(item.pin || "") === pin);
+      if (!user) throw httpError(401, "DNI o PIN incorrecto.");
+      const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(user.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
+      const action = open ? "SALIDA" : "INGRESO";
+      const record = await recordAttendance(state, client, user.id, action, user.id);
+      return { success: true, user: `${user.firstName} ${user.lastName}`.trim(), worker: { firstName: user.firstName, lastName: user.lastName, position: user.position || user.operationalArea || user.role, photoUrl: user.photoUrl || null }, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null };
+    });
+    attendanceAttempts.delete(attendanceAttemptKey(req));
+    res.json(result);
+  } catch (error) { next(error); }
+});
 
 
 
@@ -1704,7 +1740,7 @@ function hydrateParkingEntry(state, entry) { return { ...entry, client: state.cl
 
 function taskStatus(status) {
   return async (req, res, next) => {
-    try { const result = await mutateState((state) => { const task = requireOwnedCleaningTask(state, req.params.id, req.user); const sourceRequest = state.requests.find((item) => item.id === Number(task.requestId)); if (status === "FINALIZADA" && !task.requestId) { const evidence = task.evidences || []; const hasEntry = evidence.some((item) => /entrada/i.test(item.description || item.notes || "")); const hasExit = evidence.some((item) => /salida/i.test(item.description || item.notes || "")); if (!hasEntry || !hasExit) throw httpError(409, "Registra evidencia de entrada y salida antes de liberar la habitación"); } task.status = status; if (status === "EN_LIMPIEZA") { task.startedAt = now(); if (sourceRequest) sourceRequest.status = "EN_REVISION"; } if (status === "FINALIZADA") { task.finishedAt = now(); if (sourceRequest) { sourceRequest.status = "RESUELTO"; sourceRequest.resolvedAt = now(); } const room = state.rooms.find((item) => item.id === task.roomId); if (room && !task.requestId) room.status = "LIBRE"; } audit(state, "LIMPIEZA", status, task.code, req.user.id); return hydrateTask(state, task); }); res.json(result); } catch (error) { next(error); }
+    try { const result = await mutateState((state) => { const task = requireOwnedCleaningTask(state, req.params.id, req.user); const sourceRequest = state.requests.find((item) => item.id === Number(task.requestId)); if (status === "FINALIZADA" && !task.requestId) { const evidence = task.evidences || []; const hasEntry = evidence.some((item) => /entrada/i.test(item.description || item.notes || "")); const hasExit = evidence.some((item) => /salida/i.test(item.description || item.notes || "")); if (!hasEntry || !hasExit) throw httpError(409, "Registra evidencia de entrada y salida antes de liberar la habitación"); } task.status = status; if (status === "EN_LIMPIEZA") { task.startedAt = now(); task.assignedEmployeeId = req.user.id; task.assignedTo = `${req.user.firstName} ${req.user.lastName}`.trim(); if (sourceRequest) sourceRequest.status = "EN_REVISION"; } if (status === "FINALIZADA") { task.finishedAt = now(); if (sourceRequest) { sourceRequest.status = "RESUELTO"; sourceRequest.resolvedAt = now(); } const room = state.rooms.find((item) => item.id === task.roomId); if (room && !task.requestId) room.status = "LIBRE"; } audit(state, "LIMPIEZA", status, task.code, req.user.id); return hydrateTask(state, task); }); res.json(result); } catch (error) { next(error); }
   };
 }
 
