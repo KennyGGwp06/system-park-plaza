@@ -138,6 +138,24 @@ function loginRateLimit(req, res, next) {
   return next();
 }
 
+// El reloj es una terminal compartida. El límite se aplica por DNI e IP para
+// evitar bloquear a todo el personal por los errores de una sola persona.
+const attendanceAttempts = new Map();
+function attendanceAttemptKey(req) { return `${req.ip || "unknown"}:${String(req.body?.documentNumber || "").replace(/\D/g, "")}`; }
+function attendanceClockRateLimit(req, res, next) {
+  const key = attendanceAttemptKey(req);
+  const nowMs = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const record = attendanceAttempts.get(key);
+  if (!record || record.resetAt <= nowMs) {
+    attendanceAttempts.set(key, { count: 1, resetAt: nowMs + windowMs });
+    return next();
+  }
+  if (record.count >= 5) return res.status(429).json({ message: "Demasiados intentos. Solicita ayuda a Recepción." });
+  record.count += 1;
+  return next();
+}
+
 app.post("/api/public/identify", loginRateLimit, async (req, res, next) => {
   try {
     const documentNumber = normalizeDocument(req.body.documentNumber);
@@ -508,9 +526,9 @@ app.post("/api/auth/login", loginRateLimit, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-// El reloj es una terminal compartida: identifica al trabajador por DNI y no
-// requiere una sesión abierta en el ERP.
-app.use("/api", (req, res, next) => (req.path === "/attendance/clock" || req.path.startsWith("/attendance/lookup/") ? next() : staffAuth(req, res, next)));
+// El reloj es una terminal compartida. Solo su marcación pública queda fuera
+// de la sesión ERP y exige DNI + PIN personal; lo demás mantiene staffAuth.
+app.use("/api", (req, res, next) => (req.path === "/attendance/clock" ? next() : staffAuth(req, res, next)));
 app.get("/api/auth/me", (req, res) => res.json({ user: req.user }));
 app.get("/api/superadmin/control-state", async (req, res, next) => {
   try {
@@ -1458,33 +1476,20 @@ app.patch("/api/pool/:id/finish", requireReceptionAdmin, async (req, res, next) 
 app.get("/api/pool/reports", requireReceptionAdmin, async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.poolReports, req.query.order)); } catch (error) { next(error); } });
 app.post("/api/pool/reports", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const item = { id: Date.now(), ...req.body, clientId: Number(req.body.clientId || 0) || null, status: "PENDIENTE", createdAt: now() }; state.poolReports.unshift(item); audit(state, "PISCINA", "REPORTE", item.description, req.user.id); return item; }); res.status(201).json(result); } catch (error) { next(error); } });
 app.get("/api/attendance", requireFullAdministration("consultar asistencia global"), async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.attendance || [], req.query.order)); } catch (error) { next(error); } });
-app.get("/api/attendance/lookup/:documentNumber", async (req, res, next) => {
-  try {
-    const documentNumber = String(req.params.documentNumber || "").replace(/\D/g, "");
-    if (!/^\d{8}$/.test(documentNumber)) throw httpError(400, "DNI inválido.");
-    const state = await readState();
-    const user = state.users.find((item) => item.status === "ACTIVO" && String(item.documentNumber || "") === documentNumber);
-    if (!user) throw httpError(404, "Trabajador no encontrado.");
-    res.json({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      position: user.position || user.operationalArea || user.role,
-      photoUrl: user.photoUrl || null
-    });
-  } catch (error) { next(error); }
-});
-app.post("/api/attendance/clock", async (req, res, next) => {
+app.post("/api/attendance/clock", attendanceClockRateLimit, async (req, res, next) => {
   try {
     const documentNumber = String(req.body.documentNumber || "").replace(/\D/g, "");
-    if (!/^\d{8}$/.test(documentNumber)) throw httpError(400, "Ingresa un DNI valido de 8 digitos.");
+    const pin = String(req.body.pin || "");
+    if (!/^\d{8}$/.test(documentNumber) || !/^\d{4}$/.test(pin)) throw httpError(400, "Ingresa tu DNI y PIN de 4 dígitos.");
     const result = await mutateState(async (state, client) => {
-      const user = state.users.find((item) => item.status === "ACTIVO" && String(item.documentNumber || "") === documentNumber);
-      if (!user) throw httpError(404, "No existe un trabajador activo con este DNI.");
+      const user = state.users.find((item) => item.status === "ACTIVO" && String(item.documentNumber || "") === documentNumber && String(item.pin || "") === pin);
+      if (!user) throw httpError(401, "DNI o PIN incorrecto.");
       const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(user.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
       const action = open ? "SALIDA" : "INGRESO";
       const record = await recordAttendance(state, client, user.id, action, user.id);
       return { success: true, user: `${user.firstName} ${user.lastName}`.trim(), worker: { firstName: user.firstName, lastName: user.lastName, position: user.position || user.operationalArea || user.role, photoUrl: user.photoUrl || null }, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null };
     });
+    attendanceAttempts.delete(attendanceAttemptKey(req));
     res.json(result);
   } catch (error) { next(error); }
 });
