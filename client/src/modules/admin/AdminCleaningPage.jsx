@@ -272,7 +272,7 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
   async function assign() { setBusy(true); try { await api(`/reception/tasks/${task.id}/assign`, { method: "PATCH", body: { employeeId: Number(assignedEmployeeId) } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
   return (
     <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm">
-      <aside aria-modal="true" className="max-h-[88vh] w-full max-w-[1120px] overflow-auto rounded-card bg-white p-6 shadow-drawer" role="dialog">
+      <aside aria-modal="true" className="max-h-[88vh] w-[min(1100px,90vw)] max-w-none overflow-auto rounded-card bg-white p-5 shadow-drawer" role="dialog">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-3"><h3 className="font-sans text-2xl font-black text-park-black">Habitacion {task.room?.number}</h3><StatusBadge value={task.status} /></div>
@@ -280,10 +280,10 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
           </div>
           <button aria-label="Cerrar detalle" className="grid h-10 w-10 place-items-center rounded-button border border-park-border text-park-muted hover:text-park-dark" onClick={onClose} type="button"><X size={19} /></button>
         </div>
-        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(250px,30fr)_minmax(0,70fr)]">
-          <div className="space-y-4">
-            <section className="rounded-card border border-park-border bg-white p-5">
-              <h2 className="mb-4 font-sans text-lg font-black text-park-black">Informacion general</h2>
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="space-y-3">
+            <section className="rounded-card border border-park-border bg-white p-3.5">
+              <h2 className="mb-2 font-sans text-base font-black text-park-black">Informacion general</h2>
               <div className="divide-y divide-park-border border-y border-park-border">
                 <CompactDetailRow label="Tipo" value={task.room?.type?.name || "No registrado"} />
                 <CompactDetailRow label="Prioridad" value={<StatusBadge value={task.priority} />} />
@@ -294,19 +294,18 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
                 <CompactDetailRow label="Duración" value={task.startedAt && task.finishedAt ? formatDuration(task.startedAt, task.finishedAt) : "No registrado"} />
               </div>
             </section>
-            <section className="rounded-card border border-park-border bg-white p-5">
-              <h2 className="mb-3 font-sans text-lg font-black text-park-black">Asignación y revisión</h2>
-              <p className="mb-4 text-sm text-park-muted">La asignación y el avance provienen de la tarea operativa de Limpieza.</p>
+            <section className="rounded-card border border-park-border bg-white p-3.5">
+              <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
               {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
-              <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-2 h-11 w-full rounded-input border border-park-border px-3 font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
-              <div className="mt-4 divide-y divide-park-border border-y border-park-border"><CompactDetailRow label="Trabajador" value={task.assignedTo || "Sin asignar"} /><CompactDetailRow label="Estado tarea" value={<StatusBadge value={task.status} />} /></div>
-              {task.status !== "FINALIZADA" ? <Button className="mt-4 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">Asignar a esta cuenta</Button> : <p className="mt-4 rounded-card bg-park-green-soft p-3 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
+              <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
+              <div className="mt-2 divide-y divide-park-border border-y border-park-border"><CompactDetailRow label="Trabajador" value={task.assignedTo || "Sin asignar"} /><CompactDetailRow label="Estado tarea" value={<StatusBadge value={task.status} />} /></div>
+              {task.status !== "FINALIZADA" ? <Button className="mt-2 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">Asignar a esta cuenta</Button> : <p className="mt-2 rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
             </section>
           </div>
-          <section className="min-w-0 rounded-card border border-park-border bg-white p-5">
+          <section className="min-w-0 rounded-card border border-park-border bg-white p-4">
             <h2 className="font-sans text-lg font-black text-park-black">Evidencias</h2>
             <p className="mb-4 mt-1 text-sm text-park-muted">Fotografías registradas desde la operación de Limpieza.</p>
-            <div className="max-h-[510px] overflow-y-auto pr-1"><EvidenceComparison evidences={task.evidences || []} onSelect={setSelectedEvidence} /></div>
+            <div className="max-h-[510px] overflow-y-auto pr-1"><EvidenceComparison evidences={task.evidences || []} onSelect={setSelectedEvidence} selectedId={selectedEvidence?.id} /></div>
           </section>
           <Panel className="lg:col-span-2" title="Novedades / Danos">
             {task.operationalReports?.length ? (
@@ -327,18 +326,18 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
   );
 }
 
-function EvidenceComparison({ evidences, onSelect }) {
+function EvidenceComparison({ evidences, onSelect, selectedId }) {
   const groups = groupEvidenceByArea(evidences);
   if (!groups.length) return <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Aún no se registraron evidencias.</p>;
-  return <div className="space-y-5">{groups.map((group) => <section className="border-b border-park-border pb-5 last:border-0 last:pb-0" key={group.area}><p className="mb-3 text-sm font-black text-park-green">{group.area}</p><div className="grid grid-cols-2 gap-4"><EvidenceColumn evidences={group.entry} label="Entrada" onSelect={onSelect} /><EvidenceColumn evidences={group.exit} label="Salida" onSelect={onSelect} /></div></section>)}</div>;
+  return <div className="space-y-5">{groups.map((group) => <section className="border-b border-park-border pb-5 last:border-0 last:pb-0" key={group.area}><p className="mb-3 text-sm font-black text-park-green">{group.area}</p><div className="grid grid-cols-2 gap-4"><EvidenceColumn evidences={group.entry} label="Entrada" onSelect={onSelect} selectedId={selectedId} /><EvidenceColumn evidences={group.exit} label="Salida" onSelect={onSelect} selectedId={selectedId} /></div></section>)}</div>;
 }
 
-function EvidenceColumn({ evidences, label, onSelect }) {
-  return <div><p className="mb-2 text-sm font-black text-park-dark">{label}</p>{evidences.length ? <div className="space-y-4">{evidences.map((evidence) => <EvidenceTile evidence={evidence} key={evidence.id} onSelect={onSelect} />)}</div> : <div className="grid aspect-video place-items-center rounded-card border border-dashed border-park-border bg-park-bg px-3 text-center text-sm text-park-muted">Sin evidencia registrada</div>}</div>;
+function EvidenceColumn({ evidences, label, onSelect, selectedId }) {
+  return <div><p className="mb-2 text-sm font-black text-park-dark">{label}</p>{evidences.length ? <div className="space-y-4">{evidences.map((evidence) => <EvidenceTile evidence={evidence} key={evidence.id} onSelect={onSelect} selected={evidence.id === selectedId} />)}</div> : <div className="grid aspect-video place-items-center rounded-card border border-dashed border-park-border bg-park-bg px-3 text-center text-sm text-park-muted">Sin evidencia registrada</div>}</div>;
 }
 
-function EvidenceTile({ evidence, onSelect }) {
-  return <button className="group block w-full text-left" onClick={() => onSelect(evidence)} type="button"><img alt={`Evidencia de ${evidenceStage(evidence)}`} className="aspect-video w-full rounded-card border border-park-border object-cover transition group-hover:border-park-green" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><span className="mt-2 block text-xs font-semibold text-park-muted"><Clock size={12} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</span></button>;
+function EvidenceTile({ evidence, onSelect, selected }) {
+  return <button className="group block w-full text-left" onClick={() => onSelect(evidence)} type="button"><img alt={`Evidencia de ${evidenceStage(evidence)}`} className={`aspect-video w-full rounded-card border object-cover transition group-hover:border-park-green ${selected ? "border-park-green ring-2 ring-park-green/20" : "border-park-border"}`} src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><span className="mt-2 block text-xs font-semibold text-park-muted"><Clock size={12} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</span></button>;
 }
 
 function EvidencePreview({ evidence, task, onClose }) {
@@ -432,7 +431,7 @@ function groupEvidenceByArea(evidences = []) {
 }
 
 function CompactDetailRow({ label, value }) {
-  return <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-3 py-2.5 text-sm"><span className="text-park-muted">{label}</span><strong className="break-words text-right text-park-dark">{value || "No registrado"}</strong></div>;
+  return <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-3 py-1 text-sm"><span className="text-park-muted">{label}</span><strong className="break-words text-right text-park-dark">{value || "No registrado"}</strong></div>;
 }
 
 function countBy(items, key) {
