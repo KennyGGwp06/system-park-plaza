@@ -1,5 +1,5 @@
 import { AlertTriangle, BedDouble, Camera, CheckCircle2, Clock, Eye, FileWarning, UserRound, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -256,15 +256,23 @@ function IncidentList({ reports, onSelect }) {
 }
 
 function CleaningDetail({ task, employees, onClose, onSaved }) {
-  const groups = splitEvidence(task.evidences);
   const [assignedEmployeeId, setAssignedEmployeeId] = useState(task.assignedEmployeeId ? String(task.assignedEmployeeId) : "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedEvidence, setSelectedEvidence] = useState(null);
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      if (selectedEvidence) setSelectedEvidence(null);
+      else onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, selectedEvidence]);
   async function assign() { setBusy(true); try { await api(`/reception/tasks/${task.id}/assign`, { method: "PATCH", body: { employeeId: Number(assignedEmployeeId) } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
   return (
     <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm">
-      <aside className="max-h-[94vh] w-full max-w-[1080px] overflow-auto rounded-card bg-white p-5 shadow-drawer">
+      <aside aria-modal="true" className="max-h-[88vh] w-full max-w-[1120px] overflow-auto rounded-card bg-white p-6 shadow-drawer" role="dialog">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-3"><h3 className="font-sans text-2xl font-black text-park-black">Habitacion {task.room?.number}</h3><StatusBadge value={task.status} /></div>
@@ -272,28 +280,35 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
           </div>
           <button aria-label="Cerrar detalle" className="grid h-10 w-10 place-items-center rounded-button border border-park-border text-park-muted hover:text-park-dark" onClick={onClose} type="button"><X size={19} /></button>
         </div>
-        <div className="mt-5 grid gap-4 xl:grid-cols-[200px_minmax(250px,0.9fr)_minmax(380px,1.35fr)]">
-          <Panel title="Informacion general">
-            <div className="grid gap-3">
-              <InfoTile label="Tipo" value={task.room?.type?.name || "No registrado"} />
-              <InfoTile label="Prioridad" value={<StatusBadge value={task.priority} />} />
-              <InfoTile label="Estado" value={<StatusBadge value={task.status} />} />
-              <InfoTile label="Empleado" value={task.assignedTo || "Sin asignar"} />
-              <InfoTile label="Inicio" value={formatDateTime(task.startedAt)} />
-              <InfoTile label="Finalizacion" value={formatDateTime(task.finishedAt)} />
-            </div>
-          </Panel>
-          <Panel title="Asignación y revisión">
-            <p className="mb-3 text-sm text-park-muted">Asigna la habitación a una cuenta activa. El trabajador inicia, toma fotos y finaliza desde su estación; Recepción revisa el resultado.</p>
-            {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
-            <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-2 h-11 w-full rounded-input border border-park-border px-3 font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
-            {task.status !== "FINALIZADA" ? <Button className="mt-3 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">Asignar a esta cuenta</Button> : <p className="mt-4 rounded-card bg-park-green-soft p-3 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
-          </Panel>
-          <Panel title="Evidencias">
-            <p className="mb-4 text-sm text-park-muted">Revisa las fotos antes y después registradas desde la estación móvil.</p>
-            <EvidenceComparison entry={groups.entry} exit={groups.exit} interactive={task.status === "FINALIZADA"} onSelect={setSelectedEvidence} />
-          </Panel>
-          <Panel className="xl:col-span-3" title="Novedades / Danos">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(250px,30fr)_minmax(0,70fr)]">
+          <div className="space-y-4">
+            <section className="rounded-card border border-park-border bg-white p-5">
+              <h2 className="mb-4 font-sans text-lg font-black text-park-black">Informacion general</h2>
+              <div className="divide-y divide-park-border border-y border-park-border">
+                <CompactDetailRow label="Tipo" value={task.room?.type?.name || "No registrado"} />
+                <CompactDetailRow label="Prioridad" value={<StatusBadge value={task.priority} />} />
+                <CompactDetailRow label="Estado" value={<StatusBadge value={task.status} />} />
+                <CompactDetailRow label="Empleado" value={task.assignedTo || "Sin asignar"} />
+                <CompactDetailRow label="Inicio" value={formatDateTime(task.startedAt)} />
+                <CompactDetailRow label="Finalización" value={formatDateTime(task.finishedAt)} />
+                <CompactDetailRow label="Duración" value={task.startedAt && task.finishedAt ? formatDuration(task.startedAt, task.finishedAt) : "No registrado"} />
+              </div>
+            </section>
+            <section className="rounded-card border border-park-border bg-white p-5">
+              <h2 className="mb-3 font-sans text-lg font-black text-park-black">Asignación y revisión</h2>
+              <p className="mb-4 text-sm text-park-muted">La asignación y el avance provienen de la tarea operativa de Limpieza.</p>
+              {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
+              <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-2 h-11 w-full rounded-input border border-park-border px-3 font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
+              <div className="mt-4 divide-y divide-park-border border-y border-park-border"><CompactDetailRow label="Trabajador" value={task.assignedTo || "Sin asignar"} /><CompactDetailRow label="Estado tarea" value={<StatusBadge value={task.status} />} /></div>
+              {task.status !== "FINALIZADA" ? <Button className="mt-4 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">Asignar a esta cuenta</Button> : <p className="mt-4 rounded-card bg-park-green-soft p-3 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
+            </section>
+          </div>
+          <section className="min-w-0 rounded-card border border-park-border bg-white p-5">
+            <h2 className="font-sans text-lg font-black text-park-black">Evidencias</h2>
+            <p className="mb-4 mt-1 text-sm text-park-muted">Fotografías registradas desde la operación de Limpieza.</p>
+            <div className="max-h-[510px] overflow-y-auto pr-1"><EvidenceComparison evidences={task.evidences || []} onSelect={setSelectedEvidence} /></div>
+          </section>
+          <Panel className="lg:col-span-2" title="Novedades / Danos">
             {task.operationalReports?.length ? (
               <div className="space-y-3">
                 {task.operationalReports.map((report) => (
@@ -312,21 +327,24 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
   );
 }
 
-function EvidenceComparison({ entry, exit, interactive, onSelect }) {
-  const rows = Array.from({ length: Math.max(entry.length, exit.length) });
-  if (!rows.length) return <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Aún no se registraron evidencias.</p>;
-  return <div className="space-y-4">{rows.map((_, index) => <section className="border-b border-park-border pb-4 last:border-0 last:pb-0" key={index}><p className="mb-2 text-sm font-black text-park-green">Registro {index + 1}</p><div className="grid grid-cols-2 gap-3"><EvidenceTile evidence={entry[index]} interactive={interactive} label="Entrada" onSelect={onSelect} /><EvidenceTile evidence={exit[index]} interactive={interactive} label="Salida" onSelect={onSelect} /></div></section>)}</div>;
+function EvidenceComparison({ evidences, onSelect }) {
+  const groups = groupEvidenceByArea(evidences);
+  if (!groups.length) return <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Aún no se registraron evidencias.</p>;
+  return <div className="space-y-5">{groups.map((group) => <section className="border-b border-park-border pb-5 last:border-0 last:pb-0" key={group.area}><p className="mb-3 text-sm font-black text-park-green">{group.area}</p><div className="grid grid-cols-2 gap-4"><EvidenceColumn evidences={group.entry} label="Entrada" onSelect={onSelect} /><EvidenceColumn evidences={group.exit} label="Salida" onSelect={onSelect} /></div></section>)}</div>;
 }
 
-function EvidenceTile({ evidence, interactive, label, onSelect }) {
-  if (!evidence) return <div><p className="mb-1 text-xs font-black text-park-dark">{label}</p><div className="grid h-28 place-items-center border border-dashed border-park-border bg-park-bg text-xs text-park-muted">Sin foto</div></div>;
-  const content = <><img alt={`Evidencia de ${label}`} className="h-28 w-full border border-park-border object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><span className="mt-1 block text-xs font-semibold text-park-muted"><Clock size={12} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</span></>;
-  return <div><p className="mb-1 text-xs font-black text-park-dark">{label}</p>{interactive ? <button className="group block w-full text-left" onClick={() => onSelect(evidence)} type="button">{content}</button> : content}</div>;
+function EvidenceColumn({ evidences, label, onSelect }) {
+  return <div><p className="mb-2 text-sm font-black text-park-dark">{label}</p>{evidences.length ? <div className="space-y-4">{evidences.map((evidence) => <EvidenceTile evidence={evidence} key={evidence.id} onSelect={onSelect} />)}</div> : <div className="grid aspect-video place-items-center rounded-card border border-dashed border-park-border bg-park-bg px-3 text-center text-sm text-park-muted">Sin evidencia registrada</div>}</div>;
+}
+
+function EvidenceTile({ evidence, onSelect }) {
+  return <button className="group block w-full text-left" onClick={() => onSelect(evidence)} type="button"><img alt={`Evidencia de ${evidenceStage(evidence)}`} className="aspect-video w-full rounded-card border border-park-border object-cover transition group-hover:border-park-green" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><span className="mt-2 block text-xs font-semibold text-park-muted"><Clock size={12} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</span></button>;
 }
 
 function EvidencePreview({ evidence, task, onClose }) {
-  const stage = /salida/i.test(evidence.description || evidence.notes || "") ? "Salida" : "Entrada";
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4"><section className="w-full max-w-md overflow-hidden rounded-card bg-white shadow-drawer"><div className="flex items-start justify-between p-5"><div><p className="text-xs font-black uppercase text-park-gold">Habitación {task.room?.number} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div><button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button></div><img alt={`Evidencia de ${stage}`} className="max-h-[48vh] w-full object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><div className="space-y-3 p-5"><WorkerLabel name={task.assignedTo} /><div className="border border-park-border bg-park-bg p-3 text-sm"><p className="text-xs font-black uppercase text-park-muted">Comentario</p><p className="mt-1 text-park-dark">{evidence.description?.replace(/^(ENTRADA|SALIDA):\s*/i, "") || "Evidencia registrada por el personal de limpieza."}</p></div><div className="grid grid-cols-2 gap-3 border-t border-park-border pt-3 text-sm"><DetailLine label="Área" value="Habitación" /><DetailLine label="Evidencia" value={stage} /></div><Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button></div></section></div>;
+  const stage = evidenceStage(evidence);
+  const comment = String(evidence.description || evidence.notes || "").replace(/^(ENTRADA|SALIDA):\s*/i, "").trim();
+  return <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[360px] md:-translate-y-1/2" role="dialog"><div className="flex items-start justify-between p-5"><div><p className="font-sans text-lg font-black text-park-black">{evidenceArea(evidence)} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div><button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button></div><img alt={`Evidencia de ${stage}`} className="max-h-[42vh] w-full object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><div className="space-y-3 p-5"><WorkerLabel name={task.assignedTo} /><p className="-mt-2 text-xs text-park-muted">Trabajador asignado a la tarea</p><div className="border border-park-border bg-park-bg p-3 text-sm"><p className="text-xs font-black uppercase text-park-muted">Comentario</p><p className="mt-1 text-park-dark">{comment || "Sin comentario registrado"}</p></div><div className="grid grid-cols-2 gap-3 border-t border-park-border pt-3 text-sm"><DetailLine label="Área" value={evidenceArea(evidence)} /><DetailLine label="Evidencia" value={stage} /></div><Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button></div></section>;
 }
 
 function EvidenceMini({ task }) {
@@ -387,6 +405,36 @@ function splitEvidence(evidences = []) {
   return { entry, exit };
 }
 
+function evidenceArea(evidence) {
+  return String(evidence?.area || "").trim().toUpperCase() || "EVIDENCIAS GENERALES";
+}
+
+function evidenceStage(evidence) {
+  if (String(evidence?.stage || "").toUpperCase() === "SALIDA") return "Salida";
+  if (String(evidence?.stage || "").toUpperCase() === "ENTRADA") return "Entrada";
+  return /salida/i.test(evidence?.description || evidence?.notes || "") ? "Salida" : "Entrada";
+}
+
+function groupEvidenceByArea(evidences = []) {
+  const groups = new Map();
+  evidences.forEach((evidence) => {
+    const area = evidenceArea(evidence);
+    if (!groups.has(area)) groups.set(area, { area, entry: [], exit: [] });
+    const stage = evidenceStage(evidence) === "Salida" ? "exit" : "entry";
+    groups.get(area)[stage].push(evidence);
+  });
+  const order = ["BAÑO", "CUARTO", "REFRI / DESPENSA", "EVIDENCIAS GENERALES"];
+  return Array.from(groups.values()).sort((first, second) => {
+    const firstIndex = order.indexOf(first.area);
+    const secondIndex = order.indexOf(second.area);
+    return (firstIndex < 0 ? order.length : firstIndex) - (secondIndex < 0 ? order.length : secondIndex);
+  });
+}
+
+function CompactDetailRow({ label, value }) {
+  return <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-3 py-2.5 text-sm"><span className="text-park-muted">{label}</span><strong className="break-words text-right text-park-dark">{value || "No registrado"}</strong></div>;
+}
+
 function countBy(items, key) {
   return items.reduce((acc, item) => ({ ...acc, [item[key]]: (acc[item[key]] || 0) + 1 }), {});
 }
@@ -418,6 +466,13 @@ async function uploadWhatsappEvidence(file) {
 function formatDateTime(value) {
   if (!value) return "No registrado";
   return new Date(value).toLocaleString("es-PE");
+}
+
+function formatDuration(startedAt, finishedAt) {
+  const milliseconds = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return "No registrado";
+  const minutes = Math.round(milliseconds / 60000);
+  return `${minutes} min`;
 }
 
 function isToday(value) {
