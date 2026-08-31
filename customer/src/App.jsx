@@ -432,7 +432,7 @@ function Orders({ catalog, experience, onBack, onPlaced }) {
 }
 
 function Requests({ onBack, onDone }) { 
-  const [type, setType] = useState("LIMPIEZA"); 
+  const [type, setType] = useState(""); 
   const [description, setDescription] = useState(""); 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -449,14 +449,12 @@ function Requests({ onBack, onDone }) {
   } 
 
   const categories = [
-    { value: "LIMPIEZA", label: "Limpieza Extra", desc: "Aseo a la habitación", icon: Sparkles },
-    { value: "TOALLAS", label: "Toallas Nuevas", desc: "Solicitar recambio", icon: Waves },
-    { value: "MANTENIMIENTO", label: "Falla/Avería", desc: "Foco fundido, AC", icon: Home },
-    { value: "CONSERJERIA", label: "Conserjería", desc: "Otras solicitudes", icon: ConciergeBell }
+    { value: "LIMPIEZA", label: "Limpieza", desc: "Aseo a la habitación", icon: Sparkles },
+    { value: "MANTENIMIENTO", label: "Mantenimiento", desc: "Foco fundido, AC", icon: Home }
   ];
 
   return <Page title="Conserjería Digital" subtitle="Tu solicitud llegará al momento al equipo responsable (Housekeeping o Mantenimiento)." onBack={onBack}>
-    <div className="support-grid">
+    <div className="support-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
       {categories.map(({ value, label, desc, icon: Icon }) => (
         <button className={type === value ? "selected" : ""} key={value} onClick={() => setType(value)}>
           <Icon size={28} />
@@ -465,11 +463,13 @@ function Requests({ onBack, onDone }) {
         </button>
       ))}
     </div>
-    <div className="card mt-4">
-      <Field label="Detalle u observación (Opcional)" value={description} onChange={setDescription} />
-      {error && <p className="error">{error}</p>}
-      <button className="primary" onClick={send} disabled={busy}>{busy ? "Enviando..." : "Enviar solicitud"}</button>
-    </div>
+    {type ? (
+      <div className="card mt-4">
+        <Field label="Escribe el detalle del problema u observación" value={description} onChange={setDescription} />
+        {error && <p className="error">{error}</p>}
+        <button className="primary" onClick={send} disabled={busy || !description.trim()}>{busy ? "Enviando..." : "Enviar solicitud"}</button>
+      </div>
+    ) : null}
   </Page>; 
 }
 

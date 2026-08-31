@@ -62,12 +62,23 @@ export function CleaningPage({ view = "ALERTAS" }) {
   return (
     <div className="space-y-4">
       <Toast message={toast} onClose={() => setToast("")} />
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <PageHeader eyebrow="Limpieza" title={titleMap[view] || "Limpieza"} description="Tu estación de trabajo. Atiende solo las habitaciones asignadas a tu cuenta." />
-        <Button className="mt-1" onClick={reload} variant="secondary">Actualizar</Button>
+        <Button className="w-full sm:w-auto" onClick={reload} variant="secondary">Actualizar</Button>
       </div>
 
-      <section className={`rounded-card border p-4 shadow-card ${shiftActive ? "border-park-green bg-park-green-soft" : "border-amber-300 bg-amber-50"}`}><div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}><Clock size={19}/></span><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">Jornada de housekeeping</p><h2 className="font-black text-park-dark">{shiftActive ? "Asistencia registrada · evidencia obligatoria" : "Operación bloqueada hasta registrar asistencia"}</h2><p className="text-sm text-park-muted">{shiftActive ? "Atiende por prioridad, registra foto de entrada y salida, y reporta cualquier daño a Mantenimiento." : "Marca tu ingreso en el reloj de asistencia. La estación se habilitará automáticamente, sin recargar la página."}</p></div></div></section>
+      <section className={`rounded-card border p-4 sm:p-5 shadow-card ${shiftActive ? "border-park-green bg-park-green-soft" : "border-amber-300 bg-amber-50"}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}>
+            <Clock size={24}/>
+          </span>
+          <div className="flex-1">
+            <p className="text-xs font-black uppercase tracking-wider text-park-muted">Jornada de housekeeping</p>
+            <h2 className="mt-0.5 text-base sm:text-lg font-black text-park-dark">{shiftActive ? "Asistencia registrada · evidencia obligatoria" : "Operación bloqueada hasta registrar asistencia"}</h2>
+            <p className="mt-1 text-sm text-park-muted leading-relaxed">{shiftActive ? "Atiende por prioridad, registra foto de entrada y salida, y reporta cualquier daño a Mantenimiento." : "Marca tu ingreso en el reloj de asistencia. La estación se habilitará automáticamente, sin recargar la página."}</p>
+          </div>
+        </div>
+      </section>
 
       {view === "ALERTAS" && <TaskList tasks={pendingTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} />}
       {view === "EN_ATENCION" && <TaskList tasks={activeTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} />}

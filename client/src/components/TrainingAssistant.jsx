@@ -43,7 +43,7 @@ export function TrainingAssistant() {
   const [open, setOpen] = useState(false); const [showWelcome, setShowWelcome] = useState(false);
   useEffect(() => { setShowWelcome(localStorage.getItem(storageKey) !== "done"); }, [storageKey]);
   
-  if (user?.role === "RESTAURANTE" || user?.role === "BARTENDER") return null;
+  if (user?.role === "RESTAURANTE" || user?.role === "BARTENDER" || user?.role === "LIMPIEZA" || user?.role === "MANTENIMIENTO") return null;
   const isStart = location.pathname === defaultRouteByRole[user?.role];
   function dismiss() { localStorage.setItem(storageKey, "done"); setShowWelcome(false); }
 

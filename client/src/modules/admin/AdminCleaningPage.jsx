@@ -336,17 +336,15 @@ function EvidenceTile({ evidence, onSelect, selected }) {
 }
 
 function EvidencePreview({ evidence, task, onClose }) {
-  const [expanded, setExpanded] = useState(false);
   const stage = evidenceStage(evidence);
   const comment = String(evidence.description || evidence.notes || "").replace(/^(ENTRADA|SALIDA):\s*/i, "").trim();
   return (
-    <>
-      <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[420px] md:-translate-y-1/2" role="dialog">
+    <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[420px] md:-translate-y-1/2" role="dialog">
         <div className="flex items-start justify-between p-5">
           <div><p className="font-sans text-lg font-black text-park-black">{evidenceArea(evidence)} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div>
           <button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button>
         </div>
-        <img alt={`Evidencia de ${stage}`} className="max-h-[46vh] w-full cursor-pointer object-cover transition hover:opacity-90" onClick={() => setExpanded(true)} src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} title="Haz clic para expandir" />
+        <img alt={`Evidencia de ${stage}`} className="max-h-[46vh] w-full object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} />
         <div className="space-y-3 p-5">
           <WorkerLabel name={task.assignedTo} />
           <p className="-mt-2 text-xs text-park-muted">Trabajador asignado a la tarea</p>
@@ -360,16 +358,7 @@ function EvidencePreview({ evidence, task, onClose }) {
           </div>
           <Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button>
         </div>
-      </section>
-      {expanded && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setExpanded(false)}>
-          <button className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" onClick={() => setExpanded(false)} type="button">
-            <X size={24} />
-          </button>
-          <img alt="Evidencia expandida" className="h-full w-full rounded-lg object-contain shadow-2xl" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} onClick={(e) => e.stopPropagation()} />
-        </div>
-      )}
-    </>
+    </section>
   );
 }
 
