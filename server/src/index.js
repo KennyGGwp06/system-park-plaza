@@ -548,7 +548,9 @@ app.get("/api/superadmin/control-state", async (req, res, next) => {
       "inventory", "menuItems", "employees", "shifts", "attendance", "proveedores",
       "compras", "cochera", "facturacion", "cashMovements", "cashSessions", "cashClosings", "audit", "settings"
     ];
-    res.json(Object.fromEntries(keys.map((key) => [key, state[key] || (key === "settings" ? {} : [])])));
+    const response = Object.fromEntries(keys.map((key) => [key, state[key] || (key === "settings" ? {} : [])]));
+    response.rooms = state.rooms.map((room) => hydrateRoom(state, room));
+    res.json(response);
   } catch (error) { next(error); }
 });
 
@@ -1188,7 +1190,7 @@ app.get("/api/dashboard", async (_req, res, next) => {
     });
   } catch (error) { next(error); }
 });
-app.get("/api/rooms", requireReceptionAdmin, async (_req, res, next) => { try { const state = await readState(); res.json({ rooms: state.rooms }); } catch (error) { next(error); } });
+app.get("/api/rooms", requireReceptionAdmin, async (_req, res, next) => { try { const state = await readState(); res.json({ rooms: state.rooms.map((room) => hydrateRoom(state, room)) }); } catch (error) { next(error); } });
 app.patch("/api/rooms/:id", requireReceptionAdmin, async (req, res, next) => { try { const room = await mutateState((state) => { const item = state.rooms.find((entry) => entry.id === Number(req.params.id)); if (!item) throw httpError(404, "Habitación no encontrada"); const nextStatus = req.body.status ? normalizeRoomStatus(req.body.status) : item.status; if (!nextStatus) throw httpError(400, "Estado de habitación no válido"); const nextCleaning = req.body.cleaningStatus ? String(req.body.cleaningStatus).toUpperCase() : item.cleaningStatus; Object.assign(item, { status: nextStatus, cleaningStatus: nextCleaning, updatedAt: now(), statusNote: String(req.body.note || item.statusNote || "") }); audit(state, "HABITACIONES", "ESTADO", `${item.number || item.id}: ${nextStatus}`, req.user.id); return item; }); res.json(room); } catch (error) { next(error); } });
 app.get("/api/rooms/:id/check-availability", async (req, res, next) => { try { const state = await readState(); const occupied = state.bookings.some((item) => item.roomId === Number(req.params.id) && overlaps(req.query.checkIn, req.query.checkOut, item.checkIn, item.checkOut)); res.json({ available: !occupied, message: occupied ? "Habitación ocupada en esas fechas" : "Habitación disponible" }); } catch (error) { next(error); } });
 app.get("/api/clients/search", requireReceptionAdmin, resourceSearch("clients"));
@@ -1719,6 +1721,41 @@ function hydrateReservation(state, reservation) {
   const checkInDate = reservation.checkInDate || reservation.checkIn || reservation.date || null;
   const checkOutDate = reservation.checkOutDate || reservation.checkOut || checkInDate;
   return { ...reservation, checkInDate, checkOutDate, adults: Number(reservation.adults ?? reservation.people ?? 1), children: Number(reservation.children || 0), totalPrice: Number(reservation.totalPrice ?? reservation.total ?? 0), advance: Number(reservation.advance ?? reservation.paid ?? 0), balance: Number(reservation.balance || 0), client: state.clients.find((item) => item.id === Number(reservation.clientId)), room: state.rooms.find((item) => item.id === Number(reservation.roomId)) || reservation.room, stay: stay ? { ...stay, room: state.rooms.find((item) => item.id === stay.roomId) } : null };
+}
+
+function hydrateRoom(state, room) {
+  return { ...room, usage: roomUsage(state, room.id) };
+}
+
+function roomUsage(state, roomId) {
+  const activeStay = state.stays.find((stay) => Number(stay.roomId) === Number(roomId) && stay.status === "ACTIVA");
+  if (activeStay) {
+    const reservation = state.reservations.find((item) => Number(item.id) === Number(activeStay.reservationId));
+    const client = state.clients.find((item) => Number(item.id) === Number(activeStay.clientId));
+    return {
+      state: "EN_USO",
+      label: "En uso",
+      reservationCode: reservation?.code || null,
+      clientName: client ? `${client.firstName || ""} ${client.lastName || ""}`.trim() : "Huésped registrado",
+      checkIn: activeStay.checkInAt || reservation?.checkInDate || reservation?.checkIn || null,
+      checkOut: reservation?.checkOutDate || reservation?.checkOut || null
+    };
+  }
+
+  const nextReservation = state.reservations
+    .filter((reservation) => Number(reservation.roomId) === Number(roomId) && !["CANCELADA", "COMPLETADA", "NO_SHOW"].includes(reservation.status))
+    .sort((left, right) => String(left.checkInDate || left.checkIn || "").localeCompare(String(right.checkInDate || right.checkIn || "")))[0];
+  if (!nextReservation) return null;
+
+  const client = state.clients.find((item) => Number(item.id) === Number(nextReservation.clientId));
+  return {
+    state: "RESERVADA",
+    label: "Reserva registrada",
+    reservationCode: nextReservation.code || null,
+    clientName: client ? `${client.firstName || ""} ${client.lastName || ""}`.trim() : "Huésped registrado",
+    checkIn: nextReservation.checkInDate || nextReservation.checkIn || null,
+    checkOut: nextReservation.checkOutDate || nextReservation.checkOut || null
+  };
 }
 
 function hydrateOrder(state, order) {

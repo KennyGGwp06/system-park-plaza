@@ -11,6 +11,64 @@ const { Pool } = pg;
 export const db = new Pool({ connectionString: process.env.DATABASE_URL });
 const operationalFoodSeed = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations", "013_food_beverage_operational_recipes.up.sql");
 const operationalPhase2Seed = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations", "015_complete_operational_recipes_manuals.up.sql");
+const hotelRoomNumbers = [
+  ...Array.from({ length: 11 }, (_, index) => 101 + index),
+  ...Array.from({ length: 11 }, (_, index) => 301 + index),
+  ...Array.from({ length: 11 }, (_, index) => 401 + index)
+];
+const roomTypes = [["Simple", 1, 180], ["Matrimonial", 2, 260], ["Doble", 2, 290], ["Triple", 3, 350], ["Suite", 4, 480]];
+const roomStatuses = ["LIBRE", "LIBRE", "LIBRE", "OCUPADA", "EN_LIMPIEZA"];
+
+function floorForRoomNumber(number) {
+  const roomNumber = Number(number);
+  if (roomNumber >= 101 && roomNumber <= 111) return 1;
+  if (roomNumber >= 301 && roomNumber <= 311) return 3;
+  if (roomNumber >= 401 && roomNumber <= 411) return 4;
+  return Math.floor(roomNumber / 100);
+}
+
+function makeRoom(number, id, typeIndex) {
+  const [name, capacity, price] = roomTypes[typeIndex % roomTypes.length];
+  return {
+    id,
+    number: String(number),
+    floor: floorForRoomNumber(number),
+    type: { id: (typeIndex % roomTypes.length) + 1, name },
+    capacity,
+    price,
+    status: roomStatuses[typeIndex % roomStatuses.length],
+    features: ["Wi-Fi", "Baño privado", typeIndex % roomTypes.length ? "Vista al jardín" : "Cama full"]
+  };
+}
+
+function synchronizeHotelRoomCatalog(state) {
+  state.rooms ||= [];
+  const existingNumbers = new Set(state.rooms.map((room) => String(room.number)));
+  const configuredNumbers = new Set(hotelRoomNumbers.map(String));
+  const referencedRoomIds = new Set(
+    ["bookings", "reservations", "stays", "tasks", "requests", "orders"].flatMap((collection) =>
+      (state[collection] || []).map((item) => Number(item.roomId)).filter(Number.isFinite)
+    )
+  );
+
+  // Conserva cualquier cuarto legado que ya tenga un movimiento real asociado.
+  // Los demás se retiran para que el catálogo operativo coincida con los tres pisos definidos.
+  state.rooms = state.rooms.filter((room) => configuredNumbers.has(String(room.number)) || referencedRoomIds.has(Number(room.id)));
+  let nextRoomId = Math.max(0, ...state.rooms.map((room) => Number(room.id) || 0)) + 1;
+
+  hotelRoomNumbers.forEach((number, index) => {
+    const room = state.rooms.find((item) => String(item.number) === String(number));
+    if (room) {
+      room.floor = floorForRoomNumber(number);
+      return;
+    }
+    if (!existingNumbers.has(String(number))) {
+      state.rooms.push(makeRoom(number, nextRoomId, index));
+      existingNumbers.add(String(number));
+      nextRoomId += 1;
+    }
+  });
+}
 
 export async function initializeDatabase() {
   await db.query(`CREATE TABLE IF NOT EXISTS app_state (id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
@@ -145,13 +203,7 @@ function createDemoState() {
     { id: 3, code: "MIRADOR", name: "Mirador", description: "Atardecer, buena mesa y vista panorámica", price: 45, capacity: 15, icon: "sunset" },
     { id: 4, code: "EVENTOS", name: "Eventos", description: "Celebraciones y reuniones a medida", price: 2400, capacity: 100, icon: "sparkles" }
   ];
-  const roomTypes = [["Simple", 1, 180], ["Matrimonial", 2, 260], ["Doble", 2, 290], ["Triple", 3, 350], ["Suite", 4, 480]];
-  const roomStatuses = ["LIBRE", "LIBRE", "LIBRE", "OCUPADA", "EN_LIMPIEZA"];
-  const rooms = Array.from({ length: 25 }, (_, index) => {
-    const typeIndex = index % roomTypes.length;
-    const [name, capacity, price] = roomTypes[typeIndex];
-    return { id: index + 1, number: String(101 + index), floor: Math.floor(index / 10) + 1, type: { id: typeIndex + 1, name }, capacity, price, status: roomStatuses[index % roomStatuses.length], features: ["Wi-Fi", "Baño privado", typeIndex ? "Vista al jardín" : "Cama full"] };
-  });
+  const rooms = hotelRoomNumbers.map((number, index) => makeRoom(number, index + 1, index));
   const permissions = ["DASHBOARD:VER", "RECEPCION:VER", "CLIENTES:VER", "HABITACIONES:VER", "RESERVAS:VER", "CHECK_IN:VER", "CHECK_OUT:VER", "PEDIDOS:VER", "RESTAURANTE:VER", "BARTENDER:VER", "EVENTOS:VER", "COCHERA:VER", "LIMPIEZA:VER", "MANTENIMIENTO:VER", "INVENTARIO:VER", "COMPRAS:VER", "PROVEEDORES:VER", "PAGOS:VER", "FACTURACION:VER", "CAJA:VER", "USUARIOS:VER", "ROLES:VER", "REPORTES:VER", "AUDITORIA:VER", "CONFIGURACION:VER", "EMPLEADOS:VER", "TURNOS:VER", "ACCESOS:VER"];
   const roleNames = ["SUPERADMIN", "ADMINISTRADOR", "RESTAURANTE", "BARTENDER", "LIMPIEZA", "MANTENIMIENTO"];
   const roles = roleNames.map((name, index) => ({ id: index + 1, name, description: `Rol ${name.toLowerCase()}`, permissions: permissions.map((code, permissionIndex) => ({ id: permissionIndex + 1, code, module: code.split(":")[0], action: code.split(":")[1] })) }));
@@ -185,6 +237,7 @@ function upgradeState(state) {
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
   const collections = ["clients", "bookings", "payments", "passes", "entitlements", "accessLogs", "orders", "requests", "attendance", "tasks", "audit", "reservations", "events", "proveedores", "compras", "cochera", "facturacion", "stays", "inventoryMovements", "cashMovements", "poolEntries", "poolReports", "productions", "wasteRecords", "inventoryClosings", "dailyInventoryBoxes", "externalProviders"];
   for (const key of collections) state[key] ||= [];
+  synchronizeHotelRoomCatalog(state);
   state.settings = { hotelName: "Hotel Park Plaza", currency: "PEN", timezone: "America/Lima", taxRate: 18, parkingRates: { MOTO: 0, AUTO: 15, CAMIONETA: 20, MINIVAN: 25 }, ...state.settings, today, tomorrow };
   state.counters ||= {};
   const counterCollections = { client: "clients", booking: "bookings", payment: "payments", pass: "passes", entitlement: "entitlements", access: "accessLogs", order: "orders", request: "requests", shift: "shifts", attendance: "attendance", task: "tasks", audit: "audit", stay: "stays", movement: "inventoryMovements", event: "events", invoice: "facturacion", purchase: "compras", supplier: "proveedores", production: "productions", waste: "wasteRecords", closing: "inventoryClosings", dailyBox: "dailyInventoryBoxes" };
