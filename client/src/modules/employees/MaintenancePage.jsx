@@ -80,47 +80,6 @@ export function MaintenancePage({ view = "pendientes" }) {
           </div>
         </div>
       </section>
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Metric icon={Clock} label="Pendientes" tone="gold" value={reports.filter((item) => item.status === "ABIERTO").length} />
-        <Metric icon={Wrench} label="En reparacion" tone="blue" value={reports.filter((item) => item.status === "EN_REVISION").length} />
-        <Metric icon={CheckCircle2} label="Finalizados hoy" tone="green" value={reports.filter((item) => item.status === "RESUELTO" && isToday(item.resolvedAt)).length} />
-        <Metric icon={AlertTriangle} label="Alta prioridad" tone="red" value={reports.filter((item) => ["ALTA", "CRITICA"].includes(item.priority) && item.status !== "RESUELTO").length} />
-        <Metric icon={Camera} label="Evidencias" tone="purple" value={reports.filter((item) => item.evidences?.length).length} />
-      </section>
-
-      <MaintenanceFilters filters={filters} reports={reports} setFilters={setFilters} />
-      {view === "evidencias" ? <EvidenceView reports={visible} onSelect={setSelected} /> : <WorkGrid canCreate={canCreate} canEdit={canEdit} reports={visible} onEvidence={attachEvidence} onFinish={setFinalizing} onSelect={setSelected} onStatus={changeStatus} />}
-      {selected ? <MaintenanceDetail canCreate={canCreate} canEdit={canEdit} report={selected} onClose={() => setSelected(null)} onEvidence={attachEvidence} onFinish={setFinalizing} onStatus={changeStatus} /> : null}
-      {finalizing ? <FinishModal report={finalizing} onClose={() => setFinalizing(null)} onEvidence={attachEvidence} onFinish={changeStatus} /> : null}
-    </div>
-  );
-}
-
-function MaintenanceFilters({ filters, reports, setFilters }) {
-  const types = [...new Set(reports.map((report) => report.type).filter(Boolean))];
-  const locations = [...new Set(reports.map(locationLabel).filter(Boolean))];
-  return (
-    <section className="grid gap-3 rounded-card border border-park-border bg-white p-4 shadow-card lg:grid-cols-[1fr_180px_180px_220px]">
-      <input className="rounded-input border border-park-border px-4 py-3 text-sm outline-none focus:border-park-green" placeholder="Buscar incidencia..." value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} />
-      <select className="rounded-input border border-park-border px-4 py-3 text-sm outline-none focus:border-park-green" value={filters.priority} onChange={(event) => setFilters((current) => ({ ...current, priority: event.target.value }))}>
-        <option value="">Prioridad</option>
-        {["CRITICA", "ALTA", "MEDIA", "BAJA"].map((priority) => <option key={priority} value={priority}>{priority}</option>)}
-      </select>
-      <select className="rounded-input border border-park-border px-4 py-3 text-sm outline-none focus:border-park-green" value={filters.type} onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))}>
-        <option value="">Tipo</option>
-        {types.map((type) => <option key={type} value={type}>{type.replaceAll("_", " ")}</option>)}
-      </select>
-      <select className="rounded-input border border-park-border px-4 py-3 text-sm outline-none focus:border-park-green" value={filters.location} onChange={(event) => setFilters((current) => ({ ...current, location: event.target.value }))}>
-        <option value="">Ubicacion</option>
-        {locations.map((location) => <option key={location} value={location}>{location}</option>)}
-      </select>
-    </section>
-  );
-}
-
-function WorkGrid({ canCreate, canEdit, reports, onEvidence, onFinish, onSelect, onStatus }) {
-  if (!reports.length) return <EmptyState title="Sin trabajos" description="No hay trabajos tecnicos para esta vista." />;
-  return (
     <section className="grid gap-4 xl:grid-cols-2">
       {reports.map((report) => (
         <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={report.id}>
@@ -173,7 +132,7 @@ function EvidenceView({ reports, onSelect }) {
 
 function MaintenanceDetail({ canCreate, canEdit, report, onClose, onEvidence, onFinish, onStatus }) {
   return (
-    <div className="fixed inset-0 z-40 bg-slate-950/30 p-4">
+    <div className="fixed inset-0 z-40 bg-slate-950/30 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <aside className="ml-auto h-full max-w-xl overflow-auto rounded-card bg-white p-5 shadow-drawer">
         <div className="flex items-start justify-between gap-4">
           <div>

@@ -328,21 +328,7 @@ function ReviewDetail({ task, onClose }) {
           <EvidenceGallery label="Salida" items={groups.exit} />
         </section>
       </div>
-      <section className="mt-5">
-        <h4 className="mb-3 font-sans text-lg font-black text-park-black">Novedades / Danos</h4>
-        {task.operationalReports?.length ? (
-          <div className="grid gap-3">
-            {task.operationalReports.map((report) => (
-              <div className="rounded-card border border-amber-200 bg-amber-50 p-3" key={report.id}>
-                <div className="flex items-start justify-between gap-3">
-                  <p className="font-semibold text-park-black">{report.description}</p>
-                  <StatusBadge value={report.priority} />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Sin novedades registradas.</p>}
-      </section>
+
     </Modal>
   );
 }
@@ -488,12 +474,12 @@ async function uploadImages(files) {
 }
 
 function Modal({ title, children, onClose }) {
-  return <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4"><section className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-card bg-white p-5 shadow-drawer"><div className="mb-4 flex items-center justify-between"><h3 className="font-black text-xl text-park-dark">{title}</h3><button type="button" className="p-1 text-slate-400 hover:text-slate-800 bg-slate-100 rounded-full" onClick={onClose}><X size={20}/></button></div>{children}</section></div>;
+  return <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}><section className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-card bg-white p-5 shadow-drawer"><div className="mb-4 flex items-center justify-between"><h3 className="font-black text-xl text-park-dark">{title}</h3><button type="button" className="p-1 text-slate-400 hover:text-slate-800 bg-slate-100 rounded-full" onClick={onClose}><X size={20}/></button></div>{children}</section></div>;
 }
 
 function ConfirmDialog({ title, description, confirmLabel, onCancel, onConfirm }) {
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4">
+    <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
       <div className="w-full max-w-sm rounded-card bg-white p-5 shadow-drawer text-center">
         <AlertTriangle size={48} className="mx-auto text-amber-500 mb-3" />
         <h3 className="font-black text-xl text-park-dark">{title}</h3>

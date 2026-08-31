@@ -78,11 +78,150 @@ function IncidentForm({ form, setForm, onClose, onSubmit }) {
 function IncidentDetail({ report, employees, onClose, onSaved }) {
   const [draft, setDraft] = useState({ contractorName: report.contractorName || "", contractorPhone: report.contractorPhone || "", visitDate: report.visitDate || "", estimatedCost: report.estimatedCost || "", notes: report.notes || "", status: report.status, assignedMaintenanceEmployeeId: report.assignedMaintenanceEmployeeId ? String(report.assignedMaintenanceEmployeeId) : "" });
   const [busy, setBusy] = useState(false);
+  const [selectedEvidence, setSelectedEvidence] = useState(null);
   const field = (name) => ({ value: draft[name], onChange: (event) => setDraft({ ...draft, [name]: event.target.value }) });
-  async function save(status = draft.status) { setBusy(true); try { if (draft.assignedMaintenanceEmployeeId && Number(draft.assignedMaintenanceEmployeeId) !== Number(report.assignedMaintenanceEmployeeId)) await api(`/reception/reports/${report.id}/assign-maintenance`, { method: "PATCH", body: { employeeId: Number(draft.assignedMaintenanceEmployeeId) } }); await api(`/reports/${report.id}/status`, { method: "PATCH", body: { ...draft, estimatedCost: Number(draft.estimatedCost || 0), status } }); await onSaved(); } finally { setBusy(false); } }
-  return <Modal title={`${report.code} · Gestionar mantenimiento`} subtitle={`${report.location || report.area} — ${report.description}`} onClose={onClose}><div className="mb-4 flex gap-2"><StatusBadge value={report.priority}/><StatusBadge value={report.status}/></div><div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="mb-1.5 block text-sm font-semibold">Cuenta de Mantenimiento</span><select className="h-10 w-full rounded-input border border-park-border px-3" value={draft.assignedMaintenanceEmployeeId} onChange={(event) => setDraft({ ...draft, assignedMaintenanceEmployeeId: event.target.value })} disabled={report.status === "RESUELTO"}><option value="">Asignar trabajador interno</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label><Input label="Responsable externo (opcional)" placeholder="Nombre del técnico" {...field("contractorName")}/><Input label="Teléfono" type="tel" placeholder="999 999 999" {...field("contractorPhone")}/><Input label="Fecha programada" type="date" {...field("visitDate")}/><Input label="Costo estimado (S/)" min="0" step="0.01" type="number" {...field("estimatedCost")}/></div><label className="mt-4 block"><span className="mb-1.5 block text-sm font-semibold">Notas de coordinación</span><textarea className="min-h-24 w-full rounded-input border border-park-border p-3" {...field("notes")}/></label>{draft.contractorPhone ? <a className="mt-4 inline-flex items-center gap-2 font-bold text-park-green" href={`tel:${draft.contractorPhone}`}><Phone size={17}/>Llamar al responsable</a> : null}<div className="mt-5 flex flex-wrap justify-end gap-2"><Button variant="secondary" onClick={onClose}>Cancelar</Button>{report.status === "ABIERTO" ? <Button disabled={busy || !draft.assignedMaintenanceEmployeeId} onClick={() => save("ABIERTO")}>{report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? "Aceptar y enviar a Mantenimiento" : "Actualizar responsable"}</Button> : null}{report.status === "EN_REVISION" ? <Button disabled={busy} onClick={() => save("RESUELTO")}>Marcar como resuelta</Button> : null}{report.status === "RESUELTO" ? <Button disabled={busy} onClick={() => save("RESUELTO")}>Guardar cambios</Button> : null}</div></Modal>;
+
+  async function save(status = draft.status) {
+    setBusy(true);
+    try {
+      if (draft.assignedMaintenanceEmployeeId && Number(draft.assignedMaintenanceEmployeeId) !== Number(report.assignedMaintenanceEmployeeId)) {
+        await api(`/reception/reports/${report.id}/assign-maintenance`, { method: "PATCH", body: { employeeId: Number(draft.assignedMaintenanceEmployeeId) } });
+      }
+      await api(`/reports/${report.id}/status`, { method: "PATCH", body: { ...draft, estimatedCost: Number(draft.estimatedCost || 0), status } });
+      await onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <aside aria-modal="true" className="max-h-[88vh] w-[min(1100px,90vw)] max-w-none overflow-auto rounded-card bg-white p-5 shadow-drawer" role="dialog">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-3"><h3 className="font-sans text-2xl font-black text-park-black">{report.code} · Gestionar mantenimiento</h3><StatusBadge value={report.status} /></div>
+            <p className="mt-2 text-sm text-park-muted">{report.location || report.area} — {report.description}</p>
+          </div>
+          <button aria-label="Cerrar detalle" className="grid h-10 w-10 place-items-center rounded-button border border-park-border text-park-muted hover:text-park-dark" onClick={onClose} type="button"><X size={19} /></button>
+        </div>
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="space-y-3">
+            <section className="rounded-card border border-park-border bg-white p-3.5">
+              <h2 className="mb-2 font-sans text-base font-black text-park-black">Información general</h2>
+              <div className="divide-y divide-park-border border-y border-park-border">
+                <CompactDetailRow label="Ubicación" value={report.location || report.area} />
+                <CompactDetailRow label="Tipo" value={report.type?.replaceAll("_", " ")} />
+                <CompactDetailRow label="Prioridad" value={<StatusBadge value={report.priority} />} />
+                <CompactDetailRow label="Estado" value={<StatusBadge value={report.status} />} />
+                <CompactDetailRow label="Inicio" value={report.startedAt ? new Date(report.startedAt).toLocaleString("es-PE") : "No iniciado"} />
+                <CompactDetailRow label="Costo est." value={report.estimatedCost ? `S/ ${report.estimatedCost}` : "No registrado"} />
+                <CompactDetailRow label="Trabajo" value={report.workDescription || "Pendiente"} />
+              </div>
+            </section>
+            
+            {report.status !== "RESUELTO" && (
+              <section className="rounded-card border border-park-border bg-white p-3.5">
+                <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
+                <div className="grid gap-3">
+                  <label className="block text-sm font-black text-park-black">Cuenta de Mantenimiento
+                    <select className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" value={draft.assignedMaintenanceEmployeeId} onChange={(event) => { const selectedId = event.target.value; const emp = employees.find((e) => String(e.id) === String(selectedId)); setDraft({ ...draft, assignedMaintenanceEmployeeId: selectedId, ...(emp ? { contractorName: emp.name || draft.contractorName, contractorPhone: emp.phone || draft.contractorPhone } : {}) }); }}>
+                      <option value="">Selecciona al responsable</option>
+                      {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-black text-park-black">Responsable externo (opcional)
+                    <input className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" placeholder="Nombre del técnico" {...field("contractorName")} />
+                  </label>
+                  <label className="block text-sm font-black text-park-black">Teléfono
+                    <input className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" type="tel" placeholder="999 999 999" {...field("contractorPhone")} />
+                  </label>
+                  <label className="block text-sm font-black text-park-black">Fecha programada
+                    <input className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" type="date" {...field("visitDate")} />
+                  </label>
+                  <label className="block text-sm font-black text-park-black">Costo estimado (S/)
+                    <input className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" min="0" step="0.01" type="number" {...field("estimatedCost")} />
+                  </label>
+                  <label className="block text-sm font-black text-park-black">Notas de coordinación
+                    <textarea className="mt-1 min-h-20 w-full rounded-input border border-park-border p-2 text-sm font-normal" {...field("notes")} />
+                  </label>
+                  {draft.contractorPhone ? <a className="text-sm font-bold text-park-green flex items-center gap-2" href={`tel:${draft.contractorPhone}`}><Phone size={15}/>Llamar al responsable</a> : null}
+                </div>
+                <div className="mt-4 flex flex-col gap-2">
+                  {report.status === "ABIERTO" ? <Button className="w-full" disabled={busy || !draft.assignedMaintenanceEmployeeId} onClick={() => save("ABIERTO")} type="button" variant="secondary">{report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? "Aceptar y enviar a Mantenimiento" : "Actualizar responsable"}</Button> : null}
+                  {report.status === "EN_REVISION" ? <Button className="w-full" disabled={busy} onClick={() => save("RESUELTO")} type="button">Marcar como resuelta</Button> : null}
+                </div>
+              </section>
+            )}
+            
+            {report.status === "RESUELTO" && (
+              <section className="rounded-card border border-park-border bg-white p-3.5">
+                <p className="rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Incidencia resuelta. Trabajo finalizado.</p>
+                <div className="mt-3 flex justify-end">
+                  <Button disabled={busy} onClick={() => save("RESUELTO")} type="button" variant="secondary">Guardar cambios extra</Button>
+                </div>
+              </section>
+            )}
+          </div>
+          
+          <section className="min-w-0 rounded-card border border-park-border bg-white p-4">
+            <h2 className="font-sans text-lg font-black text-park-black">Evidencias</h2>
+            <p className="mb-4 mt-1 text-sm text-park-muted">Fotografías adjuntadas durante el trabajo de mantenimiento.</p>
+            <div className="max-h-[510px] overflow-y-auto pr-1">
+              {!report.evidences?.length ? (
+                 <div className="grid aspect-video place-items-center rounded-card border border-dashed border-park-border bg-park-bg px-3 text-center text-sm text-park-muted">Sin evidencia registrada</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {report.evidences.map((evidence) => (
+                    <button key={evidence.id} className="group block w-full text-left" onClick={() => setSelectedEvidence(evidence)} type="button">
+                      <img alt="Evidencia" className="aspect-video w-full rounded-card border border-park-border object-cover transition group-hover:border-park-green" src={`${evidence.imageUrl || evidence.fileUrl}`} />
+                      <span className="mt-2 block text-xs font-semibold text-park-muted"><Clock3 size={12} className="mr-1 inline" />{new Date(evidence.createdAt).toLocaleString("es-PE")}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </aside>
+      {selectedEvidence ? <MaintenanceEvidencePreview evidence={selectedEvidence} onClose={() => setSelectedEvidence(null)} /> : null}
+    </div>
+  );
 }
 
-function Modal({ title, subtitle, onClose, children }) { return <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"><section className="mx-auto max-h-full max-w-2xl overflow-auto rounded-card bg-white p-6 shadow-drawer"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="font-display text-2xl font-semibold text-park-dark">{title}</h2><p className="mt-1 text-sm text-park-muted">{subtitle}</p></div><button className="grid h-9 w-9 place-items-center rounded-button border border-park-border hover:bg-slate-100" onClick={onClose} type="button"><X size={18}/></button></div>{children}</section></div>; }
+function MaintenanceEvidencePreview({ evidence, onClose }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  if (expanded) {
+    return (
+      <div className="fixed inset-0 z-[60] bg-black" onClick={() => setExpanded(false)}>
+        <img alt="Evidencia expandida" className="w-full h-full object-contain cursor-zoom-out" src={`${evidence.imageUrl || evidence.fileUrl}`} title="Haz clic para contraer" />
+      </div>
+    );
+  }
+
+  return (
+    <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[420px] md:-translate-y-1/2" role="dialog">
+      <div className="flex items-start justify-between p-5">
+        <div>
+          <p className="font-sans text-lg font-black text-park-black">Evidencia de trabajo</p>
+          <p className="mt-1 text-sm text-park-muted"><Clock3 size={14} className="mr-1 inline" />{new Date(evidence.createdAt).toLocaleString("es-PE")}</p>
+        </div>
+        <button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button>
+      </div>
+      <img alt="Evidencia" className="max-h-[46vh] w-full cursor-zoom-in object-cover transition hover:opacity-90" onClick={() => setExpanded(true)} src={`${evidence.imageUrl || evidence.fileUrl}`} title="Haz clic para expandir" />
+      <div className="space-y-3 p-5">
+        <div className="border border-park-border bg-park-bg p-3 text-sm">
+          <p className="text-xs font-black uppercase text-park-muted">Comentario</p>
+          <p className="mt-1 leading-6 text-park-dark">{evidence.description || evidence.notes || "Sin comentario registrado"}</p>
+        </div>
+        <Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button>
+      </div>
+    </section>
+  );
+}
+
+function CompactDetailRow({ label, value }) { return <div className="flex items-center justify-between py-2.5 text-sm"><span className="text-park-muted">{label}</span><strong className="text-park-dark text-right max-w-[150px]">{value}</strong></div>; }
+
+function Modal({ title, subtitle, onClose, children }) { return <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}><section className="mx-auto max-h-full max-w-2xl overflow-auto rounded-card bg-white p-6 shadow-drawer"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="font-display text-2xl font-semibold text-park-dark">{title}</h2><p className="mt-1 text-sm text-park-muted">{subtitle}</p></div><button className="grid h-9 w-9 place-items-center rounded-button border border-park-border hover:bg-slate-100" onClick={onClose} type="button"><X size={18}/></button></div>{children}</section></div>; }
 function filterReports(view, reports) { if (view === "solicitudes") return reports.filter((r) => r.status === "ABIERTO"); if (view === "reparacion") return reports.filter((r) => r.status === "EN_REVISION"); if (view === "finalizados") return reports.filter((r) => r.status === "RESUELTO"); return reports; }
 function pageTitle(view) { return ({ resumen: "Incidencias y soporte externo", solicitudes: "Incidencias abiertas", reparacion: "Incidencias en seguimiento", finalizados: "Incidencias cerradas" })[view] || "Incidencias y soporte externo"; }

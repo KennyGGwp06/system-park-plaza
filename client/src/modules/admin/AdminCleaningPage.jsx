@@ -274,7 +274,7 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
   }, [onClose, selectedEvidence]);
   async function assign() { setBusy(true); try { await api(`/reception/tasks/${task.id}/assign`, { method: "PATCH", body: { employeeId: Number(assignedEmployeeId) } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <aside aria-modal="true" className="max-h-[88vh] w-[min(1100px,90vw)] max-w-none overflow-auto rounded-card bg-white p-5 shadow-drawer" role="dialog">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -297,31 +297,21 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
                 <CompactDetailRow label="Duración" value={task.startedAt && task.finishedAt ? formatDuration(task.startedAt, task.finishedAt) : "No registrado"} />
               </div>
             </section>
-            <section className="rounded-card border border-park-border bg-white p-3.5">
-              <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
-              {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
-              <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
-              <div className="mt-2 divide-y divide-park-border border-y border-park-border"><CompactDetailRow label="Trabajador" value={task.assignedTo || "Sin asignar"} /><CompactDetailRow label="Estado tarea" value={<StatusBadge value={task.status} />} /></div>
-              {task.status !== "FINALIZADA" ? <Button className="mt-2 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">{task.requiresReceptionAcceptance && !task.receptionAcceptedAt ? "Aceptar y enviar a Limpieza" : "Actualizar responsable"}</Button> : <p className="mt-2 rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
-            </section>
+            {task.status !== "FINALIZADA" && (
+              <section className="rounded-card border border-park-border bg-white p-3.5">
+                <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
+                {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
+                <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
+                <div className="mt-2 divide-y divide-park-border border-y border-park-border"><CompactDetailRow label="Trabajador" value={task.assignedTo || "Sin asignar"} /><CompactDetailRow label="Estado tarea" value={<StatusBadge value={task.status} />} /></div>
+                {task.status !== "FINALIZADA" ? <Button className="mt-2 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">{task.requiresReceptionAcceptance && !task.receptionAcceptedAt ? "Aceptar y enviar a Limpieza" : "Actualizar responsable"}</Button> : <p className="mt-2 rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
+              </section>
+            )}
           </div>
           <section className="min-w-0 rounded-card border border-park-border bg-white p-4">
             <h2 className="font-sans text-lg font-black text-park-black">Evidencias</h2>
             <p className="mb-4 mt-1 text-sm text-park-muted">Fotografías registradas desde la operación de Limpieza.</p>
             <div className="max-h-[510px] overflow-y-auto pr-1"><EvidenceComparison evidences={task.evidences || []} onSelect={setSelectedEvidence} selectedId={selectedEvidence?.id} /></div>
           </section>
-          <Panel className="lg:col-span-2" title="Novedades / Danos">
-            {task.operationalReports?.length ? (
-              <div className="space-y-3">
-                {task.operationalReports.map((report) => (
-                  <div className="rounded-card border border-amber-200 bg-amber-50 p-3" key={report.id}>
-                    <div className="flex items-start justify-between gap-2"><p className="font-black text-park-black">{report.description}</p><StatusBadge value={report.priority} /></div>
-                    <p className="mt-2 text-xs text-park-muted">{formatDateTime(report.createdAt)}</p>
-                  </div>
-                ))}
-              </div>
-            ) : <EmptyState title="Sin novedades" description="No se registraron danos para esta revision." />}
-          </Panel>
         </div>
       </aside>
       {selectedEvidence ? <EvidencePreview evidence={selectedEvidence} task={task} onClose={() => setSelectedEvidence(null)} /> : null}
@@ -344,9 +334,41 @@ function EvidenceTile({ evidence, onSelect, selected }) {
 }
 
 function EvidencePreview({ evidence, task, onClose }) {
+  const [expanded, setExpanded] = useState(false);
   const stage = evidenceStage(evidence);
   const comment = String(evidence.description || evidence.notes || "").replace(/^(ENTRADA|SALIDA):\s*/i, "").trim();
-  return <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[420px] md:-translate-y-1/2" role="dialog"><div className="flex items-start justify-between p-5"><div><p className="font-sans text-lg font-black text-park-black">{evidenceArea(evidence)} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div><button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button></div><img alt={`Evidencia de ${stage}`} className="max-h-[46vh] w-full object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><div className="space-y-3 p-5"><WorkerLabel name={task.assignedTo} /><p className="-mt-2 text-xs text-park-muted">Trabajador asignado a la tarea</p><div className="border border-park-border bg-park-bg p-3 text-sm"><p className="text-xs font-black uppercase text-park-muted">Comentario de {stage.toLowerCase()}</p><p className="mt-1 leading-6 text-park-dark">{comment || "Sin comentario registrado"}</p></div><div className="grid grid-cols-2 gap-3 border-t border-park-border pt-3 text-sm"><DetailLine label="Área" value={evidenceArea(evidence)} /><DetailLine label="Evidencia" value={stage} /></div><Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button></div></section>;
+  return (
+    <>
+      <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[420px] md:-translate-y-1/2" role="dialog">
+        <div className="flex items-start justify-between p-5">
+          <div><p className="font-sans text-lg font-black text-park-black">{evidenceArea(evidence)} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div>
+          <button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button>
+        </div>
+        <img alt={`Evidencia de ${stage}`} className="max-h-[46vh] w-full cursor-pointer object-cover transition hover:opacity-90" onClick={() => setExpanded(true)} src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} title="Haz clic para expandir" />
+        <div className="space-y-3 p-5">
+          <WorkerLabel name={task.assignedTo} />
+          <p className="-mt-2 text-xs text-park-muted">Trabajador asignado a la tarea</p>
+          <div className="border border-park-border bg-park-bg p-3 text-sm">
+            <p className="text-xs font-black uppercase text-park-muted">Comentario de {stage.toLowerCase()}</p>
+            <p className="mt-1 leading-6 text-park-dark">{comment || "Sin comentario registrado"}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 border-t border-park-border pt-3 text-sm">
+            <DetailLine label="Área" value={evidenceArea(evidence)} />
+            <DetailLine label="Evidencia" value={stage} />
+          </div>
+          <Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button>
+        </div>
+      </section>
+      {expanded && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setExpanded(false)}>
+          <button className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" onClick={() => setExpanded(false)} type="button">
+            <X size={24} />
+          </button>
+          <img alt="Evidencia expandida" className="h-full w-full rounded-lg object-contain shadow-2xl" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+    </>
+  );
 }
 
 function EvidenceMini({ task }) {
