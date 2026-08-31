@@ -10,7 +10,7 @@ import jwt from "jsonwebtoken";
 import morgan from "morgan";
 import QRCode from "qrcode";
 import { Server as SocketServer } from "socket.io";
-import { initializeDatabase, mutateState, readRelationalInventoryStatus, readState } from "./db.js";
+import { initializeDatabase, mutateState, readRelationalInventoryStatus, readState, synchronizeDailyAttendance } from "./db.js";
 import { normalizeStaffRole, writeSecurityAudit } from "./security-audit.js";
 import { archiveCatalogProduct, catalogReferences, createCatalogCategory, createCatalogProduct, createCatalogUnit, getCatalogProduct, listCatalogProducts, receiveCatalogCost, suggestFefo, updateCatalogProduct } from "./product-catalog.js";
 import { createGoodsReceipt, createPurchaseOrder, getPurchaseOrder, listPurchaseOrders, postGoodsReceipt, purchasingReferences, verifyGoodsReceipt } from "./purchasing.js";
@@ -111,7 +111,8 @@ app.post("/api/biometric/clock", biometricBridgeAuth, async (req, res, next) => 
       if (!externalId) throw httpError(400, "El puente debe enviar el identificador biométrico del empleado");
       const user = state.users.find((item) => item.status === "ACTIVO" && String(item.biometric?.externalId || "") === externalId);
       if (!user) throw httpError(404, "No existe un empleado activo asociado a esta huella");
-      const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(user.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
+      const today = hotelToday(state);
+      const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(user.id) && attendanceDateOf(row) === today && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
       const action = open ? "SALIDA" : "INGRESO";
       const record = await recordAttendance(state, client, user.id, action, user.id);
       record.source = "BIOMETRIC_ZK9500";
@@ -480,14 +481,34 @@ app.post("/api/public/requests", clientAuth, async (req, res, next) => {
       const type = req.body.type || "CONSERJERIA";
       const requiresMaintenance = type === "MANTENIMIENTO";
       const cleaningRequest = ["LIMPIEZA", "TOALLAS"].includes(type);
+      const cleaningEmployee = cleaningRequest ? availableOperationalEmployee(state, "LIMPIEZA") : null;
+      const maintenanceEmployee = requiresMaintenance ? availableOperationalEmployee(state, "MANTENIMIENTO") : null;
       const booking = [...state.bookings].reverse().find((item) => item.clientId === req.client.id && item.serviceCode === "HOSPEDAJE" && item.roomId && !["CANCELADA", "FINALIZADA"].includes(item.status));
       const room = booking ? state.rooms.find((item) => item.id === Number(booking.roomId)) : null;
       const id = nextId(state, "request");
-      const item = { id, code: code("SOL", id), clientId: req.client.id, type, area: cleaningRequest ? "LIMPIEZA" : requiresMaintenance ? "MANTENIMIENTO" : "RECEPCION", location: req.body.location || (room ? `Habitación ${room.number}` : "Reportado por huésped"), description: req.body.description || "", priority: req.body.priority || "MEDIA", status: requiresMaintenance ? "ABIERTO" : "PENDIENTE", requiresMaintenance, evidences: [], createdAt: now() };
+      const item = {
+        id, code: code("SOL", id), clientId: req.client.id, type,
+        area: cleaningRequest ? "LIMPIEZA" : requiresMaintenance ? "MANTENIMIENTO" : "RECEPCION",
+        location: req.body.location || (room ? `Habitación ${room.number}` : "Reportado por huésped"),
+        description: req.body.description || "", priority: req.body.priority || "MEDIA",
+        status: requiresMaintenance ? "ABIERTO" : "PENDIENTE", requiresMaintenance,
+        requiresReceptionAcceptance: cleaningRequest || requiresMaintenance,
+        receptionAcceptedAt: null,
+        assignedMaintenanceEmployeeId: maintenanceEmployee?.id || null,
+        assignedMaintenanceTo: maintenanceEmployee ? `${maintenanceEmployee.firstName || ""} ${maintenanceEmployee.lastName || ""}`.trim() : null,
+        evidences: [], createdAt: now()
+      };
       state.requests.unshift(item);
       if (cleaningRequest && room) {
         const taskId = nextId(state, "task");
-        const task = { id: taskId, code: code("LIM", taskId), requestId: item.id, clientId: req.client.id, roomId: room.id, room, serviceType: type, description: item.description, assignedEmployeeId: null, assignedTo: null, priority: item.priority, status: "PENDIENTE", evidences: [], operationalReports: [], createdAt: now() };
+        const task = {
+          id: taskId, code: code("LIM", taskId), requestId: item.id, clientId: req.client.id,
+          roomId: room.id, room, serviceType: type, description: item.description,
+          assignedEmployeeId: cleaningEmployee?.id || null,
+          assignedTo: cleaningEmployee ? `${cleaningEmployee.firstName || ""} ${cleaningEmployee.lastName || ""}`.trim() : null,
+          priority: item.priority, status: "PENDIENTE", requiresReceptionAcceptance: true,
+          receptionAcceptedAt: null, evidences: [], operationalReports: [], createdAt: now()
+        };
         state.tasks.push(task);
         item.taskId = task.id;
       }
@@ -1389,7 +1410,7 @@ app.post("/api/cleaning/tasks/:id/report", requireCleaningWorker, requireActiveS
 // Estación de Mantenimiento: consume los mismos reportes operativos, sin crear
 // una segunda entidad de trabajo ni dar acceso al ERP administrativo.
 app.get("/api/maintenance/reports", requireMaintenanceWorker, async (req, res, next) => { try { const state = await readState(); const rows = state.requests.filter((item) => item.requiresMaintenance && Number(item.assignedMaintenanceEmployeeId) === Number(req.user.id)); res.json(sortRecent(rows, req.query.order)); } catch (error) { next(error); } });
-app.patch("/api/maintenance/reports/:id/start", requireMaintenanceWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const report = requireOwnedMaintenanceReport(state, req.params.id, req.user); if (report.status !== "ABIERTO") throw httpError(409, "Este trabajo ya no está pendiente."); report.status = "EN_REVISION"; report.startedAt = now(); report.assignedMaintenanceEmployeeId = req.user.id; report.assignedMaintenanceTo = `${req.user.firstName} ${req.user.lastName}`.trim(); report.assignedTo = { id: req.user.id, firstName: req.user.firstName, lastName: req.user.lastName }; audit(state, "MANTENIMIENTO", "INICIAR", report.code, req.user.id); return report; }); res.json(result); } catch (error) { next(error); } });
+app.patch("/api/maintenance/reports/:id/start", requireMaintenanceWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const report = requireOwnedMaintenanceReport(state, req.params.id, req.user); if (report.requiresReceptionAcceptance && !report.receptionAcceptedAt) throw httpError(409, "Recepción debe aceptar esta solicitud del huésped antes de iniciar el trabajo."); if (report.status !== "ABIERTO") throw httpError(409, "Este trabajo ya no está pendiente."); report.status = "EN_REVISION"; report.startedAt = now(); report.assignedMaintenanceEmployeeId = req.user.id; report.assignedMaintenanceTo = `${req.user.firstName} ${req.user.lastName}`.trim(); report.assignedTo = { id: req.user.id, firstName: req.user.firstName, lastName: req.user.lastName }; audit(state, "MANTENIMIENTO", "INICIAR", report.code, req.user.id); return report; }); res.json(result); } catch (error) { next(error); } });
 app.post("/api/maintenance/reports/:id/evidence", requireMaintenanceWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const report = requireOwnedMaintenanceReport(state, req.params.id, req.user); const files = Array.isArray(req.body.files) ? req.body.files.filter((file) => String(file?.fileUrl || "").trim()) : []; if (!files.length) throw httpError(400, "Adjunta al menos una foto real como evidencia."); report.evidences ||= []; report.evidences.push(...files.map((file, index) => ({ id: Date.now() + index, ...file, createdAt: now(), uploadedById: req.user.id, area: "MANTENIMIENTO" }))); audit(state, "MANTENIMIENTO", "EVIDENCIA", report.code, req.user.id); return report; }); res.status(201).json(result); } catch (error) { next(error); } });
 app.patch("/api/maintenance/reports/:id/finish", requireMaintenanceWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const report = requireOwnedMaintenanceReport(state, req.params.id, req.user); if (report.status !== "EN_REVISION") throw httpError(409, "Inicia el trabajo antes de finalizarlo."); if (!(report.evidences || []).length) throw httpError(409, "Adjunta al menos una evidencia antes de finalizar."); const workDescription = String(req.body.workDescription || "").trim(); if (!workDescription) throw httpError(400, "Describe el trabajo realizado."); Object.assign(report, { status: "RESUELTO", workDescription, observations: String(req.body.observations || "").trim(), resolvedAt: now(), resolvedById: req.user.id }); audit(state, "MANTENIMIENTO", "FINALIZAR", report.code, req.user.id); return report; }); res.json(result); } catch (error) { next(error); } });
 // Consola de Recepción: el personal operativo no entra al ERP. Las fotos y
@@ -1397,8 +1418,8 @@ app.patch("/api/maintenance/reports/:id/finish", requireMaintenanceWorker, requi
 app.get("/api/reception/tasks", requireReceptionAdmin, async (req, res, next) => { try { const state = await readState(); res.json(sortRecent(state.tasks.filter((item) => !req.query.status || item.status === req.query.status), req.query.order).map((item) => hydrateTask(state, item))); } catch (error) { next(error); } });
 app.get("/api/reception/cleaning-employees", requireReceptionAdmin, async (_req, res, next) => { try { const state = await readState(); const rows = state.employees.filter((employee) => roleName(employee) === "LIMPIEZA" && employee.status === "ACTIVO").map((employee) => ({ id: employee.id, firstName: employee.firstName, lastName: employee.lastName, name: `${employee.firstName || ""} ${employee.lastName || ""}`.trim() })); res.json(rows); } catch (error) { next(error); } });
 app.get("/api/reception/maintenance-employees", requireReceptionAdmin, async (_req, res, next) => { try { const state = await readState(); const rows = state.employees.filter((employee) => roleName(employee) === "MANTENIMIENTO" && employee.status === "ACTIVO").map((employee) => ({ id: employee.id, firstName: employee.firstName, lastName: employee.lastName, name: `${employee.firstName || ""} ${employee.lastName || ""}`.trim() })); res.json(rows); } catch (error) { next(error); } });
-app.patch("/api/reception/reports/:id/assign-maintenance", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const report = state.requests.find((item) => item.id === Number(req.params.id) && item.requiresMaintenance); if (!report) throw httpError(404, "Incidencia de mantenimiento no encontrada."); if (report.status === "RESUELTO") throw httpError(409, "No puedes reasignar una incidencia resuelta."); const employeeId = Number(req.body.employeeId); const employee = state.employees.find((item) => Number(item.id) === employeeId && roleName(item) === "MANTENIMIENTO" && item.status === "ACTIVO"); if (!employee) throw httpError(400, "Selecciona un trabajador de Mantenimiento activo."); Object.assign(report, { assignedMaintenanceEmployeeId: employee.id, assignedMaintenanceTo: `${employee.firstName || ""} ${employee.lastName || ""}`.trim(), assignedAt: now(), assignedById: req.user.id, updatedAt: now() }); audit(state, "MANTENIMIENTO", "ASIGNAR", `${report.code}: ${report.assignedMaintenanceTo}`, req.user.id); return report; }); res.json(result); } catch (error) { next(error); } });
-app.patch("/api/reception/tasks/:id/assign", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const task = state.tasks.find((item) => item.id === Number(req.params.id)); if (!task) throw httpError(404, "Tarea no encontrada"); if (task.status === "FINALIZADA") throw httpError(409, "No puedes reasignar una tarea finalizada"); const employeeId = Number(req.body.employeeId); const employee = state.employees.find((item) => Number(item.id) === employeeId && roleName(item) === "LIMPIEZA" && item.status === "ACTIVO"); if (!employee) throw httpError(400, "Selecciona un trabajador de Limpieza activo"); task.assignedEmployeeId = employee.id; task.assignedTo = `${employee.firstName || ""} ${employee.lastName || ""}`.trim(); task.assignedAt = now(); task.assignedById = req.user.id; task.assignedVia = "SISTEMA"; task.updatedAt = now(); audit(state, "HABITACIONES", "ASIGNAR_LIMPIEZA", `${task.code}: ${task.assignedTo}`, req.user.id); return hydrateTask(state, task); }); res.json(result); } catch (error) { next(error); } });
+app.patch("/api/reception/reports/:id/assign-maintenance", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const report = state.requests.find((item) => item.id === Number(req.params.id) && item.requiresMaintenance); if (!report) throw httpError(404, "Incidencia de mantenimiento no encontrada."); if (report.status === "RESUELTO") throw httpError(409, "No puedes reasignar una incidencia resuelta."); const employeeId = Number(req.body.employeeId); const employee = state.employees.find((item) => Number(item.id) === employeeId && roleName(item) === "MANTENIMIENTO" && item.status === "ACTIVO"); if (!employee) throw httpError(400, "Selecciona un trabajador de Mantenimiento activo."); const acceptedAt = report.receptionAcceptedAt || now(); Object.assign(report, { assignedMaintenanceEmployeeId: employee.id, assignedMaintenanceTo: `${employee.firstName || ""} ${employee.lastName || ""}`.trim(), assignedAt: now(), assignedById: req.user.id, receptionAcceptedAt: acceptedAt, receptionAcceptedById: req.user.id, updatedAt: now() }); audit(state, "MANTENIMIENTO", report.requiresReceptionAcceptance ? "ACEPTAR_Y_ASIGNAR" : "ASIGNAR", `${report.code}: ${report.assignedMaintenanceTo}`, req.user.id); return report; }); res.json(result); } catch (error) { next(error); } });
+app.patch("/api/reception/tasks/:id/assign", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const task = state.tasks.find((item) => item.id === Number(req.params.id)); if (!task) throw httpError(404, "Tarea no encontrada"); if (task.status === "FINALIZADA") throw httpError(409, "No puedes reasignar una tarea finalizada"); const employeeId = Number(req.body.employeeId); const employee = state.employees.find((item) => Number(item.id) === employeeId && roleName(item) === "LIMPIEZA" && item.status === "ACTIVO"); if (!employee) throw httpError(400, "Selecciona un trabajador de Limpieza activo"); const acceptedAt = task.receptionAcceptedAt || now(); Object.assign(task, { assignedEmployeeId: employee.id, assignedTo: `${employee.firstName || ""} ${employee.lastName || ""}`.trim(), assignedAt: now(), assignedById: req.user.id, assignedVia: "SISTEMA", receptionAcceptedAt: acceptedAt, receptionAcceptedById: req.user.id, updatedAt: now() }); const sourceRequest = state.requests.find((item) => Number(item.id) === Number(task.requestId)); if (sourceRequest) Object.assign(sourceRequest, { status: "ASIGNADO", receptionAcceptedAt: acceptedAt, receptionAcceptedById: req.user.id, updatedAt: now() }); audit(state, "HABITACIONES", task.requiresReceptionAcceptance ? "ACEPTAR_Y_ASIGNAR_LIMPIEZA" : "ASIGNAR_LIMPIEZA", `${task.code}: ${task.assignedTo}`, req.user.id); return hydrateTask(state, task); }); res.json(result); } catch (error) { next(error); } });
 app.patch("/api/reception/tasks/:id/start", requireReceptionAdmin, receptionTaskStatus("EN_LIMPIEZA"));
 app.patch("/api/reception/tasks/:id/finish", requireReceptionAdmin, receptionTaskStatus("FINALIZADA"));
 app.post("/api/reception/tasks/:id/evidence", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState((state) => { const task = state.tasks.find((item) => item.id === Number(req.params.id)); if (!task) throw httpError(404, "Tarea no encontrada"); const stage = req.body.stage === "SALIDA" ? "SALIDA" : "ENTRADA"; const files = Array.isArray(req.body.files) ? req.body.files : []; if (!files.length) throw httpError(400, "Adjunta la evidencia recibida por WhatsApp"); task.evidences ||= []; task.evidences.push(...files.map((file, index) => ({ id: Date.now() + index, ...file, stage, description: `${stage === "ENTRADA" ? "Evidencia de entrada" : "Evidencia de salida"} · WhatsApp: ${String(req.body.description || "Sin detalle").trim()}`, receivedVia: "WHATSAPP", registeredById: req.user.id, createdAt: now() }))); task.updatedAt = now(); audit(state, "HABITACIONES", `EVIDENCIA_${stage}`, task.code, req.user.id); return hydrateTask(state, task); }); res.status(201).json(result); } catch (error) { next(error); } });
@@ -1481,7 +1502,8 @@ app.post("/api/attendance/clock", async (req, res, next) => {
     const result = await mutateState(async (state, client) => {
       const employee = findActiveClockEmployee(state, documentNumber);
       if (!employee) throw httpError(404, "No existe un trabajador activo con este DNI.");
-      const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(employee.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
+      const today = hotelToday(state);
+      const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(employee.id) && attendanceDateOf(row) === today && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
       const action = open ? "SALIDA" : "INGRESO";
       const record = await recordAttendance(state, client, employee.id, action, employee.id);
       return { success: true, user: `${employee.firstName} ${employee.lastName}`.trim(), worker: { firstName: employee.firstName, lastName: employee.lastName, position: employee.position || employee.operationalArea || employee.baseRole || employee.role, photoUrl: employee.photoUrl || null }, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null };
@@ -1519,6 +1541,18 @@ async function biometricBridgeAuth(req, res, next) {
 }
 async function staffAuth(req, res, next) { try { const payload = jwt.verify(req.headers.authorization?.replace(/^Bearer\s+/i, "") || "", jwtSecret); if (payload.kind !== "STAFF") throw new Error(); const state = await readState(); const identity = state.users.find((item) => item.id === Number(payload.sub)); if (!identity || identity.status !== "ACTIVO") throw new Error(); req.user = identity.role === "SUPERADMIN" ? { ...identity, role: "ADMINISTRADOR", displayRole: "SUPERADMIN" } : identity; next(); } catch { void writeSecurityAudit({ req, eventType: "AUTH_REJECTED", operation: "STAFF_AUTH", reason: "Token inválido, expirado o cuenta deshabilitada", status: 401 }); res.status(401).json({ message: "Sesión no válida o expirada" }); } }
 function roleName(user) { return normalizeStaffRole(typeof user?.role === "string" ? user.role : user?.role?.name); }
+function availableOperationalEmployee(state, role) {
+  const candidates = state.employees
+    .filter((employee) => roleName(employee) === role && employee.status === "ACTIVO" && employee.attendanceStatus === "EN_TURNO")
+    .map((employee) => ({
+      employee,
+      load: role === "LIMPIEZA"
+        ? state.tasks.filter((task) => Number(task.assignedEmployeeId) === Number(employee.id) && task.status !== "FINALIZADA").length
+        : state.requests.filter((report) => Number(report.assignedMaintenanceEmployeeId) === Number(employee.id) && report.status !== "RESUELTO").length
+    }))
+    .sort((a, b) => a.load - b.load || Number(a.employee.id) - Number(b.employee.id));
+  return candidates[0]?.employee || null;
+}
 function guarded(operation, roles, message) { return async (req, res, next) => { if (!roles.includes(roleName(req.user))) { void writeSecurityAudit({ req, user: req.user, eventType: "AUTHORIZATION_REJECTED", operation, reason: `Rol ${roleName(req.user) || "SIN_ROL"} no autorizado`, status: 403 }); return res.status(403).json({ message }); } res.once("finish", () => { if (res.statusCode >= 200 && res.statusCode < 400) void writeSecurityAudit({ req, user: req.user, eventType: "API_OPERATION", operation, reason: "Operación autorizada", status: res.statusCode }); }); next(); }; }
 function staffAccessRole(user) { return user?.displayRole || roleName(user); }
 function isSuperAdmin(user) { return staffAccessRole(user) === "SUPERADMIN"; }
@@ -1614,14 +1648,15 @@ async function attendanceAction(req, action) {
   return mutateState((state, client) => recordAttendance(state, client, employeeId, action, req.user.id));
 }
 
+function attendanceDateOf(record) { return String(record?.date || record?.checkIn || record?.clockIn || "").slice(0, 10); }
 function onDemandOperationalShift(timestamp = new Date()) {
   return `TURNO-${new Date(timestamp).toISOString().replace(/[-:.TZ]/g, "")}`;
 }
 
-async function ensureAttendanceOperationalSession(client, employee, scheduledShift, attendanceId, at) {
+async function ensureAttendanceOperationalSession(client, employee, scheduledShift, attendanceId, at, operationalDate) {
   const area = scheduledShift?.area || employee.baseRole || employee.role;
   if (!["RESTAURANTE", "BARTENDER"].includes(area)) return null;
-  const date = at.slice(0, 10);
+  const date = operationalDate || at.slice(0, 10);
   const shiftCode = onDemandOperationalShift(at);
   const warehouse = (await client.query("SELECT id FROM inventory_warehouses WHERE code=$1 AND active", [area])).rows[0];
   if (!warehouse) throw httpError(409, `No existe almacén operativo para ${area}`);
@@ -1635,8 +1670,8 @@ async function ensureAttendanceOperationalSession(client, employee, scheduledShi
 async function recordAttendance(state, client, employeeId, action, actorId) {
   const employee = state.employees.find((item) => Number(item.id) === Number(employeeId));
   if (!employee) throw httpError(404, "Empleado no encontrado");
-  const at = now(); const date = at.slice(0, 10);
-  let record = [...state.attendance].reverse().find((item) => Number(item.employeeId || item.userId) === Number(employeeId) && String(item.date || item.checkIn || item.clockIn).slice(0, 10) === date && (item.checkIn || item.clockIn) && !(item.checkOut || item.clockOut));
+  const at = now(); const date = hotelToday(state);
+  let record = [...state.attendance].reverse().find((item) => Number(item.employeeId || item.userId) === Number(employeeId) && attendanceDateOf(item) === date && (item.checkIn || item.clockIn) && !(item.checkOut || item.clockOut));
   if (action === "INGRESO") {
     if (record) throw httpError(409, "El ingreso ya fue registrado");
     let scheduled = state.shifts.find((item) => Number(item.employeeId || item.userId) === Number(employeeId) && item.date === date && !["FINALIZADO", "CANCELADO"].includes(item.status));
@@ -1645,7 +1680,7 @@ async function recordAttendance(state, client, employeeId, action, actorId) {
     const id = nextId(state, "attendance");
     record = { id, employeeId, userId: employeeId, userName: `${employee.firstName} ${employee.lastName}`, role: employee.baseRole || employee.role, date, checkIn: at, clockIn: at, checkOut: null, clockOut: null, status: "EN_TURNO", shiftId: scheduled.id };
     state.attendance.push(record);
-    const session = await ensureAttendanceOperationalSession(client, employee, scheduled, id, at);
+    const session = await ensureAttendanceOperationalSession(client, employee, scheduled, id, at, date);
     if (session) { record.operationalSessionId = session.id; record.operationalShift = session.shift; scheduled.operationalSessionId = session.id; }
     employee.attendanceStatus = "EN_TURNO";
   } else {
@@ -1747,7 +1782,7 @@ function hydrateParkingEntry(state, entry) { return { ...entry, client: state.cl
 
 function taskStatus(status) {
   return async (req, res, next) => {
-    try { const result = await mutateState((state) => { const task = requireOwnedCleaningTask(state, req.params.id, req.user); const sourceRequest = state.requests.find((item) => item.id === Number(task.requestId)); if (status === "FINALIZADA" && !task.requestId) { const evidence = task.evidences || []; const hasEntry = evidence.some((item) => /entrada/i.test(item.description || item.notes || "")); const hasExit = evidence.some((item) => /salida/i.test(item.description || item.notes || "")); if (!hasEntry || !hasExit) throw httpError(409, "Registra evidencia de entrada y salida antes de liberar la habitación"); } task.status = status; if (status === "EN_LIMPIEZA") { task.startedAt = now(); task.assignedEmployeeId = req.user.id; task.assignedTo = `${req.user.firstName} ${req.user.lastName}`.trim(); if (sourceRequest) sourceRequest.status = "EN_REVISION"; } if (status === "FINALIZADA") { task.finishedAt = now(); if (sourceRequest) { sourceRequest.status = "RESUELTO"; sourceRequest.resolvedAt = now(); } const room = state.rooms.find((item) => item.id === task.roomId); if (room && !task.requestId) room.status = "LIBRE"; } audit(state, "LIMPIEZA", status, task.code, req.user.id); return hydrateTask(state, task); }); res.json(result); } catch (error) { next(error); }
+    try { const result = await mutateState((state) => { const task = requireOwnedCleaningTask(state, req.params.id, req.user); const sourceRequest = state.requests.find((item) => item.id === Number(task.requestId)); if (status === "EN_LIMPIEZA" && task.requiresReceptionAcceptance && !task.receptionAcceptedAt) throw httpError(409, "Recepción debe aceptar esta solicitud del huésped antes de iniciar la limpieza."); if (status === "FINALIZADA" && !task.requestId) { const evidence = task.evidences || []; const hasEntry = evidence.some((item) => /entrada/i.test(item.description || item.notes || "")); const hasExit = evidence.some((item) => /salida/i.test(item.description || item.notes || "")); if (!hasEntry || !hasExit) throw httpError(409, "Registra evidencia de entrada y salida antes de liberar la habitación"); } task.status = status; if (status === "EN_LIMPIEZA") { task.startedAt = now(); task.assignedEmployeeId = req.user.id; task.assignedTo = `${req.user.firstName} ${req.user.lastName}`.trim(); if (sourceRequest) sourceRequest.status = "EN_REVISION"; } if (status === "FINALIZADA") { task.finishedAt = now(); if (sourceRequest) { sourceRequest.status = "RESUELTO"; sourceRequest.resolvedAt = now(); } const room = state.rooms.find((item) => item.id === task.roomId); if (room && !task.requestId) room.status = "LIBRE"; } audit(state, "LIMPIEZA", status, task.code, req.user.id); return hydrateTask(state, task); }); res.json(result); } catch (error) { next(error); }
   };
 }
 
@@ -1946,4 +1981,8 @@ function saveUser(state, id, payload, actorId) {
 }
 
 await initializeDatabase();
+const attendanceRolloverWatcher = setInterval(() => {
+  void synchronizeDailyAttendance().catch((error) => console.error("No se pudo cerrar la jornada diaria", error));
+}, 60_000);
+attendanceRolloverWatcher.unref?.();
 httpServer.listen(port, "0.0.0.0", () => console.log(`Hotel Park Plaza API + tiempo real running on http://0.0.0.0:${port}`));

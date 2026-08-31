@@ -19,6 +19,7 @@ export function AdminCleaningPage({ view = "resumen" }) {
   const employees = Array.isArray(employeesData) ? employeesData : [];
   const reports = useMemo(() => tasks.flatMap((task) => (task.operationalReports || []).map((report) => ({ ...report, task }))), [tasks]);
   const visibleTasks = useMemo(() => filterTasks(view, tasks), [view, tasks]);
+  const pendingCustomerTasks = useMemo(() => tasks.filter((task) => task.requestId && task.requiresReceptionAcceptance && !task.receptionAcceptedAt && task.status !== "FINALIZADA"), [tasks]);
 
   if (loading) return <LoadingSpinner />;
 
@@ -29,6 +30,8 @@ export function AdminCleaningPage({ view = "resumen" }) {
         title={pageTitle(view)}
         description="Asigna cada habitación a una cuenta de Limpieza, revisa sus fotos reales y valida el resultado. El trabajador ejecuta la tarea desde su estación móvil."
       />
+
+      {pendingCustomerTasks.length ? <section className="flex flex-col gap-3 border border-amber-300 bg-amber-50 p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-button bg-amber-500 text-white"><AlertTriangle size={20} /></span><div><p className="text-xs font-black uppercase tracking-wide text-amber-800">Solicitud de huésped</p><h2 className="font-black text-park-dark">{pendingCustomerTasks.length} {pendingCustomerTasks.length === 1 ? "solicitud espera" : "solicitudes esperan"} aceptación de Recepción</h2><p className="text-sm text-park-muted">El personal de Limpieza ya recibió la alerta. Confirma el responsable para habilitar el inicio.</p></div></div><Button onClick={() => setSelected(pendingCustomerTasks[0])} type="button">Revisar y aceptar</Button></section> : null}
 
       {view === "resumen" ? <CleaningWorkspace reports={reports} tasks={tasks} inspected={inspected} onInspect={setInspected} onManage={setSelected} /> : null}
       {["pendientes", "finalizadas"].includes(view) ? <TaskGrid tasks={visibleTasks} onSelect={setSelected} /> : null}
@@ -299,7 +302,7 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
               {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
               <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
               <div className="mt-2 divide-y divide-park-border border-y border-park-border"><CompactDetailRow label="Trabajador" value={task.assignedTo || "Sin asignar"} /><CompactDetailRow label="Estado tarea" value={<StatusBadge value={task.status} />} /></div>
-              {task.status !== "FINALIZADA" ? <Button className="mt-2 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">Asignar a esta cuenta</Button> : <p className="mt-2 rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
+              {task.status !== "FINALIZADA" ? <Button className="mt-2 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">{task.requiresReceptionAcceptance && !task.receptionAcceptedAt ? "Aceptar y enviar a Limpieza" : "Actualizar responsable"}</Button> : <p className="mt-2 rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
             </section>
           </div>
           <section className="min-w-0 rounded-card border border-park-border bg-white p-4">

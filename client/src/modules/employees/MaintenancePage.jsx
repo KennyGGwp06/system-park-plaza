@@ -140,7 +140,8 @@ function WorkGrid({ canCreate, canEdit, reports, onEvidence, onFinish, onSelect,
           </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <Button icon={Eye} onClick={() => onSelect(report)} size="sm" type="button" variant="secondary">Ver detalle</Button>
-            {canEdit && report.status === "ABIERTO" ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} size="sm" type="button">Iniciar reparacion</Button> : null}
+            {canEdit && report.status === "ABIERTO" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} size="sm" type="button">Esperando confirmación</Button> : null}
+            {canEdit && report.status === "ABIERTO" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} size="sm" type="button">Iniciar reparacion</Button> : null}
             {canCreate && report.status === "EN_REVISION" ? <EvidenceButton onEvidence={(files) => onEvidence(report, files)} /> : null}
             {canEdit && report.status === "EN_REVISION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} size="sm" type="button" variant="gold">Finalizar reparacion</Button> : null}
           </div>
@@ -201,7 +202,8 @@ function MaintenanceDetail({ canCreate, canEdit, report, onClose, onEvidence, on
           {historyFor(report).map((item) => <div className="flex gap-3 pb-3 last:pb-0" key={item}><span className="mt-1 h-2.5 w-2.5 rounded-full bg-park-green" /><p className="text-sm font-semibold text-park-black">{item}</p></div>)}
         </Panel>
         <div className="mt-5 flex justify-end gap-2">
-          {canEdit && report.status === "ABIERTO" ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} type="button">Iniciar reparacion</Button> : null}
+          {canEdit && report.status === "ABIERTO" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} type="button">Esperando confirmación</Button> : null}
+          {canEdit && report.status === "ABIERTO" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} type="button">Iniciar reparacion</Button> : null}
           {canCreate && report.status === "EN_REVISION" ? <EvidenceButton onEvidence={(files) => onEvidence(report, files)} /> : null}
           {canEdit && report.status === "EN_REVISION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} type="button" variant="gold">Finalizar reparacion</Button> : null}
         </div>

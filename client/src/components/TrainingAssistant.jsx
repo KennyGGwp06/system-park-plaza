@@ -32,7 +32,7 @@ const guides = {
   LIMPIEZA: {
     title: "Turno de limpieza",
     focus: "Registra tu ingreso, atiende la prioridad más alta y finaliza con evidencia.",
-    actions: [["Ver habitaciones", "/limpieza/pendientes"], ["Consultar finalizadas", "/limpieza/finalizadas"], ["Revisar evidencias", "/limpieza/evidencias"]],
+    actions: [["Ver alertas", "/limpieza"], ["En atención", "/limpieza/en-atencion"], ["Consultar historial", "/limpieza/historial"]],
     steps: ["Confirma ingreso al turno", "Inicia la habitación asignada", "Adjunta evidencia y marca la salida"]
   }
 };

@@ -45,7 +45,7 @@ export const menuSectionsByRole = {
     { label: "INVENTARIO", items: [["Mi stock", "/bartender/inventario/insumos", Boxes], ["Registrar merma", "/bartender/inventario/mermas", Trash2], ["Cerrar turno", "/bartender/inventario/cierre", ClipboardList]] }
   ],
   LIMPIEZA: [
-    { label: "OPERACIÓN DE LIMPIEZA", items: [["Alertas", "/limpieza", Sparkles], ["En atención", "/limpieza/pendientes", ClipboardCheck], ["Historial", "/limpieza/finalizadas", ClipboardList], ["Evidencias", "/limpieza/evidencias", Camera], ["Incidencias", "/limpieza/incidencias", FileWarning]] }
+    { label: "OPERACIÓN DE LIMPIEZA", items: [["Alertas", "/limpieza", Sparkles], ["En atención", "/limpieza/en-atencion", ClipboardCheck], ["Historial", "/limpieza/historial", ClipboardList]] }
   ],
   MANTENIMIENTO: [
     { label: "OPERACIÓN DE MANTENIMIENTO", items: [["Pendientes", "/mantenimiento", Wrench], ["En reparación", "/mantenimiento/reparacion", ClipboardCheck], ["Historial", "/mantenimiento/finalizados", ClipboardList], ["Evidencias", "/mantenimiento/evidencias", Camera]] }

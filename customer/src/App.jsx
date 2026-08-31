@@ -308,8 +308,9 @@ function OrderGroup({ group }) {
 
 function RequestGroup({ req }) {
   const delivered = ["ATENDIDO", "RESUELTO"].includes(req.status);
+  const accepted = Boolean(req.receptionAcceptedAt);
   return <article className={`order-card ${delivered ? "delivered" : ""}`}>
-    <div className="order-card-head"><div><small>SOLICITUD</small><h3>{req.code}</h3><p>{req.type}</p></div><span className="font-bold text-xs">{delivered ? "Atendido" : "En curso"}</span></div>
+    <div className="order-card-head"><div><small>SOLICITUD</small><h3>{req.code}</h3><p>{req.type}</p></div><span className="font-bold text-xs">{delivered ? "Atendido" : accepted ? "Personal asignado" : "En espera de Recepción"}</span></div>
     <ProgressTracker type="request" order={req} />
   </article>;
 }

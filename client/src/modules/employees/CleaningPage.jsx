@@ -13,7 +13,7 @@ import { apiOrigin } from "../../config/api";
 
 const API_ROOT = apiOrigin;
 
-export function CleaningPage({ view = "DASHBOARD" }) {
+export function CleaningPage({ view = "ALERTAS" }) {
   const { can } = useAuth();
   const { data: currentShift } = useFetch("/attendance/current", { initialData: { active: false }, realtime: true, pollInterval: 2000 });
   const shiftActive = Boolean(currentShift?.active);
@@ -30,6 +30,7 @@ export function CleaningPage({ view = "DASHBOARD" }) {
   const [selected, setSelected] = useState(null);
 
   const pendingTasks = useMemo(() => tasks.filter(t => t.status !== "FINALIZADA").sort((a, b) => taskRank(a) - taskRank(b)), [data]);
+  const activeTasks = useMemo(() => tasks.filter(t => t.status === "EN_LIMPIEZA").sort((a, b) => taskRank(a) - taskRank(b)), [data]);
   const finishedTasks = useMemo(() => tasks.filter(t => t.status === "FINALIZADA"), [data]);
   const evidenceTasks = useMemo(() => tasks.filter(t => t.evidences && t.evidences.length > 0), [data]);
   const incidents = useMemo(() => tasks.filter(t => t.operationalReports && t.operationalReports.length > 0), [data]);
@@ -53,11 +54,9 @@ export function CleaningPage({ view = "DASHBOARD" }) {
   if (loading) return <LoadingSpinner />;
 
   const titleMap = {
-    DASHBOARD: "Alertas de limpieza",
-    PENDIENTES: "En atención",
-    FINALIZADAS: "Historial de limpieza",
-    EVIDENCIAS: "Galería de Evidencias",
-    INCIDENCIAS: "Novedades y Mantenimiento"
+    ALERTAS: "Alertas de limpieza",
+    EN_ATENCION: "En atención",
+    HISTORIAL: "Historial de limpieza"
   };
 
   return (
@@ -70,11 +69,9 @@ export function CleaningPage({ view = "DASHBOARD" }) {
 
       <section className={`rounded-card border p-4 shadow-card ${shiftActive ? "border-park-green bg-park-green-soft" : "border-amber-300 bg-amber-50"}`}><div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}><Clock size={19}/></span><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">Jornada de housekeeping</p><h2 className="font-black text-park-dark">{shiftActive ? "Asistencia registrada · evidencia obligatoria" : "Operación bloqueada hasta registrar asistencia"}</h2><p className="text-sm text-park-muted">{shiftActive ? "Atiende por prioridad, registra foto de entrada y salida, y reporta cualquier daño a Mantenimiento." : "Marca tu ingreso en el reloj de asistencia. La estación se habilitará automáticamente, sin recargar la página."}</p></div></div></section>
 
-      {view === "DASHBOARD" && <DashboardTab pending={pendingTasks} finished={finishedTasks} incidents={incidents} maintenanceReports={maintenanceReports} />}
-      {view === "PENDIENTES" && <TaskList tasks={pendingTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} />}
-      {view === "FINALIZADAS" && <TaskList tasks={finishedTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} isFinishedView />}
-      {view === "EVIDENCIAS" && <EvidenceGalleryTab tasks={evidenceTasks} />}
-      {view === "INCIDENCIAS" && <IncidentsTab tasks={incidents} maintenanceReports={maintenanceReports} />}
+      {view === "ALERTAS" && <TaskList tasks={pendingTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} />}
+      {view === "EN_ATENCION" && <TaskList tasks={activeTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} />}
+      {view === "HISTORIAL" && <TaskList tasks={finishedTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} isFinishedView />}
 
       {modal?.type === "evidence" && <EvidenceModal evidenceType={modal.evidenceType} task={modal.task} onClose={() => setModal(null)} onSaved={() => { setModal(null); setToast("Evidencia guardada."); reload(); }} />}
       {modal?.type === "report" && <ReportModal task={modal.task} onClose={() => setModal(null)} onSaved={() => { setModal(null); setToast("Incidencia registrada."); reload(); }} />}
@@ -196,6 +193,8 @@ function TaskList({ tasks, search, setSearch, startTask, finishTask, canCreate, 
               
               <EvidenceSummary task={task} />
 
+              {task.requiresReceptionAcceptance && !task.receptionAcceptedAt ? <div className="mt-3 rounded-lg border border-amber-200 bg-amber-100 p-2 text-sm text-amber-900"><strong>Solicitud del huésped recibida.</strong><p className="mt-0.5 text-xs">Recepción está confirmando la asignación. Podrás iniciar en cuanto la acepte.</p></div> : null}
+
               {task.operationalReports?.[0] && (
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-100 p-2 text-sm flex gap-2 items-start">
                   <FileWarning className="text-amber-700 shrink-0 mt-0.5" size={16}/>
@@ -207,7 +206,9 @@ function TaskList({ tasks, search, setSearch, startTask, finishTask, canCreate, 
               )}
 
               <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-park-border/50">
-                {canEdit && task.status === "PENDIENTE" && <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ Iniciar Limpieza</Button>}
+                {canEdit && task.status === "PENDIENTE" && !task.requiresReceptionAcceptance && <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ Iniciar Limpieza</Button>}
+                {canEdit && task.status === "PENDIENTE" && task.requiresReceptionAcceptance && !task.receptionAcceptedAt ? <Button className="w-full sm:w-auto text-lg py-3" disabled>Esperando confirmación</Button> : null}
+                {canEdit && task.status === "PENDIENTE" && task.requiresReceptionAcceptance && task.receptionAcceptedAt ? <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ Iniciar Limpieza</Button> : null}
                 
                 {task.status !== "PENDIENTE" && !isFinishedView && canCreate && (
                   <div className="flex gap-2 w-full sm:w-auto">

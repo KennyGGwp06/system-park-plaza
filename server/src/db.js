@@ -39,8 +39,24 @@ export async function initializeDatabase() {
 }
 
 export async function readState() {
-  const result = await db.query("SELECT data FROM app_state WHERE id = 1");
-  return result.rows[0].data;
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query("SELECT data FROM app_state WHERE id = 1 FOR UPDATE");
+    const state = result.rows[0].data;
+    if (closePreviousDayAttendance(state)) {
+      await client.query("UPDATE app_state SET data = $1::jsonb, updated_at = NOW() WHERE id = 1", [JSON.stringify(state)]);
+    }
+    await client.query("COMMIT");
+    return state;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
+}
+
+export async function synchronizeDailyAttendance() {
+  await readState();
 }
 
 export async function mutateState(mutator) {
@@ -49,6 +65,7 @@ export async function mutateState(mutator) {
     await client.query("BEGIN");
     const result = await client.query("SELECT data FROM app_state WHERE id = 1 FOR UPDATE");
     const state = result.rows[0].data;
+    closePreviousDayAttendance(state);
     const beforeState = structuredClone(state);
     const mutationId = randomUUID();
     const value = await mutator(state, client, beforeState, mutationId);
@@ -66,6 +83,56 @@ export async function readRelationalInventoryStatus() {
   const client = await db.connect();
   try { return await relationalInventoryStatus(client); }
   finally { client.release(); }
+}
+
+function hotelDate(state) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: state?.settings?.timezone || "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
+function attendanceDate(record) {
+  return String(record?.date || record?.checkIn || record?.clockIn || "").slice(0, 10);
+}
+
+function closePreviousDayAttendance(state) {
+  const today = hotelDate(state);
+  let changed = false;
+  state.attendance ||= [];
+  state.shifts ||= [];
+  state.employees ||= [];
+
+  for (const record of state.attendance) {
+    const date = attendanceDate(record);
+    if (!date || date >= today || !(record.checkIn || record.clockIn) || record.checkOut || record.clockOut) continue;
+    const closedAt = `${date}T23:59:59.999Z`;
+    record.checkOut = closedAt;
+    record.clockOut = closedAt;
+    record.status = "CERRADO_AUTOMATICO";
+    record.closedAutomaticallyAt = new Date().toISOString();
+    const shift = state.shifts.find((item) => Number(item.id) === Number(record.shiftId));
+    if (shift && !["FINALIZADO", "CANCELADO"].includes(shift.status)) {
+      shift.status = "FINALIZADO";
+      shift.actualEnd = closedAt;
+      shift.closedAutomatically = true;
+    }
+    changed = true;
+  }
+
+  for (const employee of state.employees) {
+    const activeToday = state.attendance.some((record) => Number(record.employeeId || record.userId) === Number(employee.id) && attendanceDate(record) === today && (record.checkIn || record.clockIn) && !(record.checkOut || record.clockOut));
+    const status = activeToday ? "EN_TURNO" : "FUERA_DE_TURNO";
+    if (employee.attendanceStatus !== status) {
+      employee.attendanceStatus = status;
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 function createDemoState() {
