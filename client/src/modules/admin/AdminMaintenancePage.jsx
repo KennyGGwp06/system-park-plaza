@@ -5,7 +5,8 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Button, Input, PageHeader, Select } from "../../components/ui";
 import { useFetch } from "../../hooks/useFetch";
-import { api, apiOrigin } from "../../services/api";
+import { api } from "../../services/api";
+import { apiOrigin } from "../../config/api";
 
 const emptyForm = { type: "DANO_INFRAESTRUCTURA", area: "HOTEL", location: "", description: "", priority: "MEDIA" };
 
@@ -119,35 +120,21 @@ function IncidentDetail({ report, employees, onClose, onSaved }) {
               </div>
             </section>
             
-            {report.status === "ABIERTO" && (
+            {report.status !== "RESUELTO" && (
               <section className="rounded-card border border-park-border bg-white p-3.5">
                 <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
-                <div className="grid gap-3">
-                  <label className="block text-sm font-black text-park-black">Cuenta de Mantenimiento
-                    <select className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" value={draft.assignedMaintenanceEmployeeId} onChange={(event) => { const selectedId = event.target.value; const emp = employees.find((e) => String(e.id) === String(selectedId)); setDraft({ ...draft, assignedMaintenanceEmployeeId: selectedId, ...(emp ? { contractorName: emp.name || draft.contractorName, contractorPhone: emp.phone || draft.contractorPhone } : {}) }); }}>
-                      <option value="">Selecciona al responsable</option>
-                      {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
-                    </select>
-                  </label>
-                  <label className="block text-sm font-black text-park-black">Responsable externo (opcional)
-                    <input className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" placeholder="Nombre del técnico" {...field("contractorName")} />
-                  </label>
-                  <label className="block text-sm font-black text-park-black">Teléfono
-                    <input className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" type="tel" placeholder="999 999 999" {...field("contractorPhone")} />
-                  </label>
-                  <label className="block text-sm font-black text-park-black">Fecha programada
-                    <input className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" type="date" {...field("visitDate")} />
-                  </label>
-                  <label className="block text-sm font-black text-park-black">Costo estimado (S/)
-                    <input className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" min="0" step="0.01" type="number" {...field("estimatedCost")} />
-                  </label>
-                  <label className="block text-sm font-black text-park-black">Notas de coordinación
-                    <textarea className="mt-1 min-h-20 w-full rounded-input border border-park-border p-2 text-sm font-normal" {...field("notes")} />
-                  </label>
-                  {draft.contractorPhone ? <a className="text-sm font-bold text-park-green flex items-center gap-2" href={`tel:${draft.contractorPhone}`}><Phone size={15}/>Llamar al responsable</a> : null}
+                <label className="block text-sm font-black text-park-black">Cuenta de Mantenimiento
+                  <select className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" value={draft.assignedMaintenanceEmployeeId} onChange={(event) => setDraft({ ...draft, assignedMaintenanceEmployeeId: event.target.value })}>
+                    <option value="">Selecciona al responsable</option>
+                    {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+                  </select>
+                </label>
+                <div className="mt-2 divide-y divide-park-border border-y border-park-border">
+                  <CompactDetailRow label="Trabajador" value={report.assignedMaintenanceTo || "Sin asignar"} />
+                  <CompactDetailRow label="Estado tarea" value={<StatusBadge value={report.status} />} />
                 </div>
-                <div className="mt-4 flex flex-col gap-2">
-                  {report.status === "ABIERTO" ? <Button className="w-full" disabled={busy || !draft.assignedMaintenanceEmployeeId} onClick={() => save("ABIERTO")} type="button" variant="secondary">{report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? "Aceptar y enviar a Mantenimiento" : "Actualizar responsable"}</Button> : null}
+                <div className="mt-3 flex flex-col gap-2">
+                  <Button className="w-full" disabled={busy || !draft.assignedMaintenanceEmployeeId} onClick={() => save(report.status)} type="button" variant="secondary">{report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? "Aceptar y enviar a Mantenimiento" : "Actualizar responsable"}</Button>
                   {report.status === "EN_REVISION" ? <Button className="w-full" disabled={busy} onClick={() => save("RESUELTO")} type="button">Marcar como resuelta</Button> : null}
                 </div>
               </section>

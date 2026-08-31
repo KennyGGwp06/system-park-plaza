@@ -170,7 +170,7 @@ function MaintenanceDetail({ canCreate, canEdit, report, onClose, onEvidence, on
           <DetailRow label="Descripcion" value={report.description} />
           <DetailRow label="Reportado por" value={report.reportedBy ? `${report.reportedBy.firstName} ${report.reportedBy.lastName}` : "No registrado"} />
           <DetailRow label="Fecha" value={formatDateTime(report.createdAt)} />
-          <DetailRow label="Tecnico" value={report.assignedTo ? `${report.assignedTo.firstName} ${report.assignedTo.lastName}` : report.resolvedBy ? `${report.resolvedBy.firstName} ${report.resolvedBy.lastName}` : "No asignado"} />
+          <DetailRow label="Tecnico" value={report.assignedTo ? `${report.assignedTo.firstName} ${report.assignedTo.lastName}` : report.assignedMaintenanceTo ? report.assignedMaintenanceTo : report.resolvedBy ? `${report.resolvedBy.firstName} ${report.resolvedBy.lastName}` : "No asignado"} />
           <DetailRow label="Inicio" value={formatDateTime(report.startedAt)} />
           <DetailRow label="Trabajo realizado" value={report.workDescription} />
           <DetailRow label="Observaciones" value={report.observations} />
@@ -346,9 +346,9 @@ function Thumb({ evidence }) {
 
 function filterReports(view, reports, user) {
   const currentUserId = user?.id;
-  if (view === "pendientes") return reports.filter((report) => report.status === "ABIERTO");
-  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REVISION" && (!report.assignedToId || report.assignedToId === currentUserId));
-  if (view === "finalizados") return reports.filter((report) => report.status === "RESUELTO" && (!report.resolvedById || report.resolvedById === currentUserId));
+  if (view === "pendientes") return reports.filter((report) => report.status === "ABIERTO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)));
+  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REVISION" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.assignedToId || Number(report.assignedToId) === Number(currentUserId)));
+  if (view === "finalizados") return reports.filter((report) => report.status === "RESUELTO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.resolvedById || Number(report.resolvedById) === Number(currentUserId)));
   if (view === "evidencias") return reports.filter((report) => report.evidences?.length);
   return reports;
 }

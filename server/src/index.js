@@ -485,6 +485,11 @@ app.post("/api/public/requests", clientAuth, async (req, res, next) => {
       const maintenanceEmployee = requiresMaintenance ? availableOperationalEmployee(state, "MANTENIMIENTO") : null;
       const booking = [...state.bookings].reverse().find((item) => item.clientId === req.client.id && item.serviceCode === "HOSPEDAJE" && item.roomId && !["CANCELADA", "FINALIZADA"].includes(item.status));
       const room = booking ? state.rooms.find((item) => item.id === Number(booking.roomId)) : null;
+
+      if (cleaningRequest && !room) {
+        throw httpError(400, "Debes tener una habitación asignada (Check-in) para solicitar limpieza o toallas.");
+      }
+      
       const id = nextId(state, "request");
       const item = {
         id, code: code("SOL", id), clientId: req.client.id, type,

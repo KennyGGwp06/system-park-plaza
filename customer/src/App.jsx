@@ -435,13 +435,17 @@ function Requests({ onBack, onDone }) {
   const [type, setType] = useState("LIMPIEZA"); 
   const [description, setDescription] = useState(""); 
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   async function send() { 
     setBusy(true);
+    setError("");
     try {
       await request("/public/requests", { method: "POST", body: { type, description } }, true); 
       onDone(); 
-    } catch(e) {} finally { setBusy(false); }
+    } catch(e) {
+      setError(e.message || "No se pudo conectar. Intenta nuevamente.");
+    } finally { setBusy(false); }
   } 
 
   const categories = [
@@ -463,6 +467,7 @@ function Requests({ onBack, onDone }) {
     </div>
     <div className="card mt-4">
       <Field label="Detalle u observación (Opcional)" value={description} onChange={setDescription} />
+      {error && <p className="error">{error}</p>}
       <button className="primary" onClick={send} disabled={busy}>{busy ? "Enviando..." : "Enviar solicitud"}</button>
     </div>
   </Page>; 
