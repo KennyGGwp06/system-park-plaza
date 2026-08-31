@@ -19,6 +19,8 @@ const RestaurantDashboard = lazyPage(() => import("./modules/employees/Restauran
 const RestaurantOrdersPage = lazyPage(() => import("./modules/employees/RestaurantOrdersPage"), "RestaurantOrdersPage");
 const RestaurantRecipesPage = lazyPage(() => import("./modules/employees/RestaurantRecipesPage"), "RestaurantRecipesPage");
 const RestaurantInventoryPage = lazyPage(() => import("./modules/employees/RestaurantInventoryPage"), "RestaurantInventoryPage");
+const CleaningPage = lazyPage(() => import("./modules/employees/CleaningPage"), "CleaningPage");
+const MaintenancePage = lazyPage(() => import("./modules/employees/MaintenancePage"), "MaintenancePage");
 const BarDashboard = lazyPage(() => import("./modules/employees/BarPages"), "BarDashboard");
 const BarOrdersPage = lazyPage(() => import("./modules/employees/BarPages"), "BarOrdersPage");
 const BarRecipesPage = lazyPage(() => import("./modules/employees/BarPages"), "BarRecipesPage");
@@ -69,7 +71,9 @@ const preloadersByRole = {
   ],
   BARTENDER: [
     () => import("./modules/employees/BarPages")
-  ]
+  ],
+  LIMPIEZA: [() => import("./modules/employees/CleaningPage")],
+  MANTENIMIENTO: [() => import("./modules/employees/MaintenancePage")]
 };
 
 const protectedRoutes = [
@@ -106,6 +110,15 @@ const protectedRoutes = [
   ["/bartender/inventario/cierre", "BARTENDER:VER", <BarInventoryPage />],
   ["/bartender/botellas", "BARTENDER:VER", <BarBottlePage />, ["SUPERADMIN"]],
   ["/bar/estacion", "BARTENDER:VER", <BarOrdersPage />],
+  ["/limpieza", "LIMPIEZA:VER", <CleaningPage view="DASHBOARD" />, ["LIMPIEZA"]],
+  ["/limpieza/pendientes", "LIMPIEZA:VER", <CleaningPage view="PENDIENTES" />, ["LIMPIEZA"]],
+  ["/limpieza/finalizadas", "LIMPIEZA:VER", <CleaningPage view="FINALIZADAS" />, ["LIMPIEZA"]],
+  ["/limpieza/evidencias", "LIMPIEZA:VER", <CleaningPage view="EVIDENCIAS" />, ["LIMPIEZA"]],
+  ["/limpieza/incidencias", "LIMPIEZA:VER", <CleaningPage view="INCIDENCIAS" />, ["LIMPIEZA"]],
+  ["/mantenimiento", "MANTENIMIENTO:VER", <MaintenancePage view="pendientes" />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/reparacion", "MANTENIMIENTO:VER", <MaintenancePage view="reparacion" />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/finalizados", "MANTENIMIENTO:VER", <MaintenancePage view="finalizados" />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/evidencias", "MANTENIMIENTO:VER", <MaintenancePage view="evidencias" />, ["MANTENIMIENTO"]],
   ["/control-gastronomico/bar", "ADMINISTRADOR:VER", <GastronomyMonitorPage area="BARTENDER" />, ["SUPERADMIN", "ADMINISTRADOR"]],
   ["/piscina/ingresos", "RECEPCION:VER", <PoolPage />],
   ["/piscina/validar-qr", "RECEPCION:VER", <PoolPage />],

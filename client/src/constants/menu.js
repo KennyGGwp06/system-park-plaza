@@ -44,13 +44,19 @@ export const menuSectionsByRole = {
     { label: "RECETAS", items: [["Ver recetas", "/bartender/inventario/recetas", ClipboardCheck]] },
     { label: "INVENTARIO", items: [["Mi stock", "/bartender/inventario/insumos", Boxes], ["Registrar merma", "/bartender/inventario/mermas", Trash2], ["Cerrar turno", "/bartender/inventario/cierre", ClipboardList]] }
   ],
+  LIMPIEZA: [
+    { label: "OPERACIÓN DE LIMPIEZA", items: [["Alertas", "/limpieza", Sparkles], ["En atención", "/limpieza/pendientes", ClipboardCheck], ["Historial", "/limpieza/finalizadas", ClipboardList], ["Evidencias", "/limpieza/evidencias", Camera], ["Incidencias", "/limpieza/incidencias", FileWarning]] }
+  ],
+  MANTENIMIENTO: [
+    { label: "OPERACIÓN DE MANTENIMIENTO", items: [["Pendientes", "/mantenimiento", Wrench], ["En reparación", "/mantenimiento/reparacion", ClipboardCheck], ["Historial", "/mantenimiento/finalizados", ClipboardList], ["Evidencias", "/mantenimiento/evidencias", Camera]] }
+  ],
   OPERATIVO: []
 };
 
 function flattenItems(items) { return items.flatMap((item) => Array.isArray(item) ? [item] : flattenItems(item.children || [])); }
 export const menuByRole = Object.fromEntries(Object.entries(menuSectionsByRole).map(([role, sections]) => [role, sections.flatMap((section) => flattenItems(section.items))]));
 export const routeTitles = Object.fromEntries(Object.values(menuSectionsByRole).flatMap((sections) => sections.flatMap((section) => flattenItems(section.items).map(([label, href]) => [href, label]))));
-export const defaultRouteByRole = { ADMINISTRADOR: "/admin-panel", SUPERADMIN: "/superadmin", RESTAURANTE: "/restaurante", BARTENDER: "/bartender", LIMPIEZA: "/403", MANTENIMIENTO: "/403", OPERATIVO: "/403" };
+export const defaultRouteByRole = { ADMINISTRADOR: "/admin-panel", SUPERADMIN: "/superadmin", RESTAURANTE: "/restaurante", BARTENDER: "/bartender", LIMPIEZA: "/limpieza", MANTENIMIENTO: "/mantenimiento", OPERATIVO: "/403" };
 
 export function permissionForHref(href = "") {
   if (href.startsWith("/superadmin") || href.startsWith("/admin-panel")) return "ADMINISTRADOR:VER";
@@ -59,6 +65,8 @@ export function permissionForHref(href = "") {
   if (href.startsWith("/control-gastronomico")) return "ADMINISTRADOR:VER";
   if (href.startsWith("/restaurante")) return "RESTAURANTE:VER";
   if (href.startsWith("/bartender") || href.startsWith("/bar")) return "BARTENDER:VER";
+  if (href.startsWith("/limpieza")) return "LIMPIEZA:VER";
+  if (href.startsWith("/mantenimiento")) return "MANTENIMIENTO:VER";
   if (href.startsWith("/admin/limpieza")) return "RECEPCION:VER";
   if (href.startsWith("/incidencias")) return "REPORTES:VER";
   if (href.startsWith("/piscina")) return "RECEPCION:VER";

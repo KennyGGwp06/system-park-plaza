@@ -361,6 +361,7 @@ function InfoRow({ label, value }) {
 
 function EvidenceModal({ task, evidenceType = "ENTRADA", onClose, onSaved }) {
   const [files, setFiles] = useState([]);
+  const [area, setArea] = useState("BAÑO");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -369,7 +370,7 @@ function EvidenceModal({ task, evidenceType = "ENTRADA", onClose, onSaved }) {
     setBusy(true);
     try {
       const uploaded = await uploadImages(files);
-      await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", body: { description: `${evidenceType}: ${description || "Evidencia"}`, files: uploaded } });
+      await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", body: { area, stage: evidenceType, description: `${evidenceType}: ${description || "Evidencia"}`, files: uploaded } });
       onSaved();
     } catch(e) {
       alert("Error: " + e.message);
@@ -381,6 +382,13 @@ function EvidenceModal({ task, evidenceType = "ENTRADA", onClose, onSaved }) {
   return (
     <Modal title={`Cámara: ${evidenceType} (Hab. ${roomNumber(task)})`} onClose={onClose}>
       <form className="space-y-4" onSubmit={submit}>
+        <label className="block text-sm font-black text-park-dark">Área fotografiada
+          <select className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 font-normal" value={area} onChange={(event) => setArea(event.target.value)}>
+            <option value="BAÑO">Baño</option>
+            <option value="CUARTO">Cuarto</option>
+            <option value="REFRI / DESPENSA">Refri / despensa</option>
+          </select>
+        </label>
         <ImagePicker files={files} setFiles={setFiles} />
         <textarea className="min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Observaciones opcionales..." value={description} onChange={(event) => setDescription(event.target.value)} />
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button disabled={busy || files.length===0} loading={busy}>Guardar foto</Button></div>

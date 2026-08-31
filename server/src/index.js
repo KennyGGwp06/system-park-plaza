@@ -1383,7 +1383,7 @@ app.post("/api/caja/cierre-diario", requireCashAdmin, async (req, res, next) => 
 app.get("/api/cleaning/tasks", requireCleaningWorker, async (req, res, next) => { try { const state = await readState(); const rows = state.tasks.filter((item) => Number(item.assignedEmployeeId) === Number(req.user.id) && (!req.query.status || item.status === req.query.status)); res.json(sortRecent(rows, req.query.order).map((item) => hydrateTask(state, item))); } catch (error) { next(error); } });
 app.patch("/api/cleaning/tasks/:id/start", requireCleaningWorker, requireActiveStaffShift, taskStatus("EN_LIMPIEZA"));
 app.patch("/api/cleaning/tasks/:id/finish", requireCleaningWorker, requireActiveStaffShift, taskStatus("FINALIZADA"));
-app.post("/api/cleaning/tasks/:id/evidence", requireCleaningWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const task = requireOwnedCleaningTask(state, req.params.id, req.user); const files = Array.isArray(req.body.files) ? req.body.files.filter((file) => String(file?.fileUrl || "").trim()) : []; if (!files.length) throw httpError(400, "Adjunta al menos una foto real como evidencia"); task.evidences ||= []; const entries = files.map((file, index) => ({ id: Date.now() + index, ...file, description: req.body.description || "Evidencia", createdAt: now(), uploadedById: req.user.id })); task.evidences.push(...entries); audit(state, "LIMPIEZA", "EVIDENCIA", task.code, req.user.id); return hydrateTask(state, task); }); res.status(201).json(result); } catch (error) { next(error); } });
+app.post("/api/cleaning/tasks/:id/evidence", requireCleaningWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const task = requireOwnedCleaningTask(state, req.params.id, req.user); const files = Array.isArray(req.body.files) ? req.body.files.filter((file) => String(file?.fileUrl || "").trim()) : []; if (!files.length) throw httpError(400, "Adjunta al menos una foto real como evidencia"); const area = String(req.body.area || "").trim().toUpperCase(); if (!["BAÑO", "CUARTO", "REFRI / DESPENSA"].includes(area)) throw httpError(400, "Selecciona el área fotografiada."); const stage = String(req.body.stage || "").trim().toUpperCase(); if (!["ENTRADA", "SALIDA"].includes(stage)) throw httpError(400, "Selecciona si la evidencia corresponde a entrada o salida."); task.evidences ||= []; const entries = files.map((file, index) => ({ id: Date.now() + index, ...file, area, stage, description: req.body.description || `${stage}: Evidencia`, createdAt: now(), uploadedById: req.user.id })); task.evidences.push(...entries); audit(state, "LIMPIEZA", "EVIDENCIA", task.code, req.user.id); return hydrateTask(state, task); }); res.status(201).json(result); } catch (error) { next(error); } });
 app.post("/api/cleaning/tasks/:id/report", requireCleaningWorker, requireActiveStaffShift, async (req, res, next) => { try { const result = await mutateState((state) => { const task = requireOwnedCleaningTask(state, req.params.id, req.user); const report = createReport(state, { ...req.body, area: "LIMPIEZA", location: `Habitacion ${task.room?.number || task.roomId}`, requiresMaintenance: ["MANTENIMIENTO", "DANO_INFRAESTRUCTURA", "DANO_EQUIPO"].includes(req.body.type) }); task.operationalReports ||= []; task.operationalReports.unshift(report); return report; }); res.status(201).json(result); } catch (error) { next(error); } });
 
 // Estación de Mantenimiento: consume los mismos reportes operativos, sin crear
@@ -1463,13 +1463,14 @@ app.get("/api/attendance/lookup/:documentNumber", async (req, res, next) => {
     const documentNumber = String(req.params.documentNumber || "").replace(/\D/g, "");
     if (!/^\d{8}$/.test(documentNumber)) throw httpError(400, "DNI inválido.");
     const state = await readState();
-    const user = state.users.find((item) => item.status === "ACTIVO" && String(item.documentNumber || "") === documentNumber);
-    if (!user) throw httpError(404, "Trabajador no encontrado.");
+    const employee = findActiveClockEmployee(state, documentNumber);
+    if (!employee) throw httpError(404, "No existe un trabajador activo con este DNI.");
     res.json({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      position: user.position || user.operationalArea || user.role,
-      photoUrl: user.photoUrl || null
+      documentNumber,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      position: employee.position || employee.operationalArea || employee.baseRole || employee.role,
+      photoUrl: employee.photoUrl || null
     });
   } catch (error) { next(error); }
 });
@@ -1478,12 +1479,12 @@ app.post("/api/attendance/clock", async (req, res, next) => {
     const documentNumber = String(req.body.documentNumber || "").replace(/\D/g, "");
     if (!/^\d{8}$/.test(documentNumber)) throw httpError(400, "Ingresa un DNI valido de 8 digitos.");
     const result = await mutateState(async (state, client) => {
-      const user = state.users.find((item) => item.status === "ACTIVO" && String(item.documentNumber || "") === documentNumber);
-      if (!user) throw httpError(404, "No existe un trabajador activo con este DNI.");
-      const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(user.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
+      const employee = findActiveClockEmployee(state, documentNumber);
+      if (!employee) throw httpError(404, "No existe un trabajador activo con este DNI.");
+      const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(employee.id) && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
       const action = open ? "SALIDA" : "INGRESO";
-      const record = await recordAttendance(state, client, user.id, action, user.id);
-      return { success: true, user: `${user.firstName} ${user.lastName}`.trim(), worker: { firstName: user.firstName, lastName: user.lastName, position: user.position || user.operationalArea || user.role, photoUrl: user.photoUrl || null }, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null };
+      const record = await recordAttendance(state, client, employee.id, action, employee.id);
+      return { success: true, user: `${employee.firstName} ${employee.lastName}`.trim(), worker: { firstName: employee.firstName, lastName: employee.lastName, position: employee.position || employee.operationalArea || employee.baseRole || employee.role, photoUrl: employee.photoUrl || null }, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null };
     });
     res.json(result);
   } catch (error) { next(error); }
@@ -1555,6 +1556,17 @@ function hydratePass(state, pass) { return { ...pass, client: state.clients.find
 function compact(value) { return Object.fromEntries(Object.entries(value || {}).filter(([, item]) => item !== undefined && item !== "")); }
 function randomCode() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
 function normalizeDocument(value) { return String(value || "").trim().replace(/\s+/g, "").toUpperCase(); }
+function findActiveClockEmployee(state, documentNumber) {
+  const matchesDocument = (item) => String(item?.documentNumber || "").replace(/\D/g, "") === documentNumber;
+  const employee = (state.employees || []).find((item) => item.status === "ACTIVO" && matchesDocument(item));
+  if (employee) {
+    const user = (state.users || []).find((item) => Number(item.id) === Number(employee.id));
+    return user?.status === "ACTIVO" ? { ...employee, ...user, documentNumber } : null;
+  }
+  const user = (state.users || []).find((item) => item.status === "ACTIVO" && matchesDocument(item));
+  const linkedEmployee = user && (state.employees || []).find((item) => Number(item.id) === Number(user.id));
+  return user && linkedEmployee?.status === "ACTIVO" ? { ...linkedEmployee, ...user, documentNumber } : null;
+}
 function normalizeRoomStatus(value) { const status = String(value || "").trim().toUpperCase(); return ({ DISPONIBLE: "LIBRE", LIBRE: "LIBRE", OCUPADA: "OCUPADA", LIMPIEZA: "EN_LIMPIEZA", EN_LIMPIEZA: "EN_LIMPIEZA", MANTENIMIENTO: "MANTENIMIENTO", BLOQUEADA: "BLOQUEADA", FUERA_SERVICIO: "BLOQUEADA" })[status] || null; }
 function assertDigitalCustomerPayment(value) { const method = String(value || "").toUpperCase(); if (!["YAPE", "PLIN"].includes(method)) throw httpError(400, "Para pagar desde la web elige Yape o Plin. El efectivo se valida en Recepción."); return method; }
 function createAccessPass(state, clientId, { serviceCode, bookingId = null, eventId = null, bundleCode = null }) {

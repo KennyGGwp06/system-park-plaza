@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, XCircle, TreePine, Clock } from "lucide-react";
 import { api } from "../../services/api";
 import { useNavigate } from "react-router-dom";
@@ -7,35 +7,53 @@ export function AttendanceClockPage() {
   const [documentNumber, setDocumentNumber] = useState("");
   const [workerInfo, setWorkerInfo] = useState(null);
   const [status, setStatus] = useState(null); 
-  const [loading, setLoading] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const lookupRequest = useRef(0);
   const navigate = useNavigate();
 
   useEffect(() => {
+    const requestId = ++lookupRequest.current;
     if (documentNumber.length === 8) {
-      setLoading(true);
+      // Nunca conservar datos de una búsqueda anterior mientras se valida otro DNI.
+      setWorkerInfo(null);
+      setLookupLoading(true);
       setStatus(null);
       api(`/attendance/lookup/${documentNumber}`)
         .then((data) => {
-          setWorkerInfo(data);
+          if (requestId !== lookupRequest.current) return;
+          setWorkerInfo({ ...data, documentNumber });
         })
         .catch((err) => {
+          if (requestId !== lookupRequest.current) return;
           setWorkerInfo(null);
           setStatus({ type: 'error', message: err.message || "Trabajador no encontrado" });
         })
         .finally(() => {
-          setLoading(false);
+          if (requestId === lookupRequest.current) setLookupLoading(false);
         });
     } else {
       setWorkerInfo(null);
+      setLookupLoading(false);
       if (status?.type === 'error') setStatus(null);
     }
   }, [documentNumber]);
 
+  function updateDocument(value) {
+    setWorkerInfo(null);
+    setStatus(null);
+    setDocumentNumber(value.replace(/\D/g, '').slice(0, 8));
+  }
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (documentNumber.length !== 8) return;
+    if (!workerInfo || workerInfo.documentNumber !== documentNumber) {
+      setStatus({ type: 'error', message: 'Espera la validación del DNI antes de registrar la asistencia.' });
+      return;
+    }
 
-    setLoading(true);
+    setSubmitting(true);
     setStatus(null);
     try {
       const res = await api("/attendance/clock", { method: "POST", body: { documentNumber } });
@@ -51,7 +69,7 @@ export function AttendanceClockPage() {
       setDocumentNumber("");
       setWorkerInfo(null);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -124,7 +142,7 @@ export function AttendanceClockPage() {
           <input
             type="text"
             value={documentNumber}
-            onChange={(e) => setDocumentNumber(e.target.value.replace(/\D/g, '').slice(0, 8))}
+            onChange={(e) => updateDocument(e.target.value)}
             placeholder="Ingrese DNI..."
             className="mb-6 w-full rounded-xl border border-park-gold/50 bg-park-dark/40 px-4 py-4 text-white text-lg placeholder-white/40 outline-none backdrop-blur-md focus:border-park-gold focus:bg-park-dark/60 focus:ring-2 focus:ring-park-gold/50 transition-all text-center tracking-widest font-bold"
           />
@@ -132,10 +150,10 @@ export function AttendanceClockPage() {
           <div className="flex justify-center gap-4">
             <button
               type="submit"
-              disabled={!workerInfo || loading}
+              disabled={!workerInfo || lookupLoading || submitting}
               className="rounded-xl bg-park-gold hover:bg-yellow-500 px-10 py-3 text-lg font-semibold text-park-dark shadow-lg backdrop-blur-md transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 border border-yellow-400"
             >
-              {loading ? 'Validando...' : 'Marcar Asistencia'}
+              {lookupLoading ? 'Buscando trabajador...' : submitting ? 'Registrando...' : 'Marcar Asistencia'}
             </button>
             <button
               type="button"
