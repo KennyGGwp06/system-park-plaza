@@ -73,8 +73,8 @@ export function CleaningPage({ view = "ALERTAS" }) {
       {view === "EN_ATENCION" && <TaskList tasks={activeTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} />}
       {view === "HISTORIAL" && <TaskList tasks={finishedTasks} search={search} setSearch={setSearch} startTask={startTask} finishTask={finishTask} canCreate={canCreate} canEdit={canEdit} setModal={setModal} setSelected={setSelected} setPendingFinish={setPendingFinish} isFinishedView />}
 
-      {modal?.type === "evidence" && <EvidenceModal evidenceType={modal.evidenceType} task={modal.task} onClose={() => setModal(null)} onSaved={() => { setModal(null); setToast("Evidencia guardada."); reload(); }} />}
-      {modal?.type === "report" && <ReportModal task={modal.task} onClose={() => setModal(null)} onSaved={() => { setModal(null); setToast("Incidencia registrada."); reload(); }} />}
+      {modal?.type === "evidence" && <EvidenceModal task={modal.task} onClose={() => setModal(null)} onReport={(evidenceArea) => setModal({ type: "report", task: modal.task, evidenceArea })} onSaved={() => { setModal(null); setToast("Evidencia guardada."); reload(); }} />}
+      {modal?.type === "report" && <ReportModal evidenceArea={modal.evidenceArea} task={modal.task} onClose={() => setModal(null)} onSaved={() => { setModal(null); setToast("Incidencia registrada."); reload(); }} />}
       {selected ? <ReviewDetail task={selected} onClose={() => setSelected(null)} /> : null}
       
       {pendingFinish ? (
@@ -210,14 +210,7 @@ function TaskList({ tasks, search, setSearch, startTask, finishTask, canCreate, 
                 {canEdit && task.status === "PENDIENTE" && task.requiresReceptionAcceptance && !task.receptionAcceptedAt ? <Button className="w-full sm:w-auto text-lg py-3" disabled>Esperando confirmación</Button> : null}
                 {canEdit && task.status === "PENDIENTE" && task.requiresReceptionAcceptance && task.receptionAcceptedAt ? <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ Iniciar Limpieza</Button> : null}
                 
-                {task.status !== "PENDIENTE" && !isFinishedView && canCreate && (
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    <Button type="button" variant="secondary" icon={Camera} onClick={() => setModal({ type: "evidence", task, evidenceType: "ENTRADA" })}>Entrada</Button>
-                    <Button type="button" variant="secondary" icon={Camera} onClick={() => setModal({ type: "evidence", task, evidenceType: "SALIDA" })}>Salida</Button>
-                  </div>
-                )}
-                
-                {!isFinishedView && canCreate && <Button type="button" variant="danger" icon={FileWarning} onClick={() => setModal({ type: "report", task })} className="w-full sm:w-auto">Problema</Button>}
+                {task.status !== "PENDIENTE" && !isFinishedView && canCreate && <Button type="button" variant="secondary" icon={Camera} onClick={() => setModal({ type: "evidence", task })}>Registrar evidencias</Button>}
                 
                 {canEdit && task.status === "EN_LIMPIEZA" && <Button type="button" variant="gold" onClick={() => canReleaseRoom(task) ? finishTask(task) : setPendingFinish(task)} className="w-full sm:w-auto py-3">✓ Finalizar</Button>}
                 
@@ -296,11 +289,22 @@ function taskRank(task) {
   const status = task.status === "EN_LIMPIEZA" ? 0 : task.status === "PENDIENTE" ? 1 : 2;
   return status * 10 + (priority[task.priority] ?? 4);
 }
-function canReleaseRoom(task) {
-  if (task.requestId) return true;
-  const groups = splitEvidence(task.evidences);
-  return groups.entry.length > 0 && groups.exit.length > 0;
+const cleaningAreas = ["BAÑO", "CUARTO", "REFRI / DESPENSA"];
+
+function evidenceArea(evidence) { return String(evidence?.area || "").trim().toUpperCase(); }
+function evidenceStage(evidence) {
+  const stage = String(evidence?.stage || "").trim().toUpperCase();
+  return stage === "SALIDA" ? "SALIDA" : stage === "ENTRADA" ? "ENTRADA" : /salida/i.test(evidence?.description || evidence?.notes || "") ? "SALIDA" : "ENTRADA";
 }
+function pendingEvidenceStage(evidences = []) {
+  const hasStage = (area, stage) => evidences.some((item) => evidenceArea(item) === area && evidenceStage(item) === stage);
+  if (!cleaningAreas.every((area) => hasStage(area, "ENTRADA"))) return "ENTRADA";
+  return cleaningAreas.every((area) => hasStage(area, "SALIDA")) ? null : "SALIDA";
+}
+function hasRequiredCleaningEvidence(evidences = []) {
+  return cleaningAreas.every((area) => ["ENTRADA", "SALIDA"].every((stage) => evidences.some((item) => evidenceArea(item) === area && evidenceStage(item) === stage)));
+}
+function canReleaseRoom(task) { return hasRequiredCleaningEvidence(task.evidences); }
 
 function ReviewDetail({ task, onClose }) {
   const groups = splitEvidence(task.evidences);
@@ -360,18 +364,30 @@ function InfoRow({ label, value }) {
   return <div className="rounded-card bg-park-bg p-3"><p className="text-[10px] font-black uppercase text-park-muted">{label}</p><div className="mt-0.5 font-semibold text-park-dark text-sm">{value || "No registrado"}</div></div>;
 }
 
-function EvidenceModal({ task, evidenceType = "ENTRADA", onClose, onSaved }) {
-  const [files, setFiles] = useState([]);
+function EvidenceModal({ task, onClose, onReport, onSaved }) {
   const [area, setArea] = useState("BAÑO");
-  const [description, setDescription] = useState("");
+  const [drafts, setDrafts] = useState(() => Object.fromEntries(cleaningAreas.map((item) => [item, { files: [], description: "" }])));
   const [busy, setBusy] = useState(false);
+  const stage = pendingEvidenceStage(task.evidences);
+  const areaPhotos = task.evidences.filter((item) => evidenceArea(item) === area);
+  const pendingAreas = cleaningAreas.filter((item) => !task.evidences.some((evidence) => evidenceArea(evidence) === item && evidenceStage(evidence) === stage));
+  const currentDraft = drafts[area];
+  const readyToSave = Boolean(stage) && pendingAreas.every((item) => drafts[item].files.length && drafts[item].description.trim());
+
+  function updateDraft(areaName, next) {
+    setDrafts((current) => ({ ...current, [areaName]: { ...current[areaName], ...next } }));
+  }
 
   async function submit(event) {
     event.preventDefault();
+    if (!stage) return;
     setBusy(true);
     try {
-      const uploaded = await uploadImages(files);
-      await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", body: { area, stage: evidenceType, description: `${evidenceType}: ${description || "Evidencia"}`, files: uploaded } });
+      for (const areaName of pendingAreas) {
+        const draft = drafts[areaName];
+        const uploaded = await uploadImages(draft.files);
+        await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", body: { area: areaName, stage, description: `${stage}: ${draft.description.trim()}`, files: uploaded } });
+      }
       onSaved();
     } catch(e) {
       alert("Error: " + e.message);
@@ -381,7 +397,7 @@ function EvidenceModal({ task, evidenceType = "ENTRADA", onClose, onSaved }) {
   }
 
   return (
-    <Modal title={`Cámara: ${evidenceType} (Hab. ${roomNumber(task)})`} onClose={onClose}>
+    <Modal title={`Evidencias · Habitación ${roomNumber(task)}`} onClose={onClose}>
       <form className="space-y-4" onSubmit={submit}>
         <label className="block text-sm font-black text-park-dark">Área fotografiada
           <select className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 font-normal" value={area} onChange={(event) => setArea(event.target.value)}>
@@ -390,15 +406,16 @@ function EvidenceModal({ task, evidenceType = "ENTRADA", onClose, onSaved }) {
             <option value="REFRI / DESPENSA">Refri / despensa</option>
           </select>
         </label>
-        <ImagePicker files={files} setFiles={setFiles} />
-        <textarea className="min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Observaciones opcionales..." value={description} onChange={(event) => setDescription(event.target.value)} />
-        <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button disabled={busy || files.length===0} loading={busy}>Guardar foto</Button></div>
+        <div className={`rounded-card border p-3 text-sm ${stage === "ENTRADA" ? "border-blue-200 bg-blue-50 text-blue-900" : stage === "SALIDA" ? "border-park-green/30 bg-park-green-soft text-park-dark" : "border-park-border bg-park-bg text-park-muted"}`}><strong>{stage ? `${stage === "ENTRADA" ? "Registro de entrada" : "Registro de salida"} · completa las tres áreas` : "Evidencias completas"}</strong><p className="mt-1 text-xs">{stage === "ENTRADA" ? "Carga fotos y comentario de baño, cuarto y despensa. Al final se guardarán todas juntas." : stage === "SALIDA" ? "Las entradas ya están registradas. Carga ahora las tres salidas y guárdalas en un solo paso." : "La limpieza ya tiene todas las evidencias requeridas."}</p></div>
+        {stage ? <div className="grid grid-cols-3 gap-2">{cleaningAreas.map((areaName) => <button className={`rounded-card border p-2 text-left text-xs font-black ${area === areaName ? "border-park-green bg-park-green-soft text-park-dark" : drafts[areaName].files.length && drafts[areaName].description.trim() ? "border-blue-200 bg-blue-50 text-blue-800" : "border-park-border bg-white text-park-muted"}`} key={areaName} onClick={() => setArea(areaName)} type="button"><span className="block">{areaName}</span><span className="mt-1 block text-[10px] font-semibold">{task.evidences.some((item) => evidenceArea(item) === areaName && evidenceStage(item) === stage) ? "Guardada" : drafts[areaName].files.length ? "Lista para guardar" : "Pendiente"}</span></button>)}</div> : null}
+        {areaPhotos.length ? <div className="grid grid-cols-3 gap-2">{areaPhotos.map((photo) => <img alt={`${area} ${evidenceStage(photo)}`} className="aspect-video w-full rounded-card border border-park-border object-cover" key={photo.id} src={`${API_ROOT}${photo.imageUrl || photo.fileUrl}`} />)}</div> : null}
+        {stage ? <><ImagePicker files={currentDraft.files} setFiles={(files) => updateDraft(area, { files })} /><textarea className="min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder={`Comentario sobre ${area.toLowerCase()}...`} value={currentDraft.description} onChange={(event) => updateDraft(area, { description: event.target.value })} /><p className="text-xs font-semibold text-park-muted">Añade fotos y comentario en cada área antes de guardar el lote.</p><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>{stage === "ENTRADA" ? <Button type="button" variant="danger" icon={FileWarning} onClick={() => onReport(area)}>Reportar incidencia</Button> : null}<Button disabled={busy || !readyToSave} loading={busy}>{stage === "ENTRADA" ? "Guardar entrada" : "Guardar salida"}</Button></div></> : <div className="flex justify-end"><Button type="button" variant="secondary" onClick={onClose}>Cerrar</Button></div>}
       </form>
     </Modal>
   );
 }
 
-function ReportModal({ task, onClose, onSaved }) {
+function ReportModal({ task, evidenceArea, onClose, onSaved }) {
   const [files, setFiles] = useState([]);
   const [form, setForm] = useState({ type: "DANO_INFRAESTRUCTURA", priority: "ALTA", description: "" });
   const [busy, setBusy] = useState(false);
@@ -408,7 +425,7 @@ function ReportModal({ task, onClose, onSaved }) {
     setBusy(true);
     try {
       const uploaded = files.length ? await uploadImages(files) : [];
-      await api(`/cleaning/tasks/${task.id}/report`, { method: "POST", body: { ...form, files: uploaded } });
+      await api(`/cleaning/tasks/${task.id}/report`, { method: "POST", body: { ...form, evidenceArea, files: uploaded } });
       onSaved();
     } catch(e){
       alert("Error: " + e.message);
@@ -420,6 +437,7 @@ function ReportModal({ task, onClose, onSaved }) {
   return (
     <Modal title={`Reportar problema (Hab. ${roomNumber(task)})`} onClose={onClose}>
       <form className="space-y-4" onSubmit={submit}>
+        {evidenceArea ? <p className="rounded-card border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">Incidencia detectada en: {evidenceArea}</p> : null}
         <div className="grid gap-3 sm:grid-cols-2">
           <Select label="Categoría" value={form.type} onChange={(type) => setForm({ ...form, type })} options={["DANO_INFRAESTRUCTURA", "MANTENIMIENTO", "OBJETO_PERDIDO", "FALTA_INSUMO", "INCIDENCIA", "OTRO"]} />
           <Select label="Gravedad" value={form.priority} onChange={(priority) => setForm({ ...form, priority })} options={["BAJA", "MEDIA", "ALTA", "CRITICA"]} />
