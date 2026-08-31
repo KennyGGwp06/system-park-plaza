@@ -333,13 +333,30 @@ function ReviewDetail({ task, onClose }) {
   );
 }
 
+function ExpandableImage({ src, alt, className }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <>
+      <img className={`${className} cursor-pointer`} src={src} alt={alt} onClick={() => setExpanded(true)} />
+      {expanded && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/80 p-4 animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setExpanded(false); }}>
+          <div className="relative max-h-full max-w-full">
+            <button className="absolute -right-4 -top-4 grid h-8 w-8 place-items-center rounded-full bg-white text-park-black shadow-md hover:bg-gray-100" onClick={() => setExpanded(false)} type="button"><X size={16} /></button>
+            <img className="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl" src={src} alt={alt} />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function EvidenceGallery({ label, items }) {
   return (
     <div className="mb-4">
       <p className="mb-2 text-xs font-black text-park-muted uppercase">{label}</p>
       {items.length ? (
         <div className="grid grid-cols-2 gap-2">
-          {items.map((evidence) => <img className="h-24 w-full rounded-lg border border-park-border object-cover" key={evidence.id} src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} alt={evidence.description || "Evidencia"} />)}
+          {items.map((evidence) => <ExpandableImage className="h-24 w-full rounded-lg border border-park-border object-cover" key={evidence.id} src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} alt={evidence.description || "Evidencia"} />)}
         </div>
       ) : <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-400 border border-dashed border-slate-200">No hay fotos</p>}
     </div>
@@ -394,7 +411,7 @@ function EvidenceModal({ task, onClose, onReport, onSaved }) {
         </label>
         <div className={`rounded-card border p-3 text-sm ${stage === "ENTRADA" ? "border-blue-200 bg-blue-50 text-blue-900" : stage === "SALIDA" ? "border-park-green/30 bg-park-green-soft text-park-dark" : "border-park-border bg-park-bg text-park-muted"}`}><strong>{stage ? `${stage === "ENTRADA" ? "Registro de entrada" : "Registro de salida"} · completa las tres áreas` : "Evidencias completas"}</strong><p className="mt-1 text-xs">{stage === "ENTRADA" ? "Carga fotos y comentario de baño, cuarto y despensa. Al final se guardarán todas juntas." : stage === "SALIDA" ? "Las entradas ya están registradas. Carga ahora las tres salidas y guárdalas en un solo paso." : "La limpieza ya tiene todas las evidencias requeridas."}</p></div>
         {stage ? <div className="grid grid-cols-3 gap-2">{cleaningAreas.map((areaName) => <button className={`rounded-card border p-2 text-left text-xs font-black ${area === areaName ? "border-park-green bg-park-green-soft text-park-dark" : drafts[areaName].files.length && drafts[areaName].description.trim() ? "border-blue-200 bg-blue-50 text-blue-800" : "border-park-border bg-white text-park-muted"}`} key={areaName} onClick={() => setArea(areaName)} type="button"><span className="block">{areaName}</span><span className="mt-1 block text-[10px] font-semibold">{task.evidences.some((item) => evidenceArea(item) === areaName && evidenceStage(item) === stage) ? "Guardada" : drafts[areaName].files.length ? "Lista para guardar" : "Pendiente"}</span></button>)}</div> : null}
-        {areaPhotos.length ? <div className="grid grid-cols-3 gap-2">{areaPhotos.map((photo) => <img alt={`${area} ${evidenceStage(photo)}`} className="aspect-video w-full rounded-card border border-park-border object-cover" key={photo.id} src={`${API_ROOT}${photo.imageUrl || photo.fileUrl}`} />)}</div> : null}
+        {areaPhotos.length ? <div className="grid grid-cols-3 gap-2">{areaPhotos.map((photo) => <ExpandableImage alt={`${area} ${evidenceStage(photo)}`} className="aspect-video w-full rounded-card border border-park-border object-cover" key={photo.id} src={`${API_ROOT}${photo.imageUrl || photo.fileUrl}`} />)}</div> : null}
         {stage ? <><ImagePicker files={currentDraft.files} setFiles={(files) => updateDraft(area, { files })} /><textarea className="min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder={`Comentario sobre ${area.toLowerCase()}...`} value={currentDraft.description} onChange={(event) => updateDraft(area, { description: event.target.value })} /><p className="text-xs font-semibold text-park-muted">Añade fotos y comentario en cada área antes de guardar el lote.</p><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>{stage === "ENTRADA" ? <Button type="button" variant="danger" icon={FileWarning} onClick={() => onReport(area)}>Reportar incidencia</Button> : null}<Button disabled={busy || !readyToSave} loading={busy}>{stage === "ENTRADA" ? "Guardar entrada" : "Guardar salida"}</Button></div></> : <div className="flex justify-end"><Button type="button" variant="secondary" onClick={onClose}>Cerrar</Button></div>}
       </form>
     </Modal>

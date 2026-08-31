@@ -297,7 +297,7 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
                 <CompactDetailRow label="Duración" value={task.startedAt && task.finishedAt ? formatDuration(task.startedAt, task.finishedAt) : "No registrado"} />
               </div>
             </section>
-            {task.status !== "FINALIZADA" && (
+            {task.status === "PENDIENTE" && (
               <section className="rounded-card border border-park-border bg-white p-3.5">
                 <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
                 {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}

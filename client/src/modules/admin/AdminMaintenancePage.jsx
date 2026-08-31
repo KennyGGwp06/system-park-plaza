@@ -5,7 +5,7 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Button, Input, PageHeader, Select } from "../../components/ui";
 import { useFetch } from "../../hooks/useFetch";
-import { api } from "../../services/api";
+import { api, apiOrigin } from "../../services/api";
 
 const emptyForm = { type: "DANO_INFRAESTRUCTURA", area: "HOTEL", location: "", description: "", priority: "MEDIA" };
 
@@ -119,7 +119,7 @@ function IncidentDetail({ report, employees, onClose, onSaved }) {
               </div>
             </section>
             
-            {report.status !== "RESUELTO" && (
+            {report.status === "ABIERTO" && (
               <section className="rounded-card border border-park-border bg-white p-3.5">
                 <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
                 <div className="grid gap-3">
@@ -173,7 +173,7 @@ function IncidentDetail({ report, employees, onClose, onSaved }) {
                 <div className="grid grid-cols-2 gap-4">
                   {report.evidences.map((evidence) => (
                     <button key={evidence.id} className="group block w-full text-left" onClick={() => setSelectedEvidence(evidence)} type="button">
-                      <img alt="Evidencia" className="aspect-video w-full rounded-card border border-park-border object-cover transition group-hover:border-park-green" src={`${evidence.imageUrl || evidence.fileUrl}`} />
+                      <img alt="Evidencia" className="aspect-video w-full rounded-card border border-park-border object-cover transition group-hover:border-park-green" src={`${apiOrigin}${evidence.imageUrl || evidence.fileUrl}`} />
                       <span className="mt-2 block text-xs font-semibold text-park-muted"><Clock3 size={12} className="mr-1 inline" />{new Date(evidence.createdAt).toLocaleString("es-PE")}</span>
                     </button>
                   ))}
@@ -194,7 +194,7 @@ function MaintenanceEvidencePreview({ evidence, onClose }) {
   if (expanded) {
     return (
       <div className="fixed inset-0 z-[60] bg-black" onClick={() => setExpanded(false)}>
-        <img alt="Evidencia expandida" className="w-full h-full object-contain cursor-zoom-out" src={`${evidence.imageUrl || evidence.fileUrl}`} title="Haz clic para contraer" />
+        <img alt="Evidencia expandida" className="w-full h-full object-contain cursor-zoom-out" src={`${apiOrigin}${evidence.imageUrl || evidence.fileUrl}`} title="Haz clic para contraer" />
       </div>
     );
   }
@@ -208,7 +208,7 @@ function MaintenanceEvidencePreview({ evidence, onClose }) {
         </div>
         <button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button>
       </div>
-      <img alt="Evidencia" className="max-h-[46vh] w-full cursor-zoom-in object-cover transition hover:opacity-90" onClick={() => setExpanded(true)} src={`${evidence.imageUrl || evidence.fileUrl}`} title="Haz clic para expandir" />
+      <img alt="Evidencia" className="max-h-[46vh] w-full cursor-zoom-in object-cover transition hover:opacity-90" onClick={() => setExpanded(true)} src={`${apiOrigin}${evidence.imageUrl || evidence.fileUrl}`} title="Haz clic para expandir" />
       <div className="space-y-3 p-5">
         <div className="border border-park-border bg-park-bg p-3 text-sm">
           <p className="text-xs font-black uppercase text-park-muted">Comentario</p>

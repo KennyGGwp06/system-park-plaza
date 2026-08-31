@@ -22,6 +22,7 @@ export function MaintenancePage({ view = "pendientes" }) {
   const { data, loading, reload } = useFetch("/maintenance/reports", { initialData: [], realtime: true, pollInterval: 2000 });
   const [selected, setSelected] = useState(null);
   const [finalizing, setFinalizing] = useState(null);
+  const [addingEvidence, setAddingEvidence] = useState(null);
   const [filters, setFilters] = useState({ search: "", priority: "", type: "", location: "" });
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
@@ -81,9 +82,10 @@ export function MaintenancePage({ view = "pendientes" }) {
         </div>
       </section>
       <MaintenanceFilters filters={filters} setFilters={setFilters} />
-      {view === "evidencias" ? <EvidenceView reports={visible} onSelect={setSelected} /> : <WorkGrid canCreate={canCreate} canEdit={canEdit} reports={visible} onEvidence={attachEvidence} onFinish={setFinalizing} onSelect={setSelected} onStatus={changeStatus} />}
-      {selected ? <MaintenanceDetail canCreate={canCreate} canEdit={canEdit} report={selected} onClose={() => setSelected(null)} onEvidence={attachEvidence} onFinish={setFinalizing} onStatus={changeStatus} /> : null}
-      {finalizing ? <FinishModal report={finalizing} onClose={() => setFinalizing(null)} onEvidence={attachEvidence} onFinish={changeStatus} /> : null}
+      {view === "evidencias" ? <EvidenceView reports={visible} onSelect={setSelected} /> : <WorkGrid canCreate={canCreate} canEdit={canEdit} reports={visible} onEvidence={setAddingEvidence} onFinish={setFinalizing} onSelect={setSelected} onStatus={changeStatus} />}
+      {selected ? <MaintenanceDetail canCreate={canCreate} canEdit={canEdit} report={selected} onClose={() => setSelected(null)} onEvidence={setAddingEvidence} onFinish={setFinalizing} onStatus={changeStatus} /> : null}
+      {addingEvidence ? <EvidenceModal report={addingEvidence} onClose={() => setAddingEvidence(null)} onSaved={async () => { setAddingEvidence(null); await reload(); setToast("Evidencia adjuntada."); }} /> : null}
+      {finalizing ? <FinishModal report={finalizing} onClose={() => setFinalizing(null)} onEvidence={setAddingEvidence} onFinish={changeStatus} /> : null}
     </div>
   );
 }
@@ -182,7 +184,7 @@ function MaintenanceDetail({ canCreate, canEdit, report, onClose, onEvidence, on
         <div className="mt-5 flex justify-end gap-2">
           {canEdit && report.status === "ABIERTO" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} type="button">Esperando confirmación</Button> : null}
           {canEdit && report.status === "ABIERTO" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} type="button">Iniciar reparacion</Button> : null}
-          {canCreate && report.status === "EN_REVISION" ? <EvidenceButton onEvidence={(files) => onEvidence(report, files)} /> : null}
+          {canCreate && report.status === "EN_REVISION" ? <Button icon={Camera} onClick={() => onEvidence(report)} type="button">Agregar evidencia</Button> : null}
           {canEdit && report.status === "EN_REVISION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} type="button" variant="gold">Finalizar reparacion</Button> : null}
         </div>
       </aside>
@@ -190,13 +192,61 @@ function MaintenanceDetail({ canCreate, canEdit, report, onClose, onEvidence, on
   );
 }
 
-function EvidenceButton({ onEvidence }) {
+function EvidenceModal({ report, onClose, onSaved }) {
+  const [files, setFiles] = useState([]);
+  const [description, setDescription] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!files.length) return alert("Por favor agrega al menos una foto.");
+    setBusy(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file) => formData.append("images", file));
+      const response = await fetch(`${API_ROOT}/api/reports/evidence/upload`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}` }, body: formData });
+      if (!response.ok) throw new Error("Fallo al subir imágenes");
+      const uploaded = await response.json();
+      await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { description, files: uploaded.files || [] } });
+      onSaved();
+    } catch(e) {
+      alert("Error: " + e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2 rounded-button border border-park-border bg-white px-3 py-2 text-sm font-black text-park-dark shadow-sm hover:bg-park-bg">
-      <Upload size={16} />
-      Agregar evidencia
-      <input className="hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => onEvidence(event.target.files)} />
-    </label>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form className="w-full max-w-lg rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}>
+        <div className="flex items-start justify-between gap-4">
+          <div><p className="font-sans text-xl font-black text-park-black">Agregar evidencia</p><p className="text-sm text-park-muted">{report.code}</p></div>
+          <button className="grid h-9 w-9 place-items-center rounded-button border border-park-border text-park-muted hover:text-park-black" onClick={onClose} type="button"><X size={18} /></button>
+        </div>
+        <div className="mt-5 space-y-4">
+          <ImagePicker files={files} setFiles={setFiles} />
+          <textarea className="min-h-24 w-full rounded-input border border-park-border p-3 text-sm" placeholder="Comentarios sobre el trabajo realizado (opcional)..." value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button disabled={busy || !files.length} loading={busy}>Guardar evidencia</Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function ImagePicker({ files, setFiles }) {
+  const previews = files.map((file) => ({ file, url: URL.createObjectURL(file) }));
+  return (
+    <div>
+      <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-park-green bg-park-green-soft text-park-green p-4 font-black transition-colors hover:bg-park-green hover:text-white">
+        <Camera size={40} className="mb-2" />
+        <span className="text-lg">Tomar foto / Seleccionar</span>
+        <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple onChange={(event) => setFiles([...files, ...Array.from(event.target.files || [])])} />
+      </label>
+      {previews.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{previews.map(({ file, url }) => <div key={url} className="relative"><img className="h-20 w-24 rounded-lg object-cover" src={url} alt={file.name} /><button type="button" className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white" onClick={() => setFiles(files.filter((item) => item !== file))}><X size={14} /></button></div>)}</div>}
+    </div>
   );
 }
 
@@ -210,15 +260,24 @@ function FinishModal({ report, onClose, onEvidence, onFinish }) {
     if (!form.workDescription.trim()) return;
     setSubmitting(true);
     try {
-      if (files?.length) await onEvidence(report, files);
+      if (files?.length) {
+        const formData = new FormData();
+        Array.from(files).forEach((file) => formData.append("images", file));
+        const response = await fetch(`${API_ROOT}/api/reports/evidence/upload`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}` }, body: formData });
+        if (!response.ok) throw new Error("Fallo al subir imágenes");
+        const uploaded = await response.json();
+        await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { description: "Finalizado: " + form.workDescription, files: uploaded.files || [] } });
+      }
       await onFinish(report, "RESUELTO", form);
+    } catch (e) {
+      alert("Error: " + e.message);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <form className="w-full max-w-lg rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -268,8 +327,21 @@ function DetailRow({ label, value }) {
 }
 
 function Thumb({ evidence }) {
+  const [expanded, setExpanded] = useState(false);
   if (!evidence) return <div className="grid h-32 place-items-center rounded-card border border-dashed border-park-border bg-park-bg text-sm text-park-muted">Sin evidencia</div>;
-  return <img className="h-32 w-full rounded-card border border-park-border object-cover" src={`${API_ROOT}${evidence.imageUrl}`} alt={evidence.fileName || "Evidencia"} />;
+  return (
+    <>
+      <img className="h-32 w-full rounded-card border border-park-border object-cover cursor-pointer" src={`${API_ROOT}${evidence.imageUrl}`} alt={evidence.fileName || "Evidencia"} onClick={() => setExpanded(true)} />
+      {expanded && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/80 p-4 animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setExpanded(false); }}>
+          <div className="relative max-h-full max-w-full">
+            <button className="absolute -right-4 -top-4 grid h-8 w-8 place-items-center rounded-full bg-white text-park-black shadow-md hover:bg-gray-100" onClick={() => setExpanded(false)} type="button"><X size={16} /></button>
+            <img className="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl" src={`${API_ROOT}${evidence.imageUrl}`} alt={evidence.fileName || "Evidencia"} />
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 function filterReports(view, reports, user) {
@@ -282,6 +354,29 @@ function filterReports(view, reports, user) {
 }
 
 function applyFilters(reports, filters) {
+  const search = filters.search.trim().toLowerCase();
+  return reports.filter((report) => {
+    const haystack = [report.code, report.description, report.area, report.type, locationLabel(report), report.reportedBy?.firstName, report.reportedBy?.lastName].filter(Boolean).join(" ").toLowerCase();
+    if (search && !haystack.includes(search)) return false;
+    return true;
+  });
+}
+
+function pageTitle(view) {
+  const titles = { pendientes: "Alertas de mantenimiento", reparacion: "En atención", finalizados: "Historial de mantenimiento", evidencias: "Evidencias" };
+  return titles[view] || titles.pendientes;
+}
+
+function locationLabel(report) {
+  if (report.room?.number) return `Habitación ${report.room.number}`;
+  if (report.product?.name) return report.product.name;
+  return report.area || "Área operativa";
+}
+
+function historyFor(report) {
+  const steps = ["Reportado"];
+  if (report.status === "EN_REVISION" || report.status === "RESUELTO") steps.push("Reparación iniciada");
+  if (report.evidences?.length) steps.push("Evidencia agregada");
   if (report.status === "RESUELTO") steps.push("Finalizado");
   return steps;
 }
