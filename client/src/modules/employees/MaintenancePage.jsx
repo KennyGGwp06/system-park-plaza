@@ -80,6 +80,25 @@ export function MaintenancePage({ view = "pendientes" }) {
           </div>
         </div>
       </section>
+      <MaintenanceFilters filters={filters} setFilters={setFilters} />
+      {view === "evidencias" ? <EvidenceView reports={visible} onSelect={setSelected} /> : <WorkGrid canCreate={canCreate} canEdit={canEdit} reports={visible} onEvidence={attachEvidence} onFinish={setFinalizing} onSelect={setSelected} onStatus={changeStatus} />}
+      {selected ? <MaintenanceDetail canCreate={canCreate} canEdit={canEdit} report={selected} onClose={() => setSelected(null)} onEvidence={attachEvidence} onFinish={setFinalizing} onStatus={changeStatus} /> : null}
+      {finalizing ? <FinishModal report={finalizing} onClose={() => setFinalizing(null)} onEvidence={attachEvidence} onFinish={changeStatus} /> : null}
+    </div>
+  );
+}
+
+function MaintenanceFilters({ filters, setFilters }) {
+  return (
+    <section className="rounded-card border border-park-border bg-white p-4 shadow-card">
+      <input className="w-full rounded-input border border-park-border px-4 py-3 text-sm outline-none focus:border-park-green" placeholder="Buscar incidencia..." value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} />
+    </section>
+  );
+}
+
+function WorkGrid({ canCreate, canEdit, reports, onEvidence, onFinish, onSelect, onStatus }) {
+  if (!reports.length) return <EmptyState title="Sin trabajos" description="No hay trabajos tecnicos para esta vista." />;
+  return (
     <section className="grid gap-4 xl:grid-cols-2">
       {reports.map((report) => (
         <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={report.id}>
@@ -263,32 +282,6 @@ function filterReports(view, reports, user) {
 }
 
 function applyFilters(reports, filters) {
-  const search = filters.search.trim().toLowerCase();
-  return reports.filter((report) => {
-    const haystack = [report.code, report.description, report.area, report.type, locationLabel(report), report.reportedBy?.firstName, report.reportedBy?.lastName].filter(Boolean).join(" ").toLowerCase();
-    if (search && !haystack.includes(search)) return false;
-    if (filters.priority && report.priority !== filters.priority) return false;
-    if (filters.type && report.type !== filters.type) return false;
-    if (filters.location && locationLabel(report) !== filters.location) return false;
-    return true;
-  });
-}
-
-function pageTitle(view) {
-  const titles = { pendientes: "Trabajos pendientes", reparacion: "En reparacion", finalizados: "Finalizados", evidencias: "Evidencias" };
-  return titles[view] || titles.pendientes;
-}
-
-function locationLabel(report) {
-  if (report.room?.number) return `Habitacion ${report.room.number}`;
-  if (report.product?.name) return report.product.name;
-  return report.area || "Area operativa";
-}
-
-function historyFor(report) {
-  const steps = ["Reportado"];
-  if (report.status === "EN_REVISION" || report.status === "RESUELTO") steps.push("Reparacion iniciada");
-  if (report.evidences?.length) steps.push("Evidencia agregada");
   if (report.status === "RESUELTO") steps.push("Finalizado");
   return steps;
 }

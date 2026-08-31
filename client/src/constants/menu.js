@@ -48,7 +48,7 @@ export const menuSectionsByRole = {
     { label: "OPERACIÓN DE LIMPIEZA", items: [["Alertas", "/limpieza", Sparkles], ["En atención", "/limpieza/en-atencion", ClipboardCheck], ["Historial", "/limpieza/historial", ClipboardList]] }
   ],
   MANTENIMIENTO: [
-    { label: "OPERACIÓN DE MANTENIMIENTO", items: [["Pendientes", "/mantenimiento", Wrench], ["En reparación", "/mantenimiento/reparacion", ClipboardCheck], ["Historial", "/mantenimiento/finalizados", ClipboardList], ["Evidencias", "/mantenimiento/evidencias", Camera]] }
+    { label: "OPERACIÓN DE MANTENIMIENTO", items: [["Alertas", "/mantenimiento", Sparkles], ["En atención", "/mantenimiento/reparacion", ClipboardCheck], ["Historial", "/mantenimiento/finalizados", ClipboardList]] }
   ],
   OPERATIVO: []
 };
