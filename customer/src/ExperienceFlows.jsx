@@ -25,7 +25,7 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
   const [calendarFrom, setCalendarFrom] = useState(initialDate);
   const [availability, setAvailability] = useState([]); 
   const [rooms, setRooms] = useState([]); 
-  const [adults, setAdults] = useState(2); 
+  const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0); 
   const [plan, setPlan] = useState(catalog.plans?.HOSPEDAJE?.[0]); 
   const [extras, setExtras] = useState([]); 
@@ -37,6 +37,10 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
 
   useEffect(() => { api(`/public/availability/HOSPEDAJE?from=${calendarFrom}`).then(setAvailability); }, [calendarFrom]);
   useEffect(() => { api(`/public/rooms?checkIn=${checkIn}&checkOut=${checkOut}`).then(setRooms); }, [checkIn, checkOut]);
+  useEffect(() => {
+    const lodgingPlans = catalog.plans?.HOSPEDAJE || [];
+    setPlan((current) => lodgingPlans.find((item) => item.code === current?.code) || lodgingPlans[0] || null);
+  }, [catalog.plans]);
 
   const nights = Math.max(1, daysBetween(checkIn, checkOut)); 
   const people = adults + children; 
@@ -52,7 +56,9 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
   const roomTypes = ["TODAS", ...new Set(rooms.map((item) => item.type.name))];
   const visibleRooms = roomType === "TODAS" ? rooms : rooms.filter((item) => item.type.name === roomType);
 
-  function next() { 
+  function next() {
+    if (!viewingRoom || !plan) return;
+
     onCheckout({ service, planCode: plan.code, planName: plan.name, room: viewingRoom, date: checkIn, checkIn, checkOut, slot: "15:00", people, adults, children, guests: normalizedGuests(guests, adults, children), nights, extras, parking: vehicles[0] || null, vehicles, preferences: {}, preorderItems: [], base, extrasTotal, parkingTotal, bundleCode: masterBundle ? "HOSPEDAJE_PISCINA_MIRADOR" : null, bundleServices: masterBundle ? [{ serviceCode: "PISCINA", date: checkIn, slot: "09:00", people }, { serviceCode: "MIRADOR", date: checkIn, slot: "16:30", people }] : [], bundleTotal, bundleDiscount, total }); 
   }
 
@@ -66,7 +72,15 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
         <div className="room-filter" aria-label="Filtrar habitaciones por tipo">{roomTypes.map((type) => <button type="button" className={roomType === type ? "selected" : ""} onClick={() => setRoomType(type)} key={type}>{type === "TODAS" ? "Todas" : type}</button>)}</div>
         <div className="room-catalog">
           {visibleRooms.map((item) => (
-            <button type="button" className="room-choice" onClick={() => setViewingRoom(item)} key={item.id}>
+            <button type="button" className="room-choice" onClick={() => {
+              const capacity = Math.max(1, Number(item.capacity || 1));
+              const nextChildren = Math.min(children, Math.max(0, capacity - 1));
+              const nextAdults = Math.min(Math.max(1, adults), capacity - nextChildren);
+
+              setChildren(nextChildren);
+              setAdults(nextAdults);
+              setViewingRoom(item);
+            }} key={item.id}>
               <img src={roomImages[item.type.name] || roomImages.Simple} alt={item.type.name}/>
               <div>
                 <small>HABITACIÓN {item.number}</small>
@@ -135,8 +149,8 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
-                  <button className="primary" disabled={people > viewingRoom.capacity} style={{ padding: '1rem 2rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '0.5rem', fontWeight: 'bold', cursor: people > viewingRoom.capacity ? 'not-allowed' : 'pointer', opacity: people > viewingRoom.capacity ? 0.5 : 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={next}>
-                    {people > viewingRoom.capacity ? "Excede capacidad máxima" : "Confirmar reserva de habitación"}
+                  <button className="primary" type="button" disabled={!plan || people > viewingRoom.capacity} style={{ padding: '1rem 2rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '0.5rem', fontWeight: 'bold', cursor: !plan || people > viewingRoom.capacity ? 'not-allowed' : 'pointer', opacity: !plan || people > viewingRoom.capacity ? 0.5 : 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={next}>
+                    {!plan ? "Cargando opciones..." : people > viewingRoom.capacity ? "Excede capacidad máxima" : "Confirmar reserva de habitación"}
                     <ChevronRight size={20}/>
                   </button>
                 </div>

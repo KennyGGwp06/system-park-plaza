@@ -46,12 +46,12 @@ export function AdminCleaningPage({ view = "resumen" }) {
 function CleaningWorkspace({ tasks, reports, inspected, onInspect, onManage }) {
   const [tab, setTab] = useState("FINALIZADA");
   const pending = tasks.filter((task) => task.status === "PENDIENTE");
-  const inProgress = tasks.filter((task) => task.status === "EN_LIMPIEZA");
+  const inProgress = tasks.filter((task) => ["EN_LIMPIEZA", "EN_ATENCION"].includes(task.status));
   const finished = tasks.filter((task) => task.status === "FINALIZADA");
   const withIncidents = tasks.filter((task) => task.operationalReports?.length);
   const tabs = [
     ["PENDIENTE", "Por atender", pending],
-    ["EN_LIMPIEZA", "En limpieza", inProgress],
+    ["EN_LIMPIEZA", "En atención", inProgress],
     ["FINALIZADA", "Limpiadas", finished],
     ["INCIDENCIAS", "Incidencias", withIncidents]
   ];
@@ -99,7 +99,7 @@ function DetailLine({ label, value }) { return <div className="flex items-center
 
 function CleaningSummary({ tasks, reports, onSelect }) {
   const pending = tasks.filter((task) => task.status === "PENDIENTE");
-  const inProgress = tasks.filter((task) => task.status === "EN_LIMPIEZA");
+  const inProgress = tasks.filter((task) => ["EN_LIMPIEZA", "EN_ATENCION"].includes(task.status));
   const finishedToday = tasks.filter((task) => task.status === "FINALIZADA" && isToday(task.finishedAt));
   const priorityCounts = countBy(tasks, "priority");
   const statusCounts = countBy(tasks, "status");
@@ -127,7 +127,7 @@ function CleaningSummary({ tasks, reports, onSelect }) {
         </Panel>
         <Panel title="Estado general">
           <div className="space-y-3">
-            {["PENDIENTE", "EN_LIMPIEZA", "FINALIZADA"].map((status) => (
+            {["PENDIENTE", "EN_LIMPIEZA", "EN_ATENCION", "FINALIZADA"].map((status) => (
               <ProgressLine key={status} label={status.replaceAll("_", " ")} total={tasks.length} value={statusCounts[status] || 0} />
             ))}
             <ProgressLine label="Con incidencias" total={tasks.length} value={tasks.filter((task) => task.operationalReports?.length).length} />
@@ -160,7 +160,7 @@ function CleaningSummary({ tasks, reports, onSelect }) {
               <tbody className="divide-y divide-park-border">
                 {recentActivity.map((task) => (
                   <tr key={task.id}>
-                    <td className="py-3 font-semibold text-park-black">{task.status === "FINALIZADA" ? "Finalizo revision" : task.status === "EN_LIMPIEZA" ? "Inicio revision" : "Adjunto evidencia"}</td>
+                    <td className="py-3 font-semibold text-park-black">{task.status === "FINALIZADA" ? "Finalizó la tarea" : ["EN_LIMPIEZA", "EN_ATENCION"].includes(task.status) ? "Inició la atención" : "Adjuntó evidencia"}</td>
                     <td>Habitacion {task.room?.number}</td>
                     <td>{task.assignedTo || "Sin asignar"}</td>
                     <td>{formatDateTime(task.finishedAt || task.startedAt || task.evidences?.[0]?.createdAt || task.createdAt)}</td>
@@ -265,6 +265,7 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedEvidence, setSelectedEvidence] = useState(null);
+  const guestRequest = Boolean(task.requestId) && task.workflowType !== "POST_CHECKOUT";
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key !== "Escape") return;
@@ -298,6 +299,12 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
                 <CompactDetailRow label="Finalización" value={formatDateTime(task.finishedAt)} />
                 <CompactDetailRow label="Duración" value={task.startedAt && task.finishedAt ? formatDuration(task.startedAt, task.finishedAt) : "No registrado"} />
               </div>
+              {task.description && (
+                <div className="mt-4 rounded-card bg-amber-50 p-3 text-sm">
+                  <p className="text-xs font-black uppercase text-amber-700">Detalle de la solicitud</p>
+                  <p className="mt-1 font-semibold text-park-dark">{task.description}</p>
+                </div>
+              )}
             </section>
             {task.status === "PENDIENTE" && (
               <section className="rounded-card border border-park-border bg-white p-3.5">
@@ -310,9 +317,9 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
             )}
           </div>
           <section className="min-w-0 rounded-card border border-park-border bg-white p-4">
-            <h2 className="font-sans text-lg font-black text-park-black">Evidencias</h2>
-            <p className="mb-4 mt-1 text-sm text-park-muted">Fotografías registradas desde la operación de Limpieza.</p>
-            <div className="max-h-[510px] overflow-y-auto pr-1"><EvidenceComparison evidences={task.evidences || []} onSelect={setSelectedEvidence} selectedId={selectedEvidence?.id} /></div>
+            <h2 className="font-sans text-lg font-black text-park-black">{guestRequest ? "Evidencia del trabajo realizado" : "Evidencias"}</h2>
+            <p className="mb-4 mt-1 text-sm text-park-muted">{guestRequest ? "Fotografía y comentario registrados al finalizar la solicitud del huésped." : "Fotografías de entrada y salida registradas desde la operación de Limpieza."}</p>
+            <div className="max-h-[510px] overflow-y-auto pr-1"><EvidenceComparison evidences={task.evidences || []} guestRequest={guestRequest} onSelect={setSelectedEvidence} selectedId={selectedEvidence?.id} /></div>
           </section>
         </div>
       </aside>
@@ -321,7 +328,8 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
   );
 }
 
-function EvidenceComparison({ evidences, onSelect, selectedId }) {
+function EvidenceComparison({ evidences, guestRequest = false, onSelect, selectedId }) {
+  if (guestRequest) return evidences.length ? <EvidenceColumn evidences={evidences} label="Trabajo realizado" onSelect={onSelect} selectedId={selectedId} /> : <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Aún no se registró la evidencia del trabajo.</p>;
   const groups = groupEvidenceByArea(evidences);
   if (!groups.length) return <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Aún no se registraron evidencias.</p>;
   return <div className="space-y-5">{groups.map((group) => <section className="border-b border-park-border pb-5 last:border-0 last:pb-0" key={group.area}><p className="mb-3 text-sm font-black text-park-green">{group.area}</p><div className="grid grid-cols-2 gap-4"><EvidenceColumn evidences={group.entry} label="Entrada" onSelect={onSelect} selectedId={selectedId} /><EvidenceColumn evidences={group.exit} label="Salida" onSelect={onSelect} selectedId={selectedId} /></div></section>)}</div>;
@@ -336,29 +344,41 @@ function EvidenceTile({ evidence, onSelect, selected }) {
 }
 
 function EvidencePreview({ evidence, task, onClose }) {
-  const stage = evidenceStage(evidence);
+  const [expanded, setExpanded] = useState(false);
+  const stage = task.requestId && task.workflowType !== "POST_CHECKOUT" ? "Trabajo realizado" : evidenceStage(evidence);
   const comment = String(evidence.description || evidence.notes || "").replace(/^(ENTRADA|SALIDA):\s*/i, "").trim();
   return (
-    <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[420px] md:-translate-y-1/2" role="dialog">
-        <div className="flex items-start justify-between p-5">
-          <div><p className="font-sans text-lg font-black text-park-black">{evidenceArea(evidence)} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div>
-          <button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button>
-        </div>
-        <img alt={`Evidencia de ${stage}`} className="max-h-[46vh] w-full object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} />
-        <div className="space-y-3 p-5">
-          <WorkerLabel name={task.assignedTo} />
-          <p className="-mt-2 text-xs text-park-muted">Trabajador asignado a la tarea</p>
-          <div className="border border-park-border bg-park-bg p-3 text-sm">
-            <p className="text-xs font-black uppercase text-park-muted">Comentario de {stage.toLowerCase()}</p>
-            <p className="mt-1 leading-6 text-park-dark">{comment || "Sin comentario registrado"}</p>
+    <>
+      <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[420px] md:-translate-y-1/2" role="dialog">
+          <div className="flex items-start justify-between p-5">
+            <div><p className="font-sans text-lg font-black text-park-black">{evidenceArea(evidence)} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div>
+            <button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button>
           </div>
-          <div className="grid grid-cols-2 gap-3 border-t border-park-border pt-3 text-sm">
-            <DetailLine label="Área" value={evidenceArea(evidence)} />
-            <DetailLine label="Evidencia" value={stage} />
+          <button className="block w-full cursor-zoom-in relative group" onClick={() => setExpanded(true)} type="button">
+            <img alt={`Evidencia de ${stage}`} className="max-h-[46vh] w-full object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} />
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-white bg-black/60 px-3 py-1.5 rounded-full text-sm font-semibold">Ampliar foto</span></div>
+          </button>
+          <div className="space-y-3 p-5">
+            <WorkerLabel name={task.assignedTo} />
+            <p className="-mt-2 text-xs text-park-muted">Trabajador asignado a la tarea</p>
+            <div className="border border-park-border bg-park-bg p-3 text-sm">
+              <p className="text-xs font-black uppercase text-park-muted">Comentario de {stage.toLowerCase()}</p>
+              <p className="mt-1 leading-6 text-park-dark">{comment || "Sin comentario registrado"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 border-t border-park-border pt-3 text-sm">
+              <DetailLine label="Área" value={evidenceArea(evidence)} />
+              <DetailLine label="Evidencia" value={stage} />
+            </div>
+            <Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button>
           </div>
-          <Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button>
+      </section>
+      {expanded && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4" onClick={() => setExpanded(false)}>
+          <img alt="Evidencia ampliada" className="max-h-full max-w-full object-contain" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} />
+          <button aria-label="Cerrar vista ampliada" className="absolute right-4 top-4 md:right-6 md:top-6 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" onClick={() => setExpanded(false)} type="button"><X size={24} /></button>
         </div>
-    </section>
+      )}
+    </>
   );
 }
 

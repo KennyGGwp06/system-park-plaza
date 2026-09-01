@@ -1,4 +1,4 @@
-import { AlertTriangle, Camera, CheckCircle2, Clock, Eye, Upload, Wrench, X } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Clock, Eye, Wrench, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -32,9 +32,9 @@ export function MaintenancePage({ view = "pendientes" }) {
   async function changeStatus(report, status, payload = {}) {
     setError("");
     try {
-      const endpoint = status === "EN_REVISION" ? `/maintenance/reports/${report.id}/start` : `/maintenance/reports/${report.id}/finish`;
+      const endpoint = status === "EN_REPARACION" ? `/maintenance/reports/${report.id}/start` : `/maintenance/reports/${report.id}/finish`;
       await api(endpoint, { method: "PATCH", body: payload });
-      setToast(status === "EN_REVISION" ? "Reparacion iniciada." : "Trabajo finalizado.");
+      setToast(status === "EN_REPARACION" ? "Reparación iniciada." : "Problema solucionado.");
       await reload();
       setSelected(null);
       setFinalizing(null);
@@ -120,10 +120,10 @@ function WorkGrid({ canCreate, canEdit, reports, onEvidence, onFinish, onSelect,
           </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <Button icon={Eye} onClick={() => onSelect(report)} size="sm" type="button" variant="secondary">Ver detalle</Button>
-            {canEdit && report.status === "ABIERTO" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} size="sm" type="button">Esperando confirmación</Button> : null}
-            {canEdit && report.status === "ABIERTO" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} size="sm" type="button">Iniciar reparacion</Button> : null}
-            {canCreate && report.status === "EN_REVISION" ? <EvidenceButton onEvidence={(files) => onEvidence(report, files)} /> : null}
-            {canEdit && report.status === "EN_REVISION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} size="sm" type="button" variant="gold">Finalizar reparacion</Button> : null}
+            {canEdit && report.status === "PENDIENTE" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} size="sm" type="button">Esperando confirmación</Button> : null}
+            {canEdit && report.status === "PENDIENTE" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REPARACION")} size="sm" type="button">Atender</Button> : null}
+            {canCreate && report.status === "EN_REPARACION" ? <Button icon={Camera} onClick={() => onEvidence(report)} size="sm" type="button" variant="secondary">Registrar evidencia</Button> : null}
+            {canEdit && report.status === "EN_REPARACION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} size="sm" type="button" variant="gold">Finalizar reparación</Button> : null}
           </div>
         </article>
       ))}
@@ -182,10 +182,10 @@ function MaintenanceDetail({ canCreate, canEdit, report, onClose, onEvidence, on
           {historyFor(report).map((item) => <div className="flex gap-3 pb-3 last:pb-0" key={item}><span className="mt-1 h-2.5 w-2.5 rounded-full bg-park-green" /><p className="text-sm font-semibold text-park-black">{item}</p></div>)}
         </Panel>
         <div className="mt-5 flex justify-end gap-2">
-          {canEdit && report.status === "ABIERTO" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} type="button">Esperando confirmación</Button> : null}
-          {canEdit && report.status === "ABIERTO" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} type="button">Iniciar reparacion</Button> : null}
-          {canCreate && report.status === "EN_REVISION" ? <Button icon={Camera} onClick={() => onEvidence(report)} type="button">Agregar evidencia</Button> : null}
-          {canEdit && report.status === "EN_REVISION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} type="button" variant="gold">Finalizar reparacion</Button> : null}
+          {canEdit && report.status === "PENDIENTE" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} type="button">Esperando confirmación</Button> : null}
+          {canEdit && report.status === "PENDIENTE" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REPARACION")} type="button">Atender</Button> : null}
+          {canCreate && report.status === "EN_REPARACION" ? <Button icon={Camera} onClick={() => onEvidence(report)} type="button">Registrar evidencia</Button> : null}
+          {canEdit && report.status === "EN_REPARACION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} type="button" variant="gold">Finalizar reparación</Button> : null}
         </div>
       </aside>
     </div>
@@ -196,6 +196,8 @@ function EvidenceModal({ report, onClose, onSaved }) {
   const [files, setFiles] = useState([]);
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
+  const hasBefore = (report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "ANTES");
+  const stage = hasBefore ? "DESPUES" : "ANTES";
 
   async function submit(event) {
     event.preventDefault();
@@ -207,7 +209,7 @@ function EvidenceModal({ report, onClose, onSaved }) {
       const response = await fetch(`${API_ROOT}/api/reports/evidence/upload`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}` }, body: formData });
       if (!response.ok) throw new Error("Fallo al subir imágenes");
       const uploaded = await response.json();
-      await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { description, files: uploaded.files || [] } });
+      await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { description, stage, files: uploaded.files || [] } });
       onSaved();
     } catch(e) {
       alert("Error: " + e.message);
@@ -220,16 +222,16 @@ function EvidenceModal({ report, onClose, onSaved }) {
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <form className="w-full max-w-lg rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}>
         <div className="flex items-start justify-between gap-4">
-          <div><p className="font-sans text-xl font-black text-park-black">Agregar evidencia</p><p className="text-sm text-park-muted">{report.code}</p></div>
+          <div><p className="font-sans text-xl font-black text-park-black">Evidencia {stage === "ANTES" ? "del problema" : "del resultado"}</p><p className="text-sm text-park-muted">{report.code} · Foto {stage.toLowerCase()} de la reparación</p></div>
           <button className="grid h-9 w-9 place-items-center rounded-button border border-park-border text-park-muted hover:text-park-black" onClick={onClose} type="button"><X size={18} /></button>
         </div>
         <div className="mt-5 space-y-4">
           <ImagePicker files={files} setFiles={setFiles} />
-          <textarea className="min-h-24 w-full rounded-input border border-park-border p-3 text-sm" placeholder="Comentarios sobre el trabajo realizado (opcional)..." value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea className="min-h-24 w-full rounded-input border border-park-border p-3 text-sm" placeholder={stage === "ANTES" ? "Describe el problema encontrado..." : "Describe el resultado de la reparación..."} required value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button disabled={busy || !files.length} loading={busy}>Guardar evidencia</Button>
+          <Button disabled={busy || !files.length || !description.trim()} loading={busy}>Guardar foto {stage.toLowerCase()}</Button>
         </div>
       </form>
     </div>
@@ -252,7 +254,6 @@ function ImagePicker({ files, setFiles }) {
 
 function FinishModal({ report, onClose, onEvidence, onFinish }) {
   const [form, setForm] = useState({ workDescription: "", observations: "" });
-  const [files, setFiles] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function submit(event) {
@@ -260,15 +261,7 @@ function FinishModal({ report, onClose, onEvidence, onFinish }) {
     if (!form.workDescription.trim()) return;
     setSubmitting(true);
     try {
-      if (files?.length) {
-        const formData = new FormData();
-        Array.from(files).forEach((file) => formData.append("images", file));
-        const response = await fetch(`${API_ROOT}/api/reports/evidence/upload`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}` }, body: formData });
-        if (!response.ok) throw new Error("Fallo al subir imágenes");
-        const uploaded = await response.json();
-        await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { description: "Finalizado: " + form.workDescription, files: uploaded.files || [] } });
-      }
-      await onFinish(report, "RESUELTO", form);
+      await onFinish(report, "SOLUCIONADO", { ...form, problemSolved: true });
     } catch (e) {
       alert("Error: " + e.message);
     } finally {
@@ -294,14 +287,10 @@ function FinishModal({ report, onClose, onEvidence, onFinish }) {
           <span className="text-sm font-black text-park-black">Observaciones</span>
           <textarea className="mt-2 min-h-20 w-full rounded-input border border-park-border px-4 py-3 text-sm outline-none focus:border-park-green" value={form.observations} onChange={(event) => setForm((current) => ({ ...current, observations: event.target.value }))} placeholder="Notas opcionales para seguimiento." />
         </label>
-        <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-card border border-dashed border-park-border bg-park-bg p-4 text-sm font-bold text-park-muted">
-          <span>{files?.length ? `${files.length} archivo(s) seleccionado(s)` : "Adjuntar evidencia final"}</span>
-          <Upload size={18} />
-          <input className="hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setFiles(event.target.files)} />
-        </label>
+        {!(report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "DESPUES") ? <p className="mt-4 rounded-card border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800">Antes de finalizar debes registrar la foto después de la reparación.</p> : <p className="mt-4 rounded-card border border-park-green/20 bg-park-green-soft p-3 text-sm font-semibold text-park-green">Problema solucionado y evidencias antes/después completas.</p>}
         <div className="mt-6 flex justify-end gap-2">
           <Button onClick={onClose} type="button" variant="secondary">Cancelar</Button>
-          <Button disabled={submitting || !form.workDescription.trim()} icon={CheckCircle2} type="submit">{submitting ? "Finalizando..." : "Finalizar trabajo"}</Button>
+          <Button disabled={submitting || !form.workDescription.trim() || !(report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "DESPUES")} icon={CheckCircle2} type="submit">{submitting ? "Finalizando..." : "Confirmar solución"}</Button>
         </div>
       </form>
     </div>
@@ -346,9 +335,9 @@ function Thumb({ evidence }) {
 
 function filterReports(view, reports, user) {
   const currentUserId = user?.id;
-  if (view === "pendientes") return reports.filter((report) => report.status === "ABIERTO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)));
-  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REVISION" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.assignedToId || Number(report.assignedToId) === Number(currentUserId)));
-  if (view === "finalizados") return reports.filter((report) => report.status === "RESUELTO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.resolvedById || Number(report.resolvedById) === Number(currentUserId)));
+  if (view === "pendientes") return reports.filter((report) => report.status === "PENDIENTE" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)));
+  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REPARACION" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.assignedToId || Number(report.assignedToId) === Number(currentUserId)));
+  if (view === "finalizados") return reports.filter((report) => report.status === "SOLUCIONADO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.resolvedById || Number(report.resolvedById) === Number(currentUserId)));
   if (view === "evidencias") return reports.filter((report) => report.evidences?.length);
   return reports;
 }
@@ -375,9 +364,9 @@ function locationLabel(report) {
 
 function historyFor(report) {
   const steps = ["Reportado"];
-  if (report.status === "EN_REVISION" || report.status === "RESUELTO") steps.push("Reparación iniciada");
+  if (["EN_REPARACION", "SOLUCIONADO"].includes(report.status)) steps.push("Reparación iniciada");
   if (report.evidences?.length) steps.push("Evidencia agregada");
-  if (report.status === "RESUELTO") steps.push("Finalizado");
+  if (report.status === "SOLUCIONADO") steps.push("Problema solucionado");
   return steps;
 }
 

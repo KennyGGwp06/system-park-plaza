@@ -30,7 +30,7 @@ export function CleaningPage({ view = "ALERTAS" }) {
   const [selected, setSelected] = useState(null);
 
   const pendingTasks = useMemo(() => tasks.filter(t => t.status !== "FINALIZADA").sort((a, b) => taskRank(a) - taskRank(b)), [data]);
-  const activeTasks = useMemo(() => tasks.filter(t => t.status === "EN_LIMPIEZA").sort((a, b) => taskRank(a) - taskRank(b)), [data]);
+  const activeTasks = useMemo(() => tasks.filter(t => ["EN_LIMPIEZA", "EN_ATENCION"].includes(t.status)).sort((a, b) => taskRank(a) - taskRank(b)), [data]);
   const finishedTasks = useMemo(() => tasks.filter(t => t.status === "FINALIZADA"), [data]);
   const evidenceTasks = useMemo(() => tasks.filter(t => t.evidences && t.evidences.length > 0), [data]);
   const incidents = useMemo(() => tasks.filter(t => t.operationalReports && t.operationalReports.length > 0), [data]);
@@ -91,10 +91,10 @@ export function CleaningPage({ view = "ALERTAS" }) {
       {pendingFinish ? (
         <ConfirmDialog
           title="Evidencia requerida"
-          description={pendingFinish.requestId ? `La solicitud de la habitación ${roomNumber(pendingFinish)} aún no tiene evidencia. Puedes finalizarla si no corresponde a una salida.` : `Antes de liberar la habitación ${roomNumber(pendingFinish)}, registra evidencia de entrada y de salida.`}
-          confirmLabel={pendingFinish.requestId ? "Finalizar de todos modos" : "Ir a Registrar"}
+          description={isGuestRequest(pendingFinish) ? `La solicitud de la habitación ${roomNumber(pendingFinish)} requiere una foto y un comentario antes de finalizar.` : `Antes de liberar la habitación ${roomNumber(pendingFinish)}, registra evidencia de entrada y de salida.`}
+          confirmLabel="Ir a registrar"
           onCancel={() => setPendingFinish(null)}
-          onConfirm={() => pendingFinish.requestId ? finishTask(pendingFinish) : setPendingFinish(null)}
+          onConfirm={() => { setModal({ type: "evidence", task: pendingFinish }); setPendingFinish(null); }}
         />
       ) : null}
     </div>
@@ -117,7 +117,7 @@ function DashboardTab({ pending, finished, incidents, maintenanceReports }) {
             <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${nextTask ? "bg-blue-600" : "bg-park-green"}`}><ClipboardCheck size={21}/></span>
             <div>
               <p className="text-xs font-black uppercase tracking-wide text-park-muted">Tu siguiente acción</p>
-              <h3 className="font-black text-park-dark">{nextTask ? `${nextTask.status === "EN_LIMPIEZA" ? "Continúa" : "Atiende"} la habitación ${roomNumber(nextTask)}` : "No tienes habitaciones pendientes"}</h3>
+              <h3 className="font-black text-park-dark">{nextTask ? `${["EN_LIMPIEZA", "EN_ATENCION"].includes(nextTask.status) ? "Continúa" : "Atiende"} la habitación ${roomNumber(nextTask)}` : "No tienes habitaciones pendientes"}</h3>
               <p className="mt-1 text-sm text-park-muted">{nextTask ? `${taskKind(nextTask)} · ${nextTask.priority || "Prioridad media"}. Registra evidencia antes de liberarla.` : "La jornada está al día. Puedes revisar evidencias o las novedades reportadas."}</p>
             </div>
           </div>
@@ -217,13 +217,13 @@ function TaskList({ tasks, search, setSearch, startTask, finishTask, canCreate, 
               )}
 
               <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-park-border/50">
-                {canEdit && task.status === "PENDIENTE" && !task.requiresReceptionAcceptance && <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ Iniciar Limpieza</Button>}
+                {canEdit && task.status === "PENDIENTE" && !task.requiresReceptionAcceptance && <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ {isGuestRequest(task) ? "Atender solicitud" : "Iniciar limpieza"}</Button>}
                 {canEdit && task.status === "PENDIENTE" && task.requiresReceptionAcceptance && !task.receptionAcceptedAt ? <Button className="w-full sm:w-auto text-lg py-3" disabled>Esperando confirmación</Button> : null}
-                {canEdit && task.status === "PENDIENTE" && task.requiresReceptionAcceptance && task.receptionAcceptedAt ? <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ Iniciar Limpieza</Button> : null}
+                {canEdit && task.status === "PENDIENTE" && task.requiresReceptionAcceptance && task.receptionAcceptedAt ? <Button className="w-full sm:w-auto text-lg py-3" onClick={() => startTask(task)}>▶ {isGuestRequest(task) ? "Atender solicitud" : "Iniciar limpieza"}</Button> : null}
                 
-                {task.status !== "PENDIENTE" && !isFinishedView && canCreate && <Button type="button" variant="secondary" icon={Camera} onClick={() => setModal({ type: "evidence", task })}>Registrar evidencias</Button>}
+                {task.status !== "PENDIENTE" && !isFinishedView && canCreate && <Button type="button" variant="secondary" icon={Camera} onClick={() => setModal({ type: "evidence", task })}>{isGuestRequest(task) ? "Registrar evidencia" : "Registrar evidencias"}</Button>}
                 
-                {canEdit && task.status === "EN_LIMPIEZA" && <Button type="button" variant="gold" onClick={() => canReleaseRoom(task) ? finishTask(task) : setPendingFinish(task)} className="w-full sm:w-auto py-3">✓ Finalizar</Button>}
+                {canEdit && ["EN_LIMPIEZA", "EN_ATENCION"].includes(task.status) && <Button type="button" variant="gold" onClick={() => canReleaseRoom(task) ? finishTask(task) : setPendingFinish(task)} className="w-full sm:w-auto py-3">✓ Finalizar</Button>}
                 
                 {isFinishedView && <Button type="button" variant="secondary" icon={Eye} onClick={() => setSelected(task)}>Ver reporte completo</Button>}
               </div>
@@ -293,11 +293,12 @@ function StateTile({ label, value, ok }) {
   );
 }
 
-function taskKind(task) { return task.requestId ? "Solicitud de huésped" : "Limpieza de check-out/rutina"; }
+function taskKind(task) { return isGuestRequest(task) ? "Solicitud de huésped" : "Limpieza post check-out"; }
+function isGuestRequest(task) { return Boolean(task?.requestId) && task?.workflowType !== "POST_CHECKOUT"; }
 function roomNumber(task) { return task?.room?.number || task?.roomId || "sin asignar"; }
 function taskRank(task) {
   const priority = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
-  const status = task.status === "EN_LIMPIEZA" ? 0 : task.status === "PENDIENTE" ? 1 : 2;
+  const status = ["EN_LIMPIEZA", "EN_ATENCION"].includes(task.status) ? 0 : task.status === "PENDIENTE" ? 1 : 2;
   return status * 10 + (priority[task.priority] ?? 4);
 }
 const cleaningAreas = ["BAÑO", "CUARTO", "REFRI / DESPENSA"];
@@ -315,7 +316,7 @@ function pendingEvidenceStage(evidences = []) {
 function hasRequiredCleaningEvidence(evidences = []) {
   return cleaningAreas.every((area) => ["ENTRADA", "SALIDA"].every((stage) => evidences.some((item) => evidenceArea(item) === area && evidenceStage(item) === stage)));
 }
-function canReleaseRoom(task) { return hasRequiredCleaningEvidence(task.evidences); }
+function canReleaseRoom(task) { return isGuestRequest(task) ? task.evidences?.some((item) => String(item?.description || "").trim() && (item.fileUrl || item.imageUrl)) : hasRequiredCleaningEvidence(task.evidences); }
 
 function ReviewDetail({ task, onClose }) {
   const groups = splitEvidence(task.evidences);
@@ -379,8 +380,10 @@ function InfoRow({ label, value }) {
 }
 
 function EvidenceModal({ task, onClose, onReport, onSaved }) {
+  const guestRequest = isGuestRequest(task);
   const [area, setArea] = useState("BAÑO");
   const [drafts, setDrafts] = useState(() => Object.fromEntries(cleaningAreas.map((item) => [item, { files: [], description: "" }])));
+  const [guestDraft, setGuestDraft] = useState({ files: [], description: "" });
   const [busy, setBusy] = useState(false);
   const stage = pendingEvidenceStage(task.evidences);
   const areaPhotos = task.evidences.filter((item) => evidenceArea(item) === area);
@@ -394,9 +397,15 @@ function EvidenceModal({ task, onClose, onReport, onSaved }) {
 
   async function submit(event) {
     event.preventDefault();
-    if (!stage) return;
     setBusy(true);
     try {
+      if (guestRequest) {
+        const uploaded = await uploadImages(guestDraft.files);
+        await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", body: { description: guestDraft.description.trim(), files: uploaded } });
+        onSaved();
+        return;
+      }
+      if (!stage) return;
       for (const areaName of pendingAreas) {
         const draft = drafts[areaName];
         const uploaded = await uploadImages(draft.files);
@@ -411,8 +420,15 @@ function EvidenceModal({ task, onClose, onReport, onSaved }) {
   }
 
   return (
-    <Modal title={`Evidencias · Habitación ${roomNumber(task)}`} onClose={onClose}>
+    <Modal title={`${guestRequest ? "Evidencia de solicitud" : "Evidencias"} · Habitación ${roomNumber(task)}`} onClose={onClose}>
       <form className="space-y-4" onSubmit={submit}>
+        {guestRequest ? <>
+          <div className="rounded-card border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"><strong>Solicitud del huésped</strong><p className="mt-1 text-xs">Registra una foto y un comentario que demuestren que se atendió únicamente lo solicitado.</p></div>
+          <p className="rounded-card bg-park-bg p-3 text-sm text-park-dark"><strong>Pedido:</strong> {task.description || task.serviceType || "Solicitud de habitación"}</p>
+          <ImagePicker files={guestDraft.files} setFiles={(files) => setGuestDraft((current) => ({ ...current, files }))} />
+          <textarea className="min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Describe qué se entregó o realizó..." value={guestDraft.description} onChange={(event) => setGuestDraft((current) => ({ ...current, description: event.target.value }))} required />
+          <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button disabled={busy || !guestDraft.files.length || !guestDraft.description.trim()} loading={busy}>Guardar evidencia</Button></div>
+        </> : <>
         <label className="block text-sm font-black text-park-dark">Área fotografiada
           <select className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 font-normal" value={area} onChange={(event) => setArea(event.target.value)}>
             <option value="BAÑO">Baño</option>
@@ -424,6 +440,7 @@ function EvidenceModal({ task, onClose, onReport, onSaved }) {
         {stage ? <div className="grid grid-cols-3 gap-2">{cleaningAreas.map((areaName) => <button className={`rounded-card border p-2 text-left text-xs font-black ${area === areaName ? "border-park-green bg-park-green-soft text-park-dark" : drafts[areaName].files.length && drafts[areaName].description.trim() ? "border-blue-200 bg-blue-50 text-blue-800" : "border-park-border bg-white text-park-muted"}`} key={areaName} onClick={() => setArea(areaName)} type="button"><span className="block">{areaName}</span><span className="mt-1 block text-[10px] font-semibold">{task.evidences.some((item) => evidenceArea(item) === areaName && evidenceStage(item) === stage) ? "Guardada" : drafts[areaName].files.length ? "Lista para guardar" : "Pendiente"}</span></button>)}</div> : null}
         {areaPhotos.length ? <div className="grid grid-cols-3 gap-2">{areaPhotos.map((photo) => <ExpandableImage alt={`${area} ${evidenceStage(photo)}`} className="aspect-video w-full rounded-card border border-park-border object-cover" key={photo.id} src={`${API_ROOT}${photo.imageUrl || photo.fileUrl}`} />)}</div> : null}
         {stage ? <><ImagePicker files={currentDraft.files} setFiles={(files) => updateDraft(area, { files })} /><textarea className="min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder={`Comentario sobre ${area.toLowerCase()}...`} value={currentDraft.description} onChange={(event) => updateDraft(area, { description: event.target.value })} /><p className="text-xs font-semibold text-park-muted">Añade fotos y comentario en cada área antes de guardar el lote.</p><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>{stage === "ENTRADA" ? <Button type="button" variant="danger" icon={FileWarning} onClick={() => onReport(area)}>Reportar incidencia</Button> : null}<Button disabled={busy || !readyToSave} loading={busy}>{stage === "ENTRADA" ? "Guardar entrada" : "Guardar salida"}</Button></div></> : <div className="flex justify-end"><Button type="button" variant="secondary" onClick={onClose}>Cerrar</Button></div>}
+        </>}
       </form>
     </Modal>
   );

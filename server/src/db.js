@@ -381,6 +381,17 @@ function upgradeState(state) {
   }
   if (!state.events.length && client) state.events.push({ id: 1, code: "EVT-0001", clientId: client.id, client, name: "Aniversario familiar", type: "CELEBRACION", spaceId: 1, space: { id: 1, name: "Terraza", capacity: 80 }, startsAt: `${tomorrow}T18:00:00`, endsAt: `${tomorrow}T23:00:00`, guests: 45, price: 2400, advance: 1200, balance: 1200, status: "RESERVADO", notes: "Menu regional", createdAt: isoNow });
   state.orders.forEach((order) => { if (order.status === "RECIBIDO") order.status = "PENDIENTE"; order.items ||= []; });
+  state.tasks.forEach((task) => {
+    if (task.requestId && !task.workflowType) task.workflowType = "SOLICITUD_HUESPED";
+    if (!task.requestId && !task.workflowType) task.workflowType = "POST_CHECKOUT";
+  });
+  state.requests.forEach((request) => {
+    if (!request.requiresMaintenance) return;
+    if (request.status === "ABIERTO") request.status = "PENDIENTE";
+    if (request.status === "EN_REVISION") request.status = "EN_REPARACION";
+    if (request.status === "RESUELTO") request.status = "SOLUCIONADO";
+    request.workflowType ||= request.clientId ? "SOLICITUD_HUESPED" : "REPORTE_OPERATIVO";
+  });
   state.rooms.forEach((room) => {
     // LIBRE es el único estado canónico para una habitación limpia y preparada.
     if (["LIMPIA", "DISPONIBLE", "LIBRE"].includes(room.status)) room.status = "LIBRE";

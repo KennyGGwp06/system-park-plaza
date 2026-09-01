@@ -42,11 +42,11 @@ export function AdminMaintenancePage({ view = "resumen" }) {
 }
 
 function MaintenanceWorkspace({ reports, inspected, onInspect, onManage }) {
-  const [tab, setTab] = useState("ABIERTO");
-  const open = reports.filter((report) => report.status === "ABIERTO");
-  const active = reports.filter((report) => report.status === "EN_REVISION");
-  const closed = reports.filter((report) => report.status === "RESUELTO");
-  const tabs = [["ABIERTO", "Alerta", open], ["EN_REVISION", "Atención", active], ["RESUELTO", "Historial", closed]];
+  const [tab, setTab] = useState("PENDIENTE");
+  const open = reports.filter((report) => report.status === "PENDIENTE");
+  const active = reports.filter((report) => report.status === "EN_REPARACION");
+  const closed = reports.filter((report) => report.status === "SOLUCIONADO");
+  const tabs = [["PENDIENTE", "Alerta", open], ["EN_REPARACION", "En reparación", active], ["SOLUCIONADO", "Historial", closed]];
   const rows = (tabs.find(([key]) => key === tab)?.[2] || []).slice(0, 12);
   const detail = inspected || rows[0] || reports[0] || null;
   const metrics = [[AlertTriangle, "Alerta", open.length, "bg-amber-50 text-amber-700"], [Wrench, "Atención", active.length, "bg-blue-50 text-blue-700"], [CheckCircle2, "Historial", closed.length, "bg-park-green-soft text-park-green"]];
@@ -62,10 +62,10 @@ function MaintenanceLine({ label, value }) { return <div className="flex items-c
 
 function Metrics({ reports }) {
   const values = [
-    [AlertTriangle, "Abiertas", reports.filter((r) => r.status === "ABIERTO").length, "text-park-danger bg-red-50"],
-    [Wrench, "En seguimiento", reports.filter((r) => r.status === "EN_REVISION").length, "text-blue-700 bg-blue-50"],
-    [CheckCircle2, "Cerradas", reports.filter((r) => r.status === "RESUELTO").length, "text-park-green bg-park-green-soft"],
-    [Clock3, "Visitas programadas", reports.filter((r) => r.visitDate && r.status !== "RESUELTO").length, "text-park-gold bg-park-gold-soft"]
+    [AlertTriangle, "Pendientes", reports.filter((r) => r.status === "PENDIENTE").length, "text-park-danger bg-red-50"],
+    [Wrench, "En reparación", reports.filter((r) => r.status === "EN_REPARACION").length, "text-blue-700 bg-blue-50"],
+    [CheckCircle2, "Solucionadas", reports.filter((r) => r.status === "SOLUCIONADO").length, "text-park-green bg-park-green-soft"],
+    [Clock3, "Visitas programadas", reports.filter((r) => r.visitDate && r.status !== "SOLUCIONADO").length, "text-park-gold bg-park-gold-soft"]
   ];
   return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{values.map(([Icon, label, value, tone]) => <article className="rounded-card border border-park-border bg-white p-4 shadow-card" key={label}><span className={`grid h-10 w-10 place-items-center rounded-button ${tone}`}><Icon size={19}/></span><p className="mt-3 text-sm font-semibold text-park-muted">{label}</p><strong className="font-display text-3xl text-park-dark">{value}</strong></article>)}</section>;
 }
@@ -87,7 +87,6 @@ function IncidentDetail({ report, employees, onClose, onSaved }) {
       if (draft.assignedMaintenanceEmployeeId && Number(draft.assignedMaintenanceEmployeeId) !== Number(report.assignedMaintenanceEmployeeId)) {
         await api(`/reception/reports/${report.id}/assign-maintenance`, { method: "PATCH", body: { employeeId: Number(draft.assignedMaintenanceEmployeeId) } });
       }
-      await api(`/reports/${report.id}/status`, { method: "PATCH", body: { ...draft, estimatedCost: Number(draft.estimatedCost || 0), status } });
       await onSaved();
     } finally {
       setBusy(false);
@@ -119,7 +118,7 @@ function IncidentDetail({ report, employees, onClose, onSaved }) {
               </div>
             </section>
             
-            {report.status !== "RESUELTO" && (
+            {report.status !== "SOLUCIONADO" && (
               <section className="rounded-card border border-park-border bg-white p-3.5">
                 <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
                 <label className="block text-sm font-black text-park-black">Cuenta de Mantenimiento
@@ -134,16 +133,15 @@ function IncidentDetail({ report, employees, onClose, onSaved }) {
                 </div>
                 <div className="mt-3 flex flex-col gap-2">
                   <Button className="w-full" disabled={busy || !draft.assignedMaintenanceEmployeeId} onClick={() => save(report.status)} type="button" variant="secondary">{report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? "Aceptar y enviar a Mantenimiento" : "Actualizar responsable"}</Button>
-                  {report.status === "EN_REVISION" ? <Button className="w-full" disabled={busy} onClick={() => save("RESUELTO")} type="button">Marcar como resuelta</Button> : null}
                 </div>
               </section>
             )}
             
-            {report.status === "RESUELTO" && (
+            {report.status === "SOLUCIONADO" && (
               <section className="rounded-card border border-park-border bg-white p-3.5">
                 <p className="rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Incidencia resuelta. Trabajo finalizado.</p>
                 <div className="mt-3 flex justify-end">
-                  <Button disabled={busy} onClick={() => save("RESUELTO")} type="button" variant="secondary">Guardar cambios extra</Button>
+                  <Button disabled={busy} onClick={() => save()} type="button" variant="secondary">Actualizar responsable</Button>
                 </div>
               </section>
             )}
@@ -209,5 +207,5 @@ function MaintenanceEvidencePreview({ evidence, onClose }) {
 function CompactDetailRow({ label, value }) { return <div className="flex items-center justify-between py-2.5 text-sm"><span className="text-park-muted">{label}</span><strong className="text-park-dark text-right max-w-[150px]">{value}</strong></div>; }
 
 function Modal({ title, subtitle, onClose, children }) { return <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}><section className="mx-auto max-h-full max-w-2xl overflow-auto rounded-card bg-white p-6 shadow-drawer"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="font-display text-2xl font-semibold text-park-dark">{title}</h2><p className="mt-1 text-sm text-park-muted">{subtitle}</p></div><button className="grid h-9 w-9 place-items-center rounded-button border border-park-border hover:bg-slate-100" onClick={onClose} type="button"><X size={18}/></button></div>{children}</section></div>; }
-function filterReports(view, reports) { if (view === "solicitudes") return reports.filter((r) => r.status === "ABIERTO"); if (view === "reparacion") return reports.filter((r) => r.status === "EN_REVISION"); if (view === "finalizados") return reports.filter((r) => r.status === "RESUELTO"); return reports; }
+function filterReports(view, reports) { if (view === "solicitudes") return reports.filter((r) => r.status === "PENDIENTE"); if (view === "reparacion") return reports.filter((r) => r.status === "EN_REPARACION"); if (view === "finalizados") return reports.filter((r) => r.status === "SOLUCIONADO"); return reports; }
 function pageTitle(view) { return ({ resumen: "Incidencias y soporte externo", solicitudes: "Incidencias abiertas", reparacion: "Incidencias en seguimiento", finalizados: "Incidencias cerradas" })[view] || "Incidencias y soporte externo"; }
