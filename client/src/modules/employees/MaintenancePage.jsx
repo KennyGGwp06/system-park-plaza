@@ -32,9 +32,9 @@ export function MaintenancePage({ view = "pendientes" }) {
   async function changeStatus(report, status, payload = {}) {
     setError("");
     try {
-      const endpoint = status === "EN_REPARACION" ? `/maintenance/reports/${report.id}/start` : `/maintenance/reports/${report.id}/finish`;
+      const endpoint = status === "EN_REVISION" ? `/maintenance/reports/${report.id}/start` : `/maintenance/reports/${report.id}/finish`;
       await api(endpoint, { method: "PATCH", body: payload });
-      setToast(status === "EN_REPARACION" ? "Reparación iniciada." : "Problema solucionado.");
+      setToast(status === "EN_REVISION" ? "Reparación iniciada." : "Problema solucionado.");
       await reload();
       setSelected(null);
       setFinalizing(null);
@@ -115,15 +115,34 @@ function WorkGrid({ canCreate, canEdit, reports, onEvidence, onFinish, onSelect,
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <InfoTile label="Origen" value={report.area} />
             <InfoTile label="Tipo" value={report.type?.replaceAll("_", " ")} />
-            <InfoTile label="Reportado por" value={report.reportedBy ? `${report.reportedBy.firstName} ${report.reportedBy.lastName}` : "No registrado"} />
-            <InfoTile label="Estado" value={<StatusBadge value={report.status} />} />
+        <article className="rounded-card border border-park-border bg-white shadow-card overflow-hidden" key={report.id}>
+          <div className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase text-park-muted">{report.code}</p>
+                <h3 className="mt-1 font-black text-park-black">{report.description}</h3>
+                <p className="mt-1 text-sm font-semibold text-park-muted">{locationLabel(report)}</p>
+              </div>
+              <StatusBadge value={report.status} />
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <InfoTile label="Origen" value={report.area} />
+              <InfoTile label="Tipo" value={report.type?.replaceAll("_", " ")} />
+              <InfoTile label="Reportado por" value={report.reportedBy ? `${report.reportedBy.firstName} ${report.reportedBy.lastName}` : "No registrado"} />
+              <InfoTile label="Estado" value={report.status} />
+            </div>
           </div>
-          <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <Button icon={Eye} onClick={() => onSelect(report)} size="sm" type="button" variant="secondary">Ver detalle</Button>
-            {canEdit && report.status === "PENDIENTE" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} size="sm" type="button">Esperando confirmación</Button> : null}
-            {canEdit && report.status === "PENDIENTE" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REPARACION")} size="sm" type="button">Atender</Button> : null}
-            {canCreate && report.status === "EN_REPARACION" ? <Button icon={Camera} onClick={() => onEvidence(report)} size="sm" type="button" variant="secondary">Registrar evidencia</Button> : null}
-            {canEdit && report.status === "EN_REPARACION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} size="sm" type="button" variant="gold">Finalizar reparación</Button> : null}
+          <div className="flex items-center gap-2 border-t border-park-border bg-slate-50 p-3">
+            {report.status === "ABIERTO" ? (
+              <Button className="w-full" disabled={!canEdit} onClick={() => onStatus(report, "EN_REVISION")} type="button">Empezar trabajo</Button>
+            ) : report.status === "EN_REVISION" ? (
+              <>
+                <Button className="flex-1" disabled={!canEdit} onClick={() => onFinish(report)} type="button">Finalizar</Button>
+                <button aria-label="Añadir evidencia" className="grid h-10 w-10 shrink-0 place-items-center rounded-button bg-slate-200 text-park-dark transition-colors hover:bg-slate-300 disabled:opacity-50" disabled={!canEdit} onClick={() => onEvidence(report)} type="button"><Camera size={18} /></button>
+              </>
+            ) : (
+              <Button className="w-full" disabled={!canEdit} onClick={() => onSelect(report)} type="button" variant="secondary">Revisar detalle</Button>
+            )}
           </div>
         </article>
       ))}
@@ -182,10 +201,10 @@ function MaintenanceDetail({ canCreate, canEdit, report, onClose, onEvidence, on
           {historyFor(report).map((item) => <div className="flex gap-3 pb-3 last:pb-0" key={item}><span className="mt-1 h-2.5 w-2.5 rounded-full bg-park-green" /><p className="text-sm font-semibold text-park-black">{item}</p></div>)}
         </Panel>
         <div className="mt-5 flex justify-end gap-2">
-          {canEdit && report.status === "PENDIENTE" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} type="button">Esperando confirmación</Button> : null}
-          {canEdit && report.status === "PENDIENTE" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REPARACION")} type="button">Atender</Button> : null}
-          {canCreate && report.status === "EN_REPARACION" ? <Button icon={Camera} onClick={() => onEvidence(report)} type="button">Registrar evidencia</Button> : null}
-          {canEdit && report.status === "EN_REPARACION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} type="button" variant="gold">Finalizar reparación</Button> : null}
+          {canEdit && report.status === "ABIERTO" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} type="button">Esperando confirmación</Button> : null}
+          {canEdit && report.status === "ABIERTO" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} type="button">Atender</Button> : null}
+          {canCreate && report.status === "EN_REVISION" ? <Button icon={Camera} onClick={() => onEvidence(report)} type="button">Registrar evidencia</Button> : null}
+          {canEdit && report.status === "EN_REVISION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} type="button" variant="gold">Finalizar reparación</Button> : null}
         </div>
       </aside>
     </div>
@@ -222,7 +241,13 @@ function EvidenceModal({ report, onClose, onSaved }) {
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <form className="w-full max-w-lg rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}>
         <div className="flex items-start justify-between gap-4">
-          <div><p className="font-sans text-xl font-black text-park-black">Evidencia {stage === "ANTES" ? "del problema" : "del resultado"}</p><p className="text-sm text-park-muted">{report.code} · Foto {stage.toLowerCase()} de la reparación</p></div>
+          <div>
+            <p className="font-sans text-xl font-black text-park-black">Evidencia {stage === "ANTES" ? "del problema" : "del resultado"}</p>
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-black uppercase tracking-wider ${report.status === "RESUELTO" ? "bg-park-green-soft text-park-green" : report.status === "EN_REVISION" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-800"}`}>{report.status === "ABIERTO" ? "Pendiente" : report.status === "EN_REVISION" ? "Atendiendo" : "Cerrado"}</span>
+              <span className={`inline-flex items-center gap-1 text-xs font-bold ${report.priority === "ALTA" ? "text-park-danger" : report.priority === "MEDIA" ? "text-amber-600" : "text-park-muted"}`}>{report.priority}</span>
+            </div>
+          </div>
           <button className="grid h-9 w-9 place-items-center rounded-button border border-park-border text-park-muted hover:text-park-black" onClick={onClose} type="button"><X size={18} /></button>
         </div>
         <div className="mt-5 space-y-4">
@@ -261,7 +286,7 @@ function FinishModal({ report, onClose, onEvidence, onFinish }) {
     if (!form.workDescription.trim()) return;
     setSubmitting(true);
     try {
-      await onFinish(report, "SOLUCIONADO", { ...form, problemSolved: true });
+      await onFinish(report, "RESUELTO", { ...form, problemSolved: true });
     } catch (e) {
       alert("Error: " + e.message);
     } finally {
@@ -335,9 +360,9 @@ function Thumb({ evidence }) {
 
 function filterReports(view, reports, user) {
   const currentUserId = user?.id;
-  if (view === "pendientes") return reports.filter((report) => report.status === "PENDIENTE" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)));
-  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REPARACION" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.assignedToId || Number(report.assignedToId) === Number(currentUserId)));
-  if (view === "finalizados") return reports.filter((report) => report.status === "SOLUCIONADO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.resolvedById || Number(report.resolvedById) === Number(currentUserId)));
+  if (view === "pendientes") return reports.filter((report) => report.status === "ABIERTO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)));
+  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REVISION" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.assignedToId || Number(report.assignedToId) === Number(currentUserId)));
+  if (view === "finalizados") return reports.filter((report) => report.status === "RESUELTO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.resolvedById || Number(report.resolvedById) === Number(currentUserId)));
   if (view === "evidencias") return reports.filter((report) => report.evidences?.length);
   return reports;
 }
@@ -364,9 +389,9 @@ function locationLabel(report) {
 
 function historyFor(report) {
   const steps = ["Reportado"];
-  if (["EN_REPARACION", "SOLUCIONADO"].includes(report.status)) steps.push("Reparación iniciada");
+  if (["EN_REVISION", "RESUELTO"].includes(report.status)) steps.push("Reparación iniciada");
   if (report.evidences?.length) steps.push("Evidencia agregada");
-  if (report.status === "SOLUCIONADO") steps.push("Problema solucionado");
+  if (report.status === "RESUELTO") steps.push("Problema solucionado");
   return steps;
 }
 
