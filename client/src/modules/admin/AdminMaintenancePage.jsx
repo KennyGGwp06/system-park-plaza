@@ -18,10 +18,14 @@ export function AdminMaintenancePage({ view = "resumen" }) {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState("");
-  const reports = useMemo(() => (data?.reports || []).filter((item) => item.requiresMaintenance), [data]);
+  // Maintenance records have legacy aliases in existing data. Normalize them at
+  // the boundary so the reception dashboard and worker station share one flow.
+  const reports = useMemo(() => (data?.reports || [])
+    .filter((item) => item.requiresMaintenance)
+    .map((item) => ({ ...item, status: maintenanceStatus(item.status) })), [data]);
   const employees = Array.isArray(employeesData) ? employeesData : [];
   const visible = useMemo(() => filterReports(view, reports), [reports, view]);
-  const pendingCustomerReports = reports.filter((item) => item.requiresReceptionAcceptance && !item.receptionAcceptedAt);
+  const pendingReceptionReports = reports.filter((item) => item.requiresReceptionAcceptance && !item.receptionAcceptedAt);
 
   async function createIncident(event) {
     event.preventDefault();
@@ -34,7 +38,7 @@ export function AdminMaintenancePage({ view = "resumen" }) {
   return <div className="space-y-5">
     <PageHeader eyebrow="Operación / Mantenimiento" title={pageTitle(view)} description="Registra el problema, asígnalo al equipo de mantenimiento y conserva la trazabilidad hasta su cierre." actions={<Button icon={Plus} onClick={() => setCreating(true)}>Nueva incidencia</Button>} />
     {message ? <div className="rounded-card border border-park-green/20 bg-park-green-soft p-3 text-sm font-semibold text-park-green">{message}</div> : null}
-    {pendingCustomerReports.length ? <section className="flex flex-col gap-3 border border-amber-300 bg-amber-50 p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-button bg-amber-500 text-white"><AlertTriangle size={20} /></span><div><p className="text-xs font-black uppercase tracking-wide text-amber-800">Solicitud de huésped</p><h2 className="font-black text-park-dark">{pendingCustomerReports.length} {pendingCustomerReports.length === 1 ? "reparación espera" : "reparaciones esperan"} aceptación de Recepción</h2><p className="text-sm text-park-muted">El técnico asignado ya puede ver la alerta. Confirma el responsable para habilitar el trabajo.</p></div></div><Button onClick={() => setSelected(pendingCustomerReports[0])} type="button">Revisar y aceptar</Button></section> : null}
+    {pendingReceptionReports.length ? <ReceptionValidationAlert reports={pendingReceptionReports} onReview={() => setSelected(pendingReceptionReports[0])} /> : null}
     <MaintenanceWorkspace reports={reports} inspected={inspected} onInspect={setInspected} onManage={setSelected} />
     {creating ? <IncidentForm form={form} setForm={setForm} onClose={() => setCreating(false)} onSubmit={createIncident}/> : null}
     {selected ? <IncidentDetail employees={employees} report={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); setMessage("Seguimiento actualizado correctamente."); await reload(); }}/>: null}
@@ -42,30 +46,39 @@ export function AdminMaintenancePage({ view = "resumen" }) {
 }
 
 function MaintenanceWorkspace({ reports, inspected, onInspect, onManage }) {
-  const [tab, setTab] = useState("ABIERTO");
-  const open = reports.filter((report) => report.status === "ABIERTO");
-  const active = reports.filter((report) => report.status === "EN_REVISION");
-  const closed = reports.filter((report) => report.status === "RESUELTO");
-  const tabs = [["ABIERTO", "Alerta", open], ["EN_REVISION", "En reparación", active], ["RESUELTO", "Historial", closed]];
+  const [tab, setTab] = useState("PENDIENTE");
+  const open = reports.filter((report) => report.status === "PENDIENTE");
+  const active = reports.filter((report) => report.status === "EN_REPARACION");
+  const closed = reports.filter((report) => report.status === "SOLUCIONADO");
+  const tabs = [["PENDIENTE", "Alerta", open], ["EN_REPARACION", "En reparación", active], ["SOLUCIONADO", "Historial", closed]];
   const rows = (tabs.find(([key]) => key === tab)?.[2] || []).slice(0, 12);
   const detail = inspected || rows[0] || reports[0] || null;
   const metrics = [[AlertTriangle, "Alerta", open.length, "bg-amber-50 text-amber-700"], [Wrench, "Atención", active.length, "bg-blue-50 text-blue-700"], [CheckCircle2, "Historial", closed.length, "bg-park-green-soft text-park-green"]];
-  return <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]"><div className="min-w-0 space-y-5"><section className="grid gap-4 sm:grid-cols-3">{metrics.map(([Icon, label, value, tone]) => <article className="border border-park-border bg-white p-5 shadow-card" key={label}><span className={`grid h-11 w-11 place-items-center rounded-button ${tone}`}><Icon size={20}/></span><p className="mt-4 text-sm font-semibold text-park-muted">{label}</p><strong className="font-display text-3xl text-park-dark">{value}</strong><p className="text-xs text-park-muted">Reportes</p></article>)}</section><section className="border border-park-border bg-white shadow-card"><div className="flex overflow-x-auto border-b border-park-border">{tabs.map(([key, label, items]) => <button className={`min-w-max border-b-2 px-5 py-4 text-sm font-black ${tab === key ? "border-park-green text-park-green" : "border-transparent text-park-muted hover:text-park-dark"}`} key={key} onClick={() => setTab(key)} type="button">{label} ({items.length})</button>)}</div><div className="p-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-xl font-semibold text-park-dark">{tabs.find(([key]) => key === tab)?.[1]}</h2><p className="text-sm text-park-muted">Coordina el trabajo técnico y conserva el historial de cada intervención.</p></div><input className="h-10 w-full max-w-56 rounded-input border border-park-border px-3 text-sm outline-none focus:border-park-green" placeholder="Buscar ubicación..." /></div>{rows.length ? <div className="overflow-x-auto border border-park-border"><table className="min-w-[760px] w-full text-left text-sm"><thead className="bg-park-bg text-xs uppercase text-park-muted"><tr><th className="px-4 py-3">Ubicación</th><th>Trabajo requerido</th><th>Responsable</th><th>Prioridad</th><th>Estado</th><th>Programado</th><th></th></tr></thead><tbody className="divide-y divide-park-border">{rows.map((report) => <tr className="cursor-pointer hover:bg-park-green-soft/30" key={report.id} onClick={() => onInspect(report)}><td className="px-4 py-4 font-black text-park-green">{report.location || report.area}</td><td className="max-w-[240px]">{report.description}</td><td>{report.assignedMaintenanceTo || report.contractorName || "Sin asignar"}</td><td><StatusBadge value={report.priority}/></td><td><StatusBadge value={report.status}/></td><td>{report.visitDate ? new Date(`${report.visitDate}T12:00:00`).toLocaleDateString("es-PE") : "Sin fecha"}</td><td className="pr-4"><Button icon={Eye} onClick={(event) => { event.stopPropagation(); onManage(report); }} size="sm" type="button" variant="secondary">Ver detalle</Button></td></tr>)}</tbody></table></div> : <EmptyState title="Sin reportes en este estado" description="Los nuevos reportes aparecerán aquí automáticamente." />}</div></section></div><MaintenanceInspector report={detail} onManage={onManage}/></section>;
+  return <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]"><div className="min-w-0 space-y-5"><section className="grid gap-4 sm:grid-cols-3">{metrics.map(([Icon, label, value, tone]) => <article className="border border-park-border bg-white p-5 shadow-card" key={label}><span className={`grid h-11 w-11 place-items-center rounded-button ${tone}`}><Icon size={20}/></span><p className="mt-4 text-sm font-semibold text-park-muted">{label}</p><strong className="font-display text-3xl text-park-dark">{value}</strong><p className="text-xs text-park-muted">Reportes</p></article>)}</section><section className="border border-park-border bg-white shadow-card"><div className="flex overflow-x-auto border-b border-park-border">{tabs.map(([key, label, items]) => <button className={`min-w-max border-b-2 px-5 py-4 text-sm font-black ${tab === key ? "border-park-green text-park-green" : "border-transparent text-park-muted hover:text-park-dark"}`} key={key} onClick={() => setTab(key)} type="button">{label} ({items.length})</button>)}</div><div className="p-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-xl font-semibold text-park-dark">{tabs.find(([key]) => key === tab)?.[1]}</h2><p className="text-sm text-park-muted">Coordina el trabajo técnico y conserva el historial de cada intervención.</p></div><input className="h-10 w-full max-w-56 rounded-input border border-park-border px-3 text-sm outline-none focus:border-park-green" placeholder="Buscar ubicación..." /></div>{rows.length ? <div className="overflow-x-auto border border-park-border"><table className="min-w-[880px] w-full text-left text-sm"><thead className="bg-park-bg text-xs uppercase text-park-muted"><tr><th className="px-4 py-3">Ubicación</th><th>Trabajo requerido</th><th>Reportado por</th><th>Responsable</th><th>Prioridad</th><th>Estado</th><th></th></tr></thead><tbody className="divide-y divide-park-border">{rows.map((report) => <tr className="cursor-pointer hover:bg-park-green-soft/30" key={report.id} onClick={() => onInspect(report)}><td className="px-4 py-4 font-black text-park-green">{report.location || report.area}</td><td className="max-w-[240px]">{report.description}</td><td>{reporterLabel(report)}</td><td>{report.assignedMaintenanceTo || report.contractorName || "Sin asignar"}</td><td><StatusBadge value={report.priority}/></td><td><StatusBadge value={report.status}/></td><td className="pr-4"><Button icon={Eye} onClick={(event) => { event.stopPropagation(); onManage(report); }} size="sm" type="button" variant="secondary">Ver detalle</Button></td></tr>)}</tbody></table></div> : <EmptyState title="Sin reportes en este estado" description="Los nuevos reportes aparecerán aquí automáticamente." />}</div></section></div><MaintenanceInspector report={detail} onManage={onManage}/></section>;
 }
+
+function ReceptionValidationAlert({ reports, onReview }) {
+  const report = reports[0];
+  const fromCleaning = report.reportedFrom === "LIMPIEZA";
+  return <section className="flex flex-col gap-3 border border-amber-300 bg-amber-50 p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-button bg-amber-500 text-white"><AlertTriangle size={20} /></span><div><p className="text-xs font-black uppercase tracking-wide text-amber-800">{fromCleaning ? "Alerta de Limpieza" : "Solicitud de huésped"}</p><h2 className="font-black text-park-dark">{reports.length} {reports.length === 1 ? "reporte espera" : "reportes esperan"} validación de Recepción</h2><p className="text-sm text-park-muted">{fromCleaning ? `Enviado por ${reporterLabel(report)}: ${report.description || "Sin detalle"}` : "El técnico no verá esta solicitud hasta que Recepción confirme al responsable."}</p></div></div><Button onClick={onReview} type="button">Revisar y aceptar</Button></section>;
+}
+
+function workResult(report) { return report.workDescription || (report.evidences || []).find((item) => String(item.stage || "").toUpperCase() === "DESPUES")?.description || ""; }
+function reporterLabel(report) { return report.reportedByName || (report.reportedFrom === "LIMPIEZA" ? "Personal de Limpieza" : report.clientId ? "Huésped" : "Recepción"); }
 
 function MaintenanceInspector({ report, onManage }) {
   if (!report) return <aside className="border border-park-border bg-white p-5 shadow-card"><EmptyState title="Selecciona un reporte" description="Aquí aparecerá la información del trabajo técnico." /></aside>;
-  return <aside className="h-fit border border-park-border bg-white shadow-card xl:sticky xl:top-5"><div className="flex items-start justify-between border-b border-park-border p-5"><div><p className="text-xs font-black uppercase text-park-gold">Detalle de mantenimiento</p><h2 className="font-display text-xl font-semibold text-park-dark">{report.location || report.area}</h2></div><StatusBadge value={report.status}/></div><div className="space-y-5 p-5"><div><p className="font-black text-park-dark">{report.description}</p><p className="mt-1 text-sm text-park-muted">{report.type?.replaceAll("_", " ")}</p></div><div className="grid gap-3 border-y border-park-border py-4 text-sm"><MaintenanceLine label="Responsable" value={report.assignedMaintenanceTo || report.contractorName || "Sin asignar"}/><MaintenanceLine label="Prioridad" value={report.priority}/><MaintenanceLine label="Inicio" value={report.startedAt ? new Date(report.startedAt).toLocaleString("es-PE") : "No iniciado"}/><MaintenanceLine label="Visita" value={report.visitDate ? new Date(`${report.visitDate}T12:00:00`).toLocaleDateString("es-PE") : "Sin fecha"}/></div><div><h3 className="mb-2 font-black text-park-dark">Trabajo realizado</h3><p className="text-sm text-park-muted">{report.workDescription || "Pendiente de registrar por el técnico."}</p></div><div><h3 className="mb-2 font-black text-park-dark">Evidencias ({report.evidences?.length || 0})</h3><div className="grid grid-cols-4 gap-2">{report.evidences?.slice(0, 4).map((item) => <img alt="Evidencia de mantenimiento" className="h-14 w-full border border-park-border object-cover" key={item.id} src={`${item.imageUrl || item.fileUrl}`} />)}</div>{!report.evidences?.length ? <p className="text-sm text-park-muted">Aún no se adjuntaron evidencias.</p> : null}</div><Button className="w-full" onClick={() => onManage(report)} type="button">Gestionar reporte</Button></div></aside>;
+  return <aside className="h-fit border border-park-border bg-white shadow-card xl:sticky xl:top-5"><div className="flex items-start justify-between border-b border-park-border p-5"><div><p className="text-xs font-black uppercase text-park-gold">Detalle de mantenimiento</p><h2 className="font-display text-xl font-semibold text-park-dark">{report.location || report.area}</h2></div><StatusBadge value={report.status}/></div><div className="space-y-5 p-5"><div><p className="font-black text-park-dark">{report.description}</p><p className="mt-1 text-sm text-park-muted">{report.type?.replaceAll("_", " ")}</p></div><div className="grid gap-3 border-y border-park-border py-4 text-sm"><MaintenanceLine label="Reportado por" value={reporterLabel(report)}/><MaintenanceLine label="Origen" value={report.reportedFrom === "LIMPIEZA" ? "Personal de Limpieza" : report.clientId ? "Huésped" : "Recepción"}/><MaintenanceLine label="Responsable" value={report.assignedMaintenanceTo || report.contractorName || "Sin asignar"}/><MaintenanceLine label="Prioridad" value={report.priority}/><MaintenanceLine label="Inicio" value={report.startedAt ? new Date(report.startedAt).toLocaleString("es-PE") : "No iniciado"}/><MaintenanceLine label="Visita" value={report.visitDate ? new Date(`${report.visitDate}T12:00:00`).toLocaleDateString("es-PE") : "Sin fecha"}/></div><div><h3 className="mb-2 font-black text-park-dark">Trabajo realizado</h3><p className="text-sm text-park-muted">{workResult(report) || "Pendiente de registrar por el técnico."}</p></div><div><h3 className="mb-2 font-black text-park-dark">Evidencias ({report.evidences?.length || 0})</h3><div className="grid grid-cols-4 gap-2">{report.evidences?.slice(0, 4).map((item) => <img alt="Evidencia de mantenimiento" className="h-14 w-full border border-park-border object-cover" key={item.id} src={`${item.imageUrl || item.fileUrl}`} />)}</div>{!report.evidences?.length ? <p className="text-sm text-park-muted">Aún no se adjuntaron evidencias.</p> : null}</div><Button className="w-full" onClick={() => onManage(report)} type="button">Gestionar reporte</Button></div></aside>;
 }
 
 function MaintenanceLine({ label, value }) { return <div className="flex items-center justify-between gap-3"><span className="text-park-muted">{label}</span><strong className="text-right text-park-dark">{value || "No registrado"}</strong></div>; }
 
 function Metrics({ reports }) {
   const values = [
-    [AlertTriangle, "Pendientes", reports.filter((r) => r.status === "ABIERTO").length, "text-park-danger bg-red-50"],
-    [Wrench, "En reparación", reports.filter((r) => r.status === "EN_REVISION").length, "text-blue-700 bg-blue-50"],
-    [CheckCircle2, "Solucionadas", reports.filter((r) => r.status === "RESUELTO").length, "text-park-green bg-park-green-soft"],
-    [Clock3, "Visitas programadas", reports.filter((r) => r.visitDate && r.status !== "RESUELTO").length, "text-park-gold bg-park-gold-soft"]
+    [AlertTriangle, "Pendientes", reports.filter((r) => r.status === "PENDIENTE").length, "text-park-danger bg-red-50"],
+    [Wrench, "En reparación", reports.filter((r) => r.status === "EN_REPARACION").length, "text-blue-700 bg-blue-50"],
+    [CheckCircle2, "Solucionadas", reports.filter((r) => r.status === "SOLUCIONADO").length, "text-park-green bg-park-green-soft"],
+    [Clock3, "Visitas programadas", reports.filter((r) => r.visitDate && r.status !== "SOLUCIONADO").length, "text-park-gold bg-park-gold-soft"]
   ];
   return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{values.map(([Icon, label, value, tone]) => <article className="rounded-card border border-park-border bg-white p-4 shadow-card" key={label}><span className={`grid h-10 w-10 place-items-center rounded-button ${tone}`}><Icon size={19}/></span><p className="mt-3 text-sm font-semibold text-park-muted">{label}</p><strong className="font-display text-3xl text-park-dark">{value}</strong></article>)}</section>;
 }
@@ -109,16 +122,18 @@ function IncidentDetail({ report, employees, onClose, onSaved }) {
               <h2 className="mb-2 font-sans text-base font-black text-park-black">Información general</h2>
               <div className="divide-y divide-park-border border-y border-park-border">
                 <CompactDetailRow label="Ubicación" value={report.location || report.area} />
+                <CompactDetailRow label="Reportado por" value={reporterLabel(report)} />
+                <CompactDetailRow label="Origen" value={report.reportedFrom === "LIMPIEZA" ? "Personal de Limpieza" : report.clientId ? "Huésped" : "Recepción"} />
                 <CompactDetailRow label="Tipo" value={report.type?.replaceAll("_", " ")} />
                 <CompactDetailRow label="Prioridad" value={<StatusBadge value={report.priority} />} />
                 <CompactDetailRow label="Estado" value={<StatusBadge value={report.status} />} />
                 <CompactDetailRow label="Inicio" value={report.startedAt ? new Date(report.startedAt).toLocaleString("es-PE") : "No iniciado"} />
                 <CompactDetailRow label="Costo est." value={report.estimatedCost ? `S/ ${report.estimatedCost}` : "No registrado"} />
-                <CompactDetailRow label="Trabajo" value={report.workDescription || "Pendiente"} />
+                <CompactDetailRow label="Trabajo" value={workResult(report) || "Pendiente"} />
               </div>
             </section>
             
-            {report.status !== "RESUELTO" && (
+            {report.status !== "SOLUCIONADO" && (
               <section className="rounded-card border border-park-border bg-white p-3.5">
                 <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
                 <label className="block text-sm font-black text-park-black">Cuenta de Mantenimiento
@@ -137,7 +152,7 @@ function IncidentDetail({ report, employees, onClose, onSaved }) {
               </section>
             )}
             
-            {report.status === "RESUELTO" && (
+            {report.status === "SOLUCIONADO" && (
               <section className="rounded-card border border-park-border bg-white p-3.5">
                 <p className="rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Incidencia resuelta. Trabajo finalizado.</p>
                 <div className="mt-3 flex justify-end">
@@ -215,5 +230,18 @@ function MaintenanceEvidencePreview({ evidence, report, onClose }) {
 function CompactDetailRow({ label, value }) { return <div className="flex items-center justify-between py-2.5 text-sm"><span className="text-park-muted">{label}</span><strong className="text-park-dark text-right max-w-[150px]">{value}</strong></div>; }
 
 function Modal({ title, subtitle, onClose, children }) { return <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}><section className="mx-auto max-h-full max-w-2xl overflow-auto rounded-card bg-white p-6 shadow-drawer"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="font-display text-2xl font-semibold text-park-dark">{title}</h2><p className="mt-1 text-sm text-park-muted">{subtitle}</p></div><button className="grid h-9 w-9 place-items-center rounded-button border border-park-border hover:bg-slate-100" onClick={onClose} type="button"><X size={18}/></button></div>{children}</section></div>; }
-function filterReports(view, reports) { if (view === "solicitudes") return reports.filter((r) => r.status === "ABIERTO"); if (view === "reparacion") return reports.filter((r) => r.status === "EN_REVISION"); if (view === "finalizados") return reports.filter((r) => r.status === "RESUELTO"); return reports; }
+function filterReports(view, reports) {
+  if (view === "solicitudes") return reports.filter((report) => report.status === "PENDIENTE");
+  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REPARACION");
+  if (view === "finalizados") return reports.filter((report) => report.status === "SOLUCIONADO");
+  return reports;
+}
+
+function maintenanceStatus(value) {
+  const status = String(value || "").toUpperCase();
+  if (["ABIERTO", "PENDIENTE"].includes(status)) return "PENDIENTE";
+  if (["EN_REVISION", "EN_REPARACION"].includes(status)) return "EN_REPARACION";
+  if (["RESUELTO", "SOLUCIONADO"].includes(status)) return "SOLUCIONADO";
+  return status;
+}
 function pageTitle(view) { return ({ resumen: "Incidencias y soporte externo", solicitudes: "Incidencias abiertas", reparacion: "Incidencias en seguimiento", finalizados: "Incidencias cerradas" })[view] || "Incidencias y soporte externo"; }

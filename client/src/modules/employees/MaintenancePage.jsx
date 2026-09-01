@@ -26,39 +26,18 @@ export function MaintenancePage({ view = "pendientes" }) {
   const [filters, setFilters] = useState({ search: "", priority: "", type: "", location: "" });
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
-  const reports = useMemo(() => Array.isArray(data) ? data.filter((report) => report.requiresMaintenance) : [], [data]);
+  const reports = useMemo(() => Array.isArray(data) ? data.filter((report) => report.requiresMaintenance && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt)).map((report) => ({ ...report, status: maintenanceStatus(report.status) })) : [], [data]);
   const visible = useMemo(() => applyFilters(filterReports(view, reports, user), filters), [filters, reports, user, view]);
 
   async function changeStatus(report, status, payload = {}) {
     setError("");
     try {
-      const endpoint = status === "EN_REVISION" ? `/maintenance/reports/${report.id}/start` : `/maintenance/reports/${report.id}/finish`;
+      const endpoint = status === "EN_REPARACION" ? `/maintenance/reports/${report.id}/start` : `/maintenance/reports/${report.id}/finish`;
       await api(endpoint, { method: "PATCH", body: payload });
-      setToast(status === "EN_REVISION" ? "Reparación iniciada." : "Problema solucionado.");
+      setToast(status === "EN_REPARACION" ? "Reparación iniciada." : "Problema solucionado.");
       await reload();
       setSelected(null);
       setFinalizing(null);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function attachEvidence(report, files) {
-    if (!files?.length) return;
-    setError("");
-    try {
-      const formData = new FormData();
-      Array.from(files).forEach((file) => formData.append("images", file));
-      const response = await fetch(`${API_ROOT}/api/reports/evidence/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: formData
-      });
-      const uploaded = await response.json();
-      if (!response.ok) throw new Error(uploaded?.message || "No se pudo subir la evidencia.");
-      await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { files: uploaded.files || [] } });
-      setToast("Evidencia adjuntada.");
-      await reload();
     } catch (err) {
       setError(err.message);
     }
@@ -85,7 +64,7 @@ export function MaintenancePage({ view = "pendientes" }) {
       {view === "evidencias" ? <EvidenceView reports={visible} onSelect={setSelected} /> : <WorkGrid canCreate={canCreate} canEdit={canEdit} reports={visible} onEvidence={setAddingEvidence} onFinish={setFinalizing} onSelect={setSelected} onStatus={changeStatus} />}
       {selected ? <MaintenanceDetail canCreate={canCreate} canEdit={canEdit} report={selected} onClose={() => setSelected(null)} onEvidence={setAddingEvidence} onFinish={setFinalizing} onStatus={changeStatus} /> : null}
       {addingEvidence ? <EvidenceModal report={addingEvidence} onClose={() => setAddingEvidence(null)} onSaved={async () => { setAddingEvidence(null); await reload(); setToast("Evidencia adjuntada."); }} /> : null}
-      {finalizing ? <FinishModal report={finalizing} onClose={() => setFinalizing(null)} onEvidence={setAddingEvidence} onFinish={changeStatus} /> : null}
+      {finalizing ? <FinishModal report={finalizing} onClose={() => setFinalizing(null)} onFinish={changeStatus} /> : null}
     </div>
   );
 }
@@ -103,18 +82,6 @@ function WorkGrid({ canCreate, canEdit, reports, onEvidence, onFinish, onSelect,
   return (
     <section className="grid gap-4 xl:grid-cols-2">
       {reports.map((report) => (
-        <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={report.id}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-black uppercase text-park-muted">{report.code}</p>
-              <h3 className="mt-1 font-black text-park-black">{report.description}</h3>
-              <p className="mt-1 text-sm font-semibold text-park-muted">{locationLabel(report)}</p>
-            </div>
-            <StatusBadge value={report.priority} />
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <InfoTile label="Origen" value={report.area} />
-            <InfoTile label="Tipo" value={report.type?.replaceAll("_", " ")} />
         <article className="rounded-card border border-park-border bg-white shadow-card overflow-hidden" key={report.id}>
           <div className="p-5">
             <div className="flex items-start justify-between gap-3">
@@ -123,23 +90,20 @@ function WorkGrid({ canCreate, canEdit, reports, onEvidence, onFinish, onSelect,
                 <h3 className="mt-1 font-black text-park-black">{report.description}</h3>
                 <p className="mt-1 text-sm font-semibold text-park-muted">{locationLabel(report)}</p>
               </div>
-              <StatusBadge value={report.status} />
+              <StatusBadge value={report.priority} />
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <InfoTile label="Origen" value={report.area} />
               <InfoTile label="Tipo" value={report.type?.replaceAll("_", " ")} />
               <InfoTile label="Reportado por" value={report.reportedBy ? `${report.reportedBy.firstName} ${report.reportedBy.lastName}` : "No registrado"} />
-              <InfoTile label="Estado" value={report.status} />
+              <InfoTile label="Estado" value={<StatusBadge value={report.status} />} />
             </div>
           </div>
           <div className="flex items-center gap-2 border-t border-park-border bg-slate-50 p-3">
-            {report.status === "ABIERTO" ? (
-              <Button className="w-full" disabled={!canEdit} onClick={() => onStatus(report, "EN_REVISION")} type="button">Empezar trabajo</Button>
-            ) : report.status === "EN_REVISION" ? (
-              <>
-                <Button className="flex-1" disabled={!canEdit} onClick={() => onFinish(report)} type="button">Finalizar</Button>
-                <button aria-label="Añadir evidencia" className="grid h-10 w-10 shrink-0 place-items-center rounded-button bg-slate-200 text-park-dark transition-colors hover:bg-slate-300 disabled:opacity-50" disabled={!canEdit} onClick={() => onEvidence(report)} type="button"><Camera size={18} /></button>
-              </>
+            {report.status === "PENDIENTE" ? (
+              <Button className="w-full" disabled={!canEdit} onClick={() => onStatus(report, "EN_REPARACION")} type="button">Iniciar trabajo</Button>
+            ) : report.status === "EN_REPARACION" ? (
+              <ActiveWorkActions canEdit={canEdit} onEvidence={onEvidence} onFinish={onFinish} report={report} />
             ) : (
               <Button className="w-full" disabled={!canEdit} onClick={() => onSelect(report)} type="button" variant="secondary">Revisar detalle</Button>
             )}
@@ -147,6 +111,22 @@ function WorkGrid({ canCreate, canEdit, reports, onEvidence, onFinish, onSelect,
         </article>
       ))}
     </section>
+  );
+}
+
+function ActiveWorkActions({ canEdit, onEvidence, onFinish, report }) {
+  const hasBefore = (report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "ANTES");
+  const hasAfter = (report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "DESPUES");
+  const evidenceLabel = hasBefore ? (hasAfter ? "Evidencias completas" : "Registrar salida") : "Registrar entrada";
+
+  return (
+    <div className="w-full space-y-2">
+      <p className="text-xs font-semibold text-park-muted">{hasBefore ? (hasAfter ? "Fotos y comentarios de entrada y salida registrados." : "Entrada registrada. Falta documentar la salida.") : "Registra la foto y el comentario del ingreso antes de reparar."}</p>
+      <div className="flex gap-2">
+        <Button className="flex-1" disabled={!canEdit || hasAfter} icon={Camera} onClick={() => onEvidence(report)} type="button" variant="secondary">{evidenceLabel}</Button>
+        <Button className="flex-1" disabled={!canEdit} onClick={() => onFinish(report)} type="button">Finalizar</Button>
+      </div>
+    </div>
   );
 }
 
@@ -201,10 +181,10 @@ function MaintenanceDetail({ canCreate, canEdit, report, onClose, onEvidence, on
           {historyFor(report).map((item) => <div className="flex gap-3 pb-3 last:pb-0" key={item}><span className="mt-1 h-2.5 w-2.5 rounded-full bg-park-green" /><p className="text-sm font-semibold text-park-black">{item}</p></div>)}
         </Panel>
         <div className="mt-5 flex justify-end gap-2">
-          {canEdit && report.status === "ABIERTO" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} type="button">Esperando confirmación</Button> : null}
-          {canEdit && report.status === "ABIERTO" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REVISION")} type="button">Atender</Button> : null}
-          {canCreate && report.status === "EN_REVISION" ? <Button icon={Camera} onClick={() => onEvidence(report)} type="button">Registrar evidencia</Button> : null}
-          {canEdit && report.status === "EN_REVISION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} type="button" variant="gold">Finalizar reparación</Button> : null}
+          {canEdit && report.status === "PENDIENTE" && report.requiresReceptionAcceptance && !report.receptionAcceptedAt ? <Button disabled icon={Clock} type="button">Esperando confirmación</Button> : null}
+          {canEdit && report.status === "PENDIENTE" && (!report.requiresReceptionAcceptance || report.receptionAcceptedAt) ? <Button icon={Wrench} onClick={() => onStatus(report, "EN_REPARACION")} type="button">Iniciar trabajo</Button> : null}
+          {canCreate && report.status === "EN_REPARACION" ? <Button icon={Camera} onClick={() => onEvidence(report)} type="button">{(report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "ANTES") ? "Registrar salida" : "Registrar entrada"}</Button> : null}
+          {canEdit && report.status === "EN_REPARACION" ? <Button icon={CheckCircle2} onClick={() => onFinish(report)} type="button" variant="gold">Finalizar reparación</Button> : null}
         </div>
       </aside>
     </div>
@@ -223,12 +203,8 @@ function EvidenceModal({ report, onClose, onSaved }) {
     if (!files.length) return alert("Por favor agrega al menos una foto.");
     setBusy(true);
     try {
-      const formData = new FormData();
-      Array.from(files).forEach((file) => formData.append("images", file));
-      const response = await fetch(`${API_ROOT}/api/reports/evidence/upload`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}` }, body: formData });
-      if (!response.ok) throw new Error("Fallo al subir imágenes");
-      const uploaded = await response.json();
-      await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { description, stage, files: uploaded.files || [] } });
+      const uploadedFiles = await uploadImages(files);
+      await api(`/maintenance/reports/${report.id}/evidence`, { method: "POST", body: { description, stage, files: uploadedFiles } });
       onSaved();
     } catch(e) {
       alert("Error: " + e.message);
@@ -242,9 +218,9 @@ function EvidenceModal({ report, onClose, onSaved }) {
       <form className="w-full max-w-lg rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="font-sans text-xl font-black text-park-black">Evidencia {stage === "ANTES" ? "del problema" : "del resultado"}</p>
+            <p className="font-sans text-xl font-black text-park-black">{stage === "ANTES" ? "Registro de entrada" : "Registro de salida"}</p>
             <div className="mb-3 flex items-start justify-between gap-3">
-              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-black uppercase tracking-wider ${report.status === "RESUELTO" ? "bg-park-green-soft text-park-green" : report.status === "EN_REVISION" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-800"}`}>{report.status === "ABIERTO" ? "Pendiente" : report.status === "EN_REVISION" ? "Atendiendo" : "Cerrado"}</span>
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-black uppercase tracking-wider ${report.status === "SOLUCIONADO" ? "bg-park-green-soft text-park-green" : report.status === "EN_REPARACION" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-800"}`}>{report.status === "PENDIENTE" ? "Pendiente" : report.status === "EN_REPARACION" ? "Atendiendo" : "Cerrado"}</span>
               <span className={`inline-flex items-center gap-1 text-xs font-bold ${report.priority === "ALTA" ? "text-park-danger" : report.priority === "MEDIA" ? "text-amber-600" : "text-park-muted"}`}>{report.priority}</span>
             </div>
           </div>
@@ -252,7 +228,7 @@ function EvidenceModal({ report, onClose, onSaved }) {
         </div>
         <div className="mt-5 space-y-4">
           <ImagePicker files={files} setFiles={setFiles} />
-          <textarea className="min-h-24 w-full rounded-input border border-park-border p-3 text-sm" placeholder={stage === "ANTES" ? "Describe el problema encontrado..." : "Describe el resultado de la reparación..."} required value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea className="min-h-24 w-full rounded-input border border-park-border p-3 text-sm" placeholder={stage === "ANTES" ? "Comenta el estado al iniciar el trabajo..." : "Comenta el resultado al finalizar el trabajo..."} required value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
@@ -277,16 +253,41 @@ function ImagePicker({ files, setFiles }) {
   );
 }
 
-function FinishModal({ report, onClose, onEvidence, onFinish }) {
-  const [form, setForm] = useState({ workDescription: "", observations: "" });
+async function uploadImages(files) {
+  if (!files.length) return [];
+  const supported = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const uploaded = [];
+  for (const file of files) {
+    if (!supported.has(file.type)) throw new Error(`${file.name}: usa una imagen JPG, PNG o WEBP.`);
+    if (file.size > 10 * 1024 * 1024) throw new Error(`${file.name}: la imagen supera el límite de 10 MB.`);
+    const response = await fetch(`${API_ROOT}/api/reports/evidence/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        "Content-Type": file.type,
+        "X-File-Name": encodeURIComponent(file.name)
+      },
+      body: file
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.message || `No fue posible subir ${file.name}.`);
+    uploaded.push(...(data.files || []));
+  }
+  return uploaded;
+}
+
+function FinishModal({ report, onClose, onFinish }) {
   const [submitting, setSubmitting] = useState(false);
+  const hasBefore = (report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "ANTES");
+  const hasAfter = (report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "DESPUES");
+  const evidenceComplete = hasBefore && hasAfter;
 
   async function submit(event) {
     event.preventDefault();
-    if (!form.workDescription.trim()) return;
+    if (!evidenceComplete) return;
     setSubmitting(true);
     try {
-      await onFinish(report, "RESUELTO", { ...form, problemSolved: true });
+      await onFinish(report, "RESUELTO", { problemSolved: true });
     } catch (e) {
       alert("Error: " + e.message);
     } finally {
@@ -296,7 +297,7 @@ function FinishModal({ report, onClose, onEvidence, onFinish }) {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <form className="w-full max-w-lg rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}>
+      <form className="w-full max-w-lg rounded-card bg-white p-6 shadow-drawer max-h-[90vh] overflow-y-auto" onSubmit={submit}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase text-park-gold">Finalizar trabajo</p>
@@ -304,18 +305,19 @@ function FinishModal({ report, onClose, onEvidence, onFinish }) {
           </div>
           <button className="grid h-9 w-9 place-items-center rounded-button border border-park-border text-park-muted hover:text-park-black" onClick={onClose} type="button"><X size={18} /></button>
         </div>
-        <label className="mt-5 block">
-          <span className="text-sm font-black text-park-black">Trabajo realizado *</span>
-          <textarea className="mt-2 min-h-28 w-full rounded-input border border-park-border px-4 py-3 text-sm outline-none focus:border-park-green" value={form.workDescription} onChange={(event) => setForm((current) => ({ ...current, workDescription: event.target.value }))} placeholder="Describe la reparacion realizada." required />
-        </label>
-        <label className="mt-4 block">
-          <span className="text-sm font-black text-park-black">Observaciones</span>
-          <textarea className="mt-2 min-h-20 w-full rounded-input border border-park-border px-4 py-3 text-sm outline-none focus:border-park-green" value={form.observations} onChange={(event) => setForm((current) => ({ ...current, observations: event.target.value }))} placeholder="Notas opcionales para seguimiento." />
-        </label>
-        {!(report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "DESPUES") ? <p className="mt-4 rounded-card border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800">Antes de finalizar debes registrar la foto después de la reparación.</p> : <p className="mt-4 rounded-card border border-park-green/20 bg-park-green-soft p-3 text-sm font-semibold text-park-green">Problema solucionado y evidencias antes/después completas.</p>}
+
+        <div className="mt-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`rounded-card border p-3 text-sm ${hasBefore ? "border-park-green/30 bg-park-green-soft text-park-green" : "border-amber-300 bg-amber-50 text-amber-800"}`}><strong className="block">Foto antes</strong><span>{hasBefore ? "Registrada" : "Pendiente"}</span></div>
+            <div className={`rounded-card border p-3 text-sm ${hasAfter ? "border-park-green/30 bg-park-green-soft text-park-green" : "border-amber-300 bg-amber-50 text-amber-800"}`}><strong className="block">Foto después</strong><span>{hasAfter ? "Registrada" : "Pendiente"}</span></div>
+          </div>
+        </div>
+
+        {!evidenceComplete ? <p className="mt-4 rounded-card border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800">Antes de finalizar registra las fotos antes y después desde “Registrar evidencia”.</p> : <p className="mt-4 rounded-card border border-park-green/20 bg-park-green-soft p-3 text-sm font-semibold text-park-green">Evidencias completas. Ya puedes confirmar la solución.</p>}
+
         <div className="mt-6 flex justify-end gap-2">
           <Button onClick={onClose} type="button" variant="secondary">Cancelar</Button>
-          <Button disabled={submitting || !form.workDescription.trim() || !(report.evidences || []).some((item) => String(item.stage || "").toUpperCase() === "DESPUES")} icon={CheckCircle2} type="submit">{submitting ? "Finalizando..." : "Confirmar solución"}</Button>
+          <Button disabled={submitting || !evidenceComplete} icon={CheckCircle2} type="submit">{submitting ? "Finalizando..." : "Confirmar solución"}</Button>
         </div>
       </form>
     </div>
@@ -360,9 +362,9 @@ function Thumb({ evidence }) {
 
 function filterReports(view, reports, user) {
   const currentUserId = user?.id;
-  if (view === "pendientes") return reports.filter((report) => report.status === "ABIERTO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)));
-  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REVISION" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.assignedToId || Number(report.assignedToId) === Number(currentUserId)));
-  if (view === "finalizados") return reports.filter((report) => report.status === "RESUELTO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.resolvedById || Number(report.resolvedById) === Number(currentUserId)));
+  if (view === "pendientes") return reports.filter((report) => ["PENDIENTE", "EN_REPARACION"].includes(report.status) && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.assignedToId || Number(report.assignedToId) === Number(currentUserId)));
+  if (view === "reparacion") return reports.filter((report) => report.status === "EN_REPARACION" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.assignedToId || Number(report.assignedToId) === Number(currentUserId)));
+  if (view === "finalizados") return reports.filter((report) => report.status === "SOLUCIONADO" && (!report.assignedMaintenanceEmployeeId || Number(report.assignedMaintenanceEmployeeId) === Number(currentUserId)) && (!report.resolvedById || Number(report.resolvedById) === Number(currentUserId)));
   if (view === "evidencias") return reports.filter((report) => report.evidences?.length);
   return reports;
 }
@@ -381,6 +383,14 @@ function pageTitle(view) {
   return titles[view] || titles.pendientes;
 }
 
+function maintenanceStatus(value) {
+  const status = String(value || "").toUpperCase();
+  if (status === "ABIERTO") return "PENDIENTE";
+  if (status === "EN_REVISION") return "EN_REPARACION";
+  if (status === "RESUELTO") return "SOLUCIONADO";
+  return status;
+}
+
 function locationLabel(report) {
   if (report.room?.number) return `Habitación ${report.room.number}`;
   if (report.product?.name) return report.product.name;
@@ -389,9 +399,9 @@ function locationLabel(report) {
 
 function historyFor(report) {
   const steps = ["Reportado"];
-  if (["EN_REVISION", "RESUELTO"].includes(report.status)) steps.push("Reparación iniciada");
+  if (["EN_REPARACION", "SOLUCIONADO"].includes(report.status)) steps.push("Reparación iniciada");
   if (report.evidences?.length) steps.push("Evidencia agregada");
-  if (report.status === "RESUELTO") steps.push("Problema solucionado");
+  if (report.status === "SOLUCIONADO") steps.push("Problema solucionado");
   return steps;
 }
 
