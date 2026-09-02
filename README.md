@@ -85,11 +85,41 @@ Consulta [DEMO_GUIDE.md](./DEMO_GUIDE.md) para el recorrido recomendado de prese
 
 ## Para trabajar desde otra laptop
 
+Esta versión integrada se publica en la rama `integracion/diseno-final`. En una
+computadora nueva, abre Docker Desktop y espera a que indique que el motor está
+iniciado. Después ejecuta en PowerShell:
+
 ```powershell
-git clone https://github.com/KennyGGwp06/system-park-plaza.git
+git clone --branch integracion/diseno-final --single-branch https://github.com/KennyGGwp06/system-park-plaza.git
 cd system-park-plaza
 Copy-Item .env.example .env
 docker compose up -d --build
+docker compose ps
 ```
 
-Luego abre los tres portales en los enlaces de arriba. Para detenerlos sin perder los datos, usa `docker compose down`. No uses `docker compose down -v` salvo que quieras borrar por completo la base de demostración.
+Los cuatro contenedores de aplicación y PostgreSQL deben aparecer como activos.
+Comprueba el backend abriendo http://localhost:3000/api/health; debe responder
+con `"status":"ok"` y `"database":"connected"`. Luego abre:
+
+- Cliente: http://localhost:4173
+- ERP y reloj de asistencia: http://localhost:5173
+- Operaciones de Limpieza y Mantenimiento: http://localhost:4174
+
+Si un puerto ya está ocupado o un contenedor no inicia, revisa el motivo con:
+
+```powershell
+docker compose ps
+docker compose logs --tail 150 backend
+docker compose logs --tail 150 frontend customer operations
+```
+
+Para recibir posteriormente nuevos cambios de esta misma rama:
+
+```powershell
+git pull origin integracion/diseno-final
+docker compose up -d --build
+```
+
+Para detenerlo sin perder los datos usa `docker compose down`. No uses
+`docker compose down -v` salvo que quieras borrar por completo la base de datos
+local y volver a cargar la demostración desde cero.
