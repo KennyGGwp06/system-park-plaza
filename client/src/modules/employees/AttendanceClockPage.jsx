@@ -69,7 +69,7 @@ export function AttendanceClockPage() {
       const res = await api("/attendance/clock", { method: "POST", body: { documentNumber, pin } });
       setStatus({ 
         type: 'success', 
-        message: `Hola ${res.user}. Has registrado tu ${res.action === 'CHECK_IN' ? 'ingreso' : 'salida'} con exito.`,
+        message: `Hola ${res.user}. Has registrado tu ${res.action === 'CHECK_IN' ? 'ingreso' : 'salida'} con éxito.`,
         record: res.record
       });
       setDocumentNumber("");
@@ -140,7 +140,7 @@ export function AttendanceClockPage() {
         {/* Input Section */}
         <form onSubmit={handleSubmit} className="rounded-2xl border border-white/20 bg-white/5 p-6 text-white shadow-inner">
           {status && (
-            <div className={`mb-4 rounded-lg p-3 font-bold ${status.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'} backdrop-blur-md`}>
+            <div aria-live="polite" className={`mb-4 rounded-lg p-3 font-bold ${status.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'} backdrop-blur-md`} role={status.type === 'error' ? 'alert' : 'status'}>
               <div className="flex items-center justify-center gap-2">
                 {status.type === 'success' ? <CheckCircle2 /> : <XCircle />}
                 {status.message}
@@ -164,7 +164,7 @@ export function AttendanceClockPage() {
             inputMode="numeric"
             autoComplete="off"
             value={pin}
-            onChange={(e) => { setWorkerInfo(null); setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             placeholder="••••"
             className="mb-6 w-full rounded-xl border border-park-gold/50 bg-park-dark/40 px-4 py-4 text-center text-lg font-bold tracking-[0.55em] text-white placeholder-white/40 outline-none backdrop-blur-md transition-all focus:border-park-gold focus:bg-park-dark/60 focus:ring-2 focus:ring-park-gold/50"
           />
