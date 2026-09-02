@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BookOpen, Search, Scale, AlertCircle, PackageCheck } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch";
 import { Input } from "../../components/ui/Input";
+import { Pagination } from "../../components/ui/Pagination";
 
 export function RestaurantRecipesPage() {
   const { data: recipesData, loading, error } = useFetch("/technical-recipes/manual/RESTAURANTE", {
@@ -9,6 +10,7 @@ export function RestaurantRecipesPage() {
     pollInterval: 15000
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
 
   if (loading) return <div className="p-8 text-center text-gray-500">Cargando recetario...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
@@ -18,6 +20,9 @@ export function RestaurantRecipesPage() {
     r.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     r.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const pageCount = Math.max(1, Math.ceil(filteredRecipes.length / 9));
+  const currentPage = Math.min(page, pageCount);
+  const visibleRecipes = filteredRecipes.slice((currentPage - 1) * 9, currentPage * 9);
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -33,7 +38,7 @@ export function RestaurantRecipesPage() {
             placeholder="Buscar por nombre o código..." 
             className="pl-9 bg-white border-gray-300"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
           />
         </div>
       </div>
@@ -46,7 +51,7 @@ export function RestaurantRecipesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRecipes.map((recipe) => (
+          {visibleRecipes.map((recipe) => (
             <div key={recipe.id} className="border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full bg-white rounded-lg">
               <div className="bg-[#0f3d2e] text-white p-4">
                 <div className="flex justify-between items-start">
@@ -98,6 +103,7 @@ export function RestaurantRecipesPage() {
           ))}
         </div>
       )}
+      <Pagination page={currentPage} pageCount={pageCount} total={filteredRecipes.length} itemLabel="recetas" onPageChange={setPage} />
     </div>
   );
 }

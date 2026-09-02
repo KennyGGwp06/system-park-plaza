@@ -61,7 +61,7 @@ export function ReceptionPage() {
         {shiftMessage ? <p className="mt-3 rounded-lg bg-white px-3 py-2 text-sm font-bold text-park-dark">{shiftMessage}</p> : null}
       </section>
 
-      <div className={!shiftActive ? "pointer-events-none space-y-5 opacity-50" : "space-y-5"} aria-disabled={!shiftActive}>
+      <div className={!shiftActive ? "pointer-events-none space-y-5 opacity-75 grayscale-[25%]" : "space-y-5"} aria-disabled={!shiftActive}>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5" aria-label="Acciones rápidas de recepción">
         <ModuleCard title="Validar ingreso" description="Cámara QR, revisión del pase y confirmación de acceso." href="/accesos" icon={ScanLine} meta="Primero atender" />

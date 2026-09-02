@@ -160,7 +160,10 @@ function ShiftClockModal({ active, token, user, onClose, onSaved }) {
 }
 
 function PageTitle({ eyebrow, title, description, action }) { return <header className="page-title"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="muted">{description}</p></div><div className="title-actions">{action}</div></header>; }
-function ShiftBanner({ active, role }) { return <section className={`shift-banner ${active ? "active" : ""}`}><Clock3 size={19} /><div><strong>{active ? "Turno activo" : "Operación bloqueada hasta iniciar turno"}</strong><p>{active ? `Ya puedes atender tus tareas de ${role}.` : "Puedes consultar tus tareas, pero no iniciar, evidenciar ni finalizar."}</p></div></section>; }
+function ShiftBanner({ active, role }) {
+  const steps = role === "limpieza" ? ["Asignada", "En atención", "Fotos", "Finalizada"] : ["Asignado", "En reparación", "Evidencias", "Finalizado"];
+  return <><section className={`shift-banner ${active ? "active" : ""}`}><Clock3 size={19} /><div><strong>{active ? "Turno activo" : "Operación bloqueada hasta iniciar turno"}</strong><p>{active ? `Ya puedes atender tus tareas de ${role}.` : "Puedes consultar tus tareas, pero no iniciar, evidenciar ni finalizar."}</p></div></section><section className="workflow-guide" aria-label={`Flujo diario de ${role}`}><strong>Flujo de cada tarea</strong><ol>{steps.map((step, index) => <li key={step}><span>{index + 1}</span>{step}</li>)}</ol></section></>;
+}
 function Metric({ value, label, warn, good }) { return <article className={`metric ${warn ? "warn" : ""} ${good ? "good" : ""}`}><strong>{value}</strong><span>{label}</span></article>; }
 function Notice({ text, error = false }) { return <p className={`notice ${error ? "error" : ""}`}>{text}</p>; }
 function Empty({ text }) { return <section className="empty"><ShieldCheck size={28} /><p>{text}</p></section>; }

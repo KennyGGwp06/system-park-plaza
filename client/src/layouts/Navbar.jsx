@@ -22,6 +22,7 @@ export function Navbar({ onMenu }) {
   const roleHomeTitle = user?.role === "SUPERADMIN" ? "Centro Superadmin" : user?.role === "ADMINISTRADOR" ? "Centro de Recepción" : user?.role === "RESTAURANTE" ? "Centro de Restaurante" : user?.role === "BARTENDER" ? "Centro de Bar" : "Panel operativo";
   const displayTitle = isV6Role && isRoleHome ? roleHomeTitle : title;
   const subtitle = user?.role === "RESTAURANTE" ? "Centro de Restaurante" : user?.role === "BARTENDER" ? "Centro de Bar" : "Resumen del estado compartido";
+  const searchPlaceholder = user?.role === "ADMINISTRADOR" ? "Buscar reserva, cliente o módulo" : user?.role === "RESTAURANTE" ? "Buscar pedidos, recetas o stock" : user?.role === "BARTENDER" ? "Buscar bebidas, recetas o stock" : "Buscar módulo del sistema";
   const alerts = useMemo(() => {
     const metrics = dashboard?.metrics || {};
     const items = [];
@@ -65,7 +66,7 @@ export function Navbar({ onMenu }) {
       </div>
       <div className="ml-auto" />
       {isV6Role ? <div className="relative hidden xl:block">
-        <label className="v6-global-search"><Search size={17}/><input aria-label="Buscar en el sistema" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en el hotel" /></label>
+        <label className="v6-global-search"><Search size={17}/><input aria-label="Buscar un módulo del sistema" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} /></label>
         {search.trim() ? <div className="v6-search-results">{(menuByRole[user?.role] || []).filter(([label]) => label.toLowerCase().includes(search.toLowerCase())).slice(0, 6).map(([label, href]) => <Link key={`${label}-${href}`} to={href} onClick={() => setSearch("")}>{label}<span>→</span></Link>)}{!(menuByRole[user?.role] || []).some(([label]) => label.toLowerCase().includes(search.toLowerCase())) ? <p>Sin resultados</p> : null}</div> : null}
       </div> : null}
       <div className="hidden h-11 items-center gap-2 border-l border-park-border/70 px-5 text-sm font-black text-park-dark lg:flex">

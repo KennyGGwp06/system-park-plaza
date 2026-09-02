@@ -58,7 +58,7 @@ export function RestaurantInventoryPage() {
         <Alert tone="danger" title="Sin turno activo">
           <div className="flex items-start gap-2 mt-1">
             <AlertCircle className="h-5 w-5" />
-            <span>No hay turno asignado. Solicita apertura al Superadmin.</span>
+            <span>No hay turno asignado. Pide al Superadmin que lo abra en Inventario → Turnos y cierres.</span>
           </div>
         </Alert>
       </div>

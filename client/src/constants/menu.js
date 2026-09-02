@@ -10,7 +10,7 @@ const adminMenu = [
   { label: "RECEPCIÓN", items: [["Reservas", "/reservas", CalendarCheck], ["Llegadas y salidas", "/checkin", ScanLine], ["Clientes", "/clientes", ContactRound]] },
   { label: "CAJA", items: [["Atención", "/recepcion", ClipboardCheck], ["Pagos", "/pagos", Receipt], ["Emitir boleta o factura", "/facturacion", FileText], ["Mi cierre", "/admin-panel/mi-caja", DollarSign]] },
   { label: "SERVICIOS", items: [["Validar accesos", "/accesos", ShieldCheck], ["Piscina y mirador", "/piscina/ingresos", Waves], ["Eventos", "/eventos/reservas", CalendarCheck], ["Cochera", "/cochera", Car]] },
-  { label: "HOTEL", items: [["Inicio del hotel", "/hotel", BedDouble], ["Reservas", "/hotel/reservas", CalendarCheck], ["Llegadas y salidas", "/hotel/movimientos", ScanLine], ["Habitaciones", "/hotel/habitaciones", BedDouble], ["Limpieza", "/hotel/limpieza", Camera], ["Mantenimiento", "/hotel/mantenimiento", Wrench]] },
+  { label: "HOTEL", items: [["Estado del hotel", "/hotel", BedDouble], ["Habitaciones", "/hotel/habitaciones", BedDouble], ["Limpieza", "/hotel/limpieza", Camera], ["Mantenimiento", "/hotel/mantenimiento", Wrench]] },
   { label: "GASTRONOMÍA", items: [["Restaurante", "/control-gastronomico/restaurante", ChefHat], ["Bar", "/control-gastronomico/bar", Wine]] }
 ];
 
@@ -26,7 +26,7 @@ const superAdminMenu = [
   { label: "INVENTARIO", items: [["Inicio", "/admin/inventario", Boxes], ["Solicitudes de insumos", "/admin/solicitudes-stock", ClipboardList], ["Comprar y recibir", "/compras", ShoppingCart], ["Proveedores", "/proveedores", ContactRound], ["Distribuir insumos", "/transferencias", ArrowLeftRight], ["Ver existencias", "/inventario", Package], ["Insumos y unidades", "/inventario/catalogo", Scale], ["Preparación y porcionado", "/inventario/produccion", Factory], ["Turnos y cierres", "/inventario/turnos", LockKeyhole]] },
   { label: "FINANZAS", items: [["Pagos", "/pagos", Receipt], ["Facturación electrónica", "/facturacion", FileText], ["Caja", "/admin-panel/caja-central", DollarSign], ["Reportes", "/reportes", BarChart3]] },
   { label: "PERSONAL", items: [["Trabajadores", "/empleados", Users], ["Horarios", "/turnos", ClipboardList]] },
-  { label: "SISTEMA", items: [["Clientes", "/clientes", ContactRound], ["Usuarios", "/usuarios", UserCog], ["Auditoría", "/auditoria", ShieldCheck], ["Integridad", "/admin/integridad", ShieldCheck], ["Ajustes", "/configuracion", Settings]] }
+  { label: "CONFIGURACIÓN AVANZADA", items: [["Clientes", "/clientes", ContactRound], ["Usuarios", "/usuarios", UserCog], ["Auditoría", "/auditoria", ShieldCheck], ["Revisión de datos", "/admin/integridad", ShieldCheck], ["Ajustes", "/configuracion", Settings]] }
 ];
 
 export const menuSectionsByRole = {

@@ -6,6 +6,7 @@ import { api } from "../../services/api";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { Pagination } from "../../components/ui/Pagination";
 import { AttendanceClockModal } from "../../components/AttendanceClockModal";
 import { statusLabel } from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
@@ -88,11 +89,19 @@ export function BarOrdersPage() {
 
 export function BarRecipesPage() {
   const { data, loading, error } = useFetch("/technical-recipes/manual/BARTENDER", { ...requestOptions, initialData: [] });
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   if (loading) return <Loading text="Cargando manual técnico..." />;
   if (error) return <Failure error={error} />;
   const recipes = data || [];
+  const filtered = recipes.filter((recipe) => `${recipe.name || recipe.menuItemName || ""} ${recipe.code || ""}`.toLowerCase().includes(search.toLowerCase()));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 8));
+  const currentPage = Math.min(page, pageCount);
+  const visible = filtered.slice((currentPage - 1) * 8, currentPage * 8);
   return <main className="space-y-6 py-5"><Header icon={Droplets} eyebrow="Bar · solo lectura" title="Manual y medidas" description="Recetas, insumos y porciones estándar definidos por el Superadmin." />
-    {!recipes.length ? <Empty title="No hay recetas publicadas" text="Solicita al Superadmin completar la ficha técnica." /> : <div className="grid gap-4 lg:grid-cols-2">{recipes.map((recipe) => <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={recipe.id || recipe.menuItemId || recipe.name}><div className="flex items-start justify-between gap-3"><div><h2 className="font-black text-park-dark">{recipe.name || recipe.menuItemName}</h2><p className="mt-1 text-sm text-park-muted">Rinde {recipe.yieldQuantity || 1} {recipe.yieldUnitSymbol || "porción"}</p></div><span className="rounded-full bg-park-green-soft px-3 py-1 text-xs font-black text-park-green">{Number(recipe.availablePortions || 0)} disponibles</span></div><div className="mt-4 space-y-2">{(recipe.ingredients || recipe.lines || []).map((line, index) => <div className="flex justify-between border-b border-park-border py-2 text-sm" key={index}><span>{line.productName || line.name}</span><b>{Number(line.requiredPerPortion ?? line.quantity).toFixed(2)} {line.baseUnitSymbol || line.unitSymbol || line.unit || ""}</b></div>)}</div>{recipe.manual?.description ? <p className="mt-4 rounded-lg bg-park-bg p-3 text-sm text-park-muted">{recipe.manual.description}</p> : null}{recipe.manual?.steps?.length ? <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-park-muted">{recipe.manual.steps.map((step, index) => <li key={`${step}-${index}`}>{step}</li>)}</ol> : null}</article>)}</div>}
+    <Input label="Buscar receta" placeholder="Nombre o código" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
+    {!filtered.length ? <Empty title="No se encontraron recetas" text={search ? "Cambia la búsqueda para ver otras bebidas." : "Solicita al Superadmin completar la ficha técnica."} /> : <div className="grid gap-4 lg:grid-cols-2">{visible.map((recipe) => <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={recipe.id || recipe.menuItemId || recipe.name}><div className="flex items-start justify-between gap-3"><div><h2 className="font-black text-park-dark">{recipe.name || recipe.menuItemName}</h2><p className="mt-1 text-sm text-park-muted">Rinde {recipe.yieldQuantity || 1} {recipe.yieldUnitSymbol || "porción"}</p></div><span className="rounded-full bg-park-green-soft px-3 py-1 text-xs font-black text-park-green">{Number(recipe.availablePortions || 0)} disponibles</span></div><div className="mt-4 space-y-2">{(recipe.ingredients || recipe.lines || []).map((line, index) => <div className="flex justify-between border-b border-park-border py-2 text-sm" key={index}><span>{line.productName || line.name}</span><b>{Number(line.requiredPerPortion ?? line.quantity).toFixed(2)} {line.baseUnitSymbol || line.unitSymbol || line.unit || ""}</b></div>)}</div>{recipe.manual?.description ? <p className="mt-4 rounded-lg bg-park-bg p-3 text-sm text-park-muted">{recipe.manual.description}</p> : null}{recipe.manual?.steps?.length ? <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-park-muted">{recipe.manual.steps.map((step, index) => <li key={`${step}-${index}`}>{step}</li>)}</ol> : null}</article>)}</div>}
+    <Pagination page={currentPage} pageCount={pageCount} total={filtered.length} itemLabel="recetas" onPageChange={setPage} />
   </main>;
 }
 
