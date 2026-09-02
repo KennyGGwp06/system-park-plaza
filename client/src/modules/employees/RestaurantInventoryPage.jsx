@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Boxes, Trash2, ClipboardList, AlertCircle, Save, CheckCircle2 } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch";
 import { Alert } from "../../components/ui/Alert";
@@ -7,6 +8,7 @@ import { Input } from "../../components/ui/Input";
 import { api } from "../../services/api";
 
 export function RestaurantInventoryPage() {
+  const location = useLocation();
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [sessionStatus, setSessionStatus] = useState(null);
   const [explanations, setExplanations] = useState({});
@@ -31,11 +33,16 @@ export function RestaurantInventoryPage() {
     { initialData: {}, enabled: Boolean(activeSessionId), realtime: true, pollInterval: 15000 }
   );
 
-  const [activeTab, setActiveTab] = useState("stock");
+  const routeTab = location.pathname.endsWith("/mermas") ? "merma" : location.pathname.endsWith("/cierre") ? "cierre" : "stock";
+  const [activeTab, setActiveTab] = useState(routeTab);
   const [wasteForm, setWasteForm] = useState({ category: "PREPARATION_ERROR", quantity: "", reason: "", selectedKey: "" });
   const [counts, setCounts] = useState({});
   const [processing, setProcessing] = useState(false);
   const [actionError, setActionError] = useState(null);
+
+  useEffect(() => {
+    setActiveTab(routeTab);
+  }, [routeTab]);
 
   if (loadingSessions || (activeSessionId && loadingDetail && !sessionDetail)) {
     return <div className="p-8 text-center text-gray-500">Cargando datos de inventario...</div>;
@@ -192,7 +199,7 @@ export function RestaurantInventoryPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-[#0f3d2e] flex items-center gap-3">
           <Boxes className="h-8 w-8 text-[#d4af37]" />
-          Inventario de Turno
+          {activeTab === "merma" ? "Registrar merma" : activeTab === "cierre" ? "Cerrar turno" : "Mi stock de cocina"}
         </h1>
         <div className="text-sm font-medium px-3 py-1 bg-gray-100 rounded-md text-gray-700">
           Turno: {sessionDetail?.shiftCode || activeSessionId} • Estado: {sessionStatus}
@@ -213,19 +220,19 @@ export function RestaurantInventoryPage() {
           onClick={() => setActiveTab("stock")} 
           className={`pb-4 px-6 font-medium text-sm border-b-2 transition-colors ${activeTab === "stock" ? "border-[#0f3d2e] text-[#0f3d2e]" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
-          <div className="flex items-center gap-2"><Boxes className="h-4 w-4" /> Stock Asignado</div>
+          <div className="flex items-center gap-2"><Boxes className="h-4 w-4" /> Mi stock</div>
         </button>
         <button 
           onClick={() => setActiveTab("merma")} 
           className={`pb-4 px-6 font-medium text-sm border-b-2 transition-colors ${activeTab === "merma" ? "border-red-600 text-red-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
-          <div className="flex items-center gap-2"><Trash2 className="h-4 w-4" /> Registrar Merma</div>
+          <div className="flex items-center gap-2"><Trash2 className="h-4 w-4" /> Registrar merma</div>
         </button>
         <button 
           onClick={() => setActiveTab("cierre")} 
           className={`pb-4 px-6 font-medium text-sm border-b-2 transition-colors ${activeTab === "cierre" ? "border-amber-600 text-amber-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
-          <div className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Cerrar y Cuadrar</div>
+          <div className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Cerrar y cuadrar</div>
         </button>
       </div>
 

@@ -2,6 +2,9 @@ const BASE = process.env.DEMO_API || "http://localhost:3000/api";
 const PASSWORD = process.env.DEMO_STAFF_PASSWORD || "ParkPlaza123*";
 const runId = String(Date.now()).slice(-8);
 const results = [];
+let cleanupAdmin = null;
+let cleanupClient = null;
+const cleanupSalesIds = [];
 
 function hotelDate(offsetDays = 0) {
   const date = new Date(Date.now() + offsetDays * 86400000);
@@ -88,7 +91,8 @@ async function replenishArea(admin, operator, area) {
   const items = recipe.ingredients.map((ingredient) => {
     const target = Number(ingredient.requiredPerPortion || 0) * 3;
     const shortage = Math.max(0, target - Number(ingredient.availableBaseQuantity || 0));
-    return { productId: legacyByProduct.get(Number(ingredient.productId)), quantity: Math.ceil((shortage + 0.000001) * 1000) / 1000 };
+    const testBuffer = Math.max(1, target * 2);
+    return { productId: legacyByProduct.get(Number(ingredient.productId)), quantity: Math.ceil((shortage + testBuffer) * 1000) / 1000 };
   }).filter((item) => item.productId && item.quantity > 0);
   if (items.length) await api("/daily-inventory/assign", { method: "POST", token: admin.token, body: { area, items } });
   return { assigned: items.length, menuItemId: Number(recipe.menuItemId), recipeName: recipe.name };
@@ -104,8 +108,9 @@ async function main() {
     login("restaurante@parkplaza.com"),
     login("bartender@parkplaza.com"),
     login("limpieza@parkplaza.com"),
-    login("admin@parkplaza.com")
+    login("superadmin@parkplaza.com")
   ]);
+  cleanupAdmin = admin;
   pass("Perfiles internos", "Recepción, Restaurante, Bartender y Limpieza autenticados");
 
   const expiredSessions = await closeExpiredDemoSessions(admin);
@@ -115,6 +120,8 @@ async function main() {
     replenishArea(admin, restaurant, "RESTAURANTE"),
     replenishArea(admin, bartender, "BARTENDER")
   ]);
+  cleanupSalesIds.push(restaurantStock.menuItemId, barStock.menuItemId);
+  await Promise.all(cleanupSalesIds.map((id) => api(`/admin/menu-items/${id}/sales-enabled`, { method: "PATCH", token: admin.token, body: { salesEnabled: true } })));
   pass("Inventario de demostración", `${restaurantStock.assigned} insumo(s) de Cocina y ${barStock.assigned} de Bar repuestos según las recetas elegidas`);
 
   await Promise.all([ensureAttendance(reception), ensureAttendance(restaurant), ensureAttendance(bartender), ensureAttendance(cleaning)]);
@@ -135,6 +142,7 @@ async function main() {
       email: `piloto-${runId}@parkplaza.test`
     }
   });
+  cleanupClient = customer.client;
   pass("Cliente", `${customer.client.firstName} ${customer.client.lastName} creado sin mezclar datos anteriores`);
 
   const checkIn = hotelDate();
@@ -218,6 +226,10 @@ async function main() {
     token: customer.token,
     body: { type: "LIMPIEZA", description: "Cambio de toallas y limpieza ligera para prueba piloto", priority: "MEDIA" }
   });
+  const receptionTasks = await api("/reception/tasks", { token: reception.token });
+  const pendingTask = receptionTasks.find((item) => Number(item.id) === Number(cleaningRequest.taskId));
+  if (!pendingTask) throw new Error("Recepción no recibió la solicitud de limpieza");
+  await api(`/reception/tasks/${pendingTask.id}/assign`, { method: "PATCH", token: reception.token, body: { employeeId: cleaning.user.id } });
   const tasks = await api("/cleaning/tasks", { token: cleaning.token });
   const task = tasks.find((item) => Number(item.id) === Number(cleaningRequest.taskId));
   if (!task) throw new Error("Limpieza no recibió la solicitud del huésped");
@@ -247,7 +259,14 @@ async function main() {
   }, null, 2));
 }
 
-main().catch((error) => {
+try {
+  await main();
+} catch (error) {
   console.error(JSON.stringify({ status: "FAILED", runId, error: error.message, completed: results }, null, 2));
   process.exitCode = 1;
-});
+} finally {
+  if (cleanupAdmin) {
+    await Promise.all(cleanupSalesIds.map((id) => api(`/admin/menu-items/${id}/sales-enabled`, { method: "PATCH", token: cleanupAdmin.token, body: { salesEnabled: false } }).catch(() => null)));
+    if (cleanupClient) await api(`/clients/${cleanupClient.id}`, { method: "DELETE", token: cleanupAdmin.token, body: { confirmDocument: cleanupClient.documentNumber } }).catch(() => null);
+  }
+}

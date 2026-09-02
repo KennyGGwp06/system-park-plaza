@@ -27,6 +27,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      PARK_PLAZA_DEMO: "true"
       PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432

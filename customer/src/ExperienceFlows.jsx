@@ -81,7 +81,7 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
               setAdults(nextAdults);
               setViewingRoom(item);
             }} key={item.id}>
-              <img src={roomImages[item.type.name] || roomImages.Simple} alt={item.type.name}/>
+              <img src={item.imageUrl || roomImages[item.type.name] || roomImages.Simple} alt={item.type.name}/>
               <div>
                 <small>HABITACIÓN {item.number}</small>
                 <h3>{item.type.name}</h3>
@@ -102,11 +102,11 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
               <X size={16}/>
             </button>
             <div className="room-modal-body">
-              <img className="room-modal-image" src={roomImages[viewingRoom.type.name] || roomImages.Simple} alt={viewingRoom.type.name}/>
+              <img className="room-modal-image" src={viewingRoom.imageUrl || roomImages[viewingRoom.type.name] || roomImages.Simple} alt={viewingRoom.type.name}/>
               <div className="room-modal-content">
                 <small style={{ color: 'var(--primary)', fontWeight: 'bold' }}>HABITACIÓN {viewingRoom.number} · PISO {viewingRoom.floor}</small>
                 <h2 style={{ margin: '0.5rem 0' }}>{viewingRoom.type.name}</h2>
-                <p style={{ color: 'var(--text-light)', marginBottom: '1.5rem' }}>Disfruta de nuestra habitación {viewingRoom.type.name.toLowerCase()}, equipada con {viewingRoom.features.join(", ")}. Perfecta para hasta {viewingRoom.capacity} personas.</p>
+                <p style={{ color: 'var(--text-light)', marginBottom: '1.5rem' }}>{viewingRoom.description || `Disfruta de nuestra habitación ${viewingRoom.type.name.toLowerCase()}, equipada con ${viewingRoom.features.join(", ")}. Perfecta para hasta ${viewingRoom.capacity} personas.`}</p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <section>

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { LayoutDashboard, AlertCircle, Clock, CheckCircle2, ChefHat, BookOpen, Boxes, ArrowRight, PackagePlus } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch";
 import { Alert } from "../../components/ui/Alert";
+import { statusLabel } from "../../components/StatusBadge";
 
 export function RestaurantDashboard() {
   const { data: sessions, loading, error } = useFetch("/operational-inventory/sessions", {
@@ -59,12 +61,19 @@ export function RestaurantDashboard() {
         </h1>
         <div className={`px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 ${isOperating ? 'bg-green-100 text-green-800' : isCounting ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
           {isOperating ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-          {activeSession.status}
+          {statusLabel(activeSession.status)}
         </div>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[["Pedidos por aceptar", pendingOrders], ["En preparación", preparingOrders], ["Listos para entregar", readyOrders], ["Inventario", isCounting ? "Conteo físico" : "Operativo"]].map(([label, value]) => <article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={label}><p className="text-xs font-black uppercase text-park-muted">{label}</p><strong className="mt-3 block text-2xl text-park-dark">{value}</strong></article>)}
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Acciones principales de cocina">
+        <DashboardAction to="/restaurante/pedidos" icon={ChefHat} title="Preparar pedidos" detail={`${pendingOrders + preparingOrders + readyOrders} requieren seguimiento`} />
+        <DashboardAction to="/restaurante/inventario/recetas" icon={BookOpen} title="Consultar recetas" detail="Medidas y preparación estándar" />
+        <DashboardAction to="/restaurante/inventario/insumos" icon={Boxes} title="Revisar mi stock" detail={isCounting ? "Conteo físico en curso" : "Insumos asignados al turno"} />
+        <DashboardAction to="/restaurante/inventario/solicitudes" icon={PackagePlus} title="Solicitar insumos" detail="Pedir reposición a Super Admin" />
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -112,4 +121,12 @@ export function RestaurantDashboard() {
       </div>
     </div>
   );
+}
+
+function DashboardAction({ to, icon: Icon, title, detail }) {
+  return <Link className="group flex items-center gap-4 rounded-card border border-park-border bg-white p-4 shadow-sm transition-shadow hover:shadow-card" to={to}>
+    <span className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-park-green-soft text-park-green"><Icon size={21} /></span>
+    <span className="min-w-0"><strong className="block text-park-dark">{title}</strong><small className="text-park-muted">{detail}</small></span>
+    <ArrowRight className="ml-auto flex-none text-park-gold" size={18} />
+  </Link>;
 }

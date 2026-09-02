@@ -82,7 +82,7 @@ export function CheckInPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-5">
+    <div className="hotel-modern space-y-5">
       <Toast message={toast} onClose={() => setToast("")} />
       <CheckInOutNav />
       <PageHeader

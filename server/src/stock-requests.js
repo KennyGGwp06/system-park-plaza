@@ -12,7 +12,8 @@ async function readRequests(client, filters = {}) {
   const requests = (await client.query(`SELECT r.id,r.code,r.area_code "area",r.status,r.requested_by_legacy_user_id "requestedBy",r.reviewed_by_legacy_user_id "reviewedBy",r.transfer_id "transferId",r.observation,r.review_note "reviewNote",r.requested_at "requestedAt",r.reviewed_at "reviewedAt",t.code "transferCode",t.status "transferStatus"
     FROM inventory_stock_requests r LEFT JOIN inventory_transfers t ON t.id=r.transfer_id ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY r.requested_at DESC`, params)).rows;
   if (!requests.length) return [];
-  const lines = (await client.query(`SELECT l.id,l.request_id "requestId",l.product_id "productId",p.name "productName",l.unit_id "unitId",u.symbol "unitSymbol",l.requested_quantity "requestedQuantity",l.approved_quantity "approvedQuantity",l.observation
+  const lines = (await client.query(`SELECT l.id,l.request_id "requestId",l.product_id "productId",p.name "productName",l.unit_id "unitId",u.symbol "unitSymbol",l.requested_quantity "requestedQuantity",l.approved_quantity "approvedQuantity",l.observation,
+      COALESCE((SELECT SUM(b.on_hand-b.reserved) FROM inventory_stock_balances b JOIN inventory_warehouses w ON w.id=b.warehouse_id JOIN inventory_lots lot ON lot.id=b.lot_id WHERE b.product_id=p.id AND w.code='GENERAL' AND w.active AND lot.status='AVAILABLE'),0) "generalAvailable"
     FROM inventory_stock_request_lines l JOIN inventory_products p ON p.id=l.product_id JOIN inventory_units u ON u.id=l.unit_id WHERE l.request_id=ANY($1::bigint[]) ORDER BY l.id`, [requests.map((item) => item.id)])).rows;
   const state = (await client.query("SELECT data FROM app_state WHERE id=1")).rows[0].data;
   const person = (id) => { const user=(state.users||[]).find((item)=>n(item.id)===n(id)); return user ? `${user.firstName} ${user.lastName}`.trim() : null; };
@@ -20,7 +21,13 @@ async function readRequests(client, filters = {}) {
 }
 
 export async function stockRequestReferences() {
-  const products = (await db.query(`SELECT p.id,p.name,p.default_area_code "area",p.base_unit_id "unitId",u.symbol "unitSymbol" FROM inventory_products p JOIN inventory_units u ON u.id=p.base_unit_id WHERE p.status='ACTIVE' ORDER BY p.name`)).rows;
+  const products = (await db.query(`SELECT p.id,p.name,p.default_area_code "area",p.base_unit_id "unitId",u.symbol "unitSymbol",
+      COALESCE(SUM(CASE WHEN w.code='GENERAL' AND w.active AND lot.status='AVAILABLE' THEN b.on_hand-b.reserved ELSE 0 END),0) "generalAvailable"
+    FROM inventory_products p JOIN inventory_units u ON u.id=p.base_unit_id
+    LEFT JOIN inventory_stock_balances b ON b.product_id=p.id
+    LEFT JOIN inventory_warehouses w ON w.id=b.warehouse_id
+    LEFT JOIN inventory_lots lot ON lot.id=b.lot_id
+    WHERE p.status='ACTIVE' GROUP BY p.id,p.name,p.default_area_code,p.base_unit_id,u.symbol ORDER BY p.name`)).rows;
   return { products, areas: ['RESTAURANTE','BARTENDER'] };
 }
 

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { BedDouble, CalendarCheck, Car, CreditCard, LogIn, LogOut, RefreshCw, Search, ShoppingBag, Sparkles, Users } from "lucide-react";
 import { EmptyState } from "../../components/EmptyState";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
-import { StatusBadge } from "../../components/StatusBadge";
+import { StatusBadge, statusLabel } from "../../components/StatusBadge";
 import { Table } from "../../components/Table";
 import { useFetch } from "../../hooks/useFetch";
 import { api } from "../../services/api";
@@ -31,6 +31,7 @@ function paymentContext(item) {
 }
 
 const filterableResources = ["consumos", "cochera", "contratos", "pagosEventos", "compras", "proveedores", "pagos", "facturacion", "caja", "usuarios", "auditoria"];
+const RESOURCE_PAGE_SIZE = 12;
 
 function rowSearchText(type, item) {
   if (type === "consumos") {
@@ -145,7 +146,8 @@ function resourceSearchPlaceholder(type) {
 function nextOrderStatus(order) {
   const restaurantFlow = {
     PENDIENTE: "EN_COCINA",
-    EN_COCINA: "LISTO",
+    EN_COCINA: "PREPARANDO",
+    PREPARANDO: "LISTO",
     LISTO: "ENTREGADO"
   };
   const barFlow = {
@@ -315,8 +317,8 @@ const configs = {
     title: "Facturacion",
     description: "Comprobantes emitidos y estado documental.",
     endpoint: "/facturacion",
-    columns: ["Tipo", "Serie", "Numero", "Cliente", "Fecha", "Total", "Estado", "Acciones"],
-    row: (item) => [item.type, item.series, item.number, item.client ? `${item.client.firstName} ${item.client.lastName}` : "-", formatDate(item.issuedAt), money(item.total), <StatusBadge value={item.status} />, <div className="flex gap-2"><Button size="sm" variant="secondary">Ver</Button><Button size="sm" variant="secondary">Descargar</Button></div>]
+    columns: ["Tipo", "Serie", "Numero", "Cliente", "Fecha", "Total", "Estado"],
+    row: (item) => [item.type, item.series, item.number, item.client ? `${item.client.firstName} ${item.client.lastName}` : "-", formatDate(item.issuedAt), money(item.total), <StatusBadge value={item.status} />]
   },
   caja: {
     title: "Caja General",
@@ -369,7 +371,12 @@ export function AdminResourcePage({ type }) {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [resourceFilter, setResourceFilter] = useState("TODOS");
+  const [page, setPage] = useState(1);
   const [formPrefill, setFormPrefill] = useState(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, resourceFilter, type]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <p className="rounded-card bg-park-danger-soft p-4 font-semibold text-park-danger">{error.message}</p>;
@@ -381,6 +388,9 @@ export function AdminResourcePage({ type }) {
   const rows = config.transform ? config.transform(data) : Array.isArray(data) ? data : data?.items || [];
   const filterOptions = resourceFilterOptions(type, rows);
   const visibleRows = filterableResources.includes(type) ? filterResourceRows(type, rows, search, resourceFilter) : rows;
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / RESOURCE_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedRows = visibleRows.slice((currentPage - 1) * RESOURCE_PAGE_SIZE, currentPage * RESOURCE_PAGE_SIZE);
   const receivables = type === "pagos" ? buildReceivables(reservationsData, staysData, eventsData) : [];
   const invoiceCandidates = type === "facturacion" ? buildInvoiceCandidates(paymentsData) : [];
   const context = {
@@ -439,6 +449,13 @@ export function AdminResourcePage({ type }) {
           <Button variant="secondary" icon={RefreshCw} onClick={reload}>Actualizar</Button>
         }
       />
+      {type === "proveedores" ? (
+        <section className="mb-6 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <article className="rounded-card border border-park-border bg-white p-4 shadow-card"><p className="text-2xl font-black text-park-dark">{rows.length}</p><p className="text-sm font-bold text-park-dark">Proveedores registrados</p><p className="text-xs text-park-muted">Disponibles al registrar una compra.</p></article>
+          <article className="rounded-card border border-park-border bg-white p-4 shadow-card"><p className="text-2xl font-black text-park-dark">{rows.filter((item) => item.status === "ACTIVO").length}</p><p className="text-sm font-bold text-park-dark">Proveedores activos</p><p className="text-xs text-park-muted">Conserva los inactivos para no perder historial.</p></article>
+          <Button className="self-stretch" as={Link} to="/compras" icon={ShoppingBag}>Registrar compra</Button>
+        </section>
+      ) : null}
       {type === "caja" && data?.summary ? (
         <section className="mb-6 grid gap-4 md:grid-cols-3">
           <SummaryCard label="Ingresos" value={money(data.summary.income)} />
@@ -466,7 +483,7 @@ export function AdminResourcePage({ type }) {
                   type="button"
                   onClick={() => setResourceFilter(option)}
                 >
-                  {option === "TODOS" ? "Todos" : option}
+                  {option === "TODOS" ? "Todos" : statusLabel(option)}
                 </button>
               ))}
             </div>
@@ -485,36 +502,51 @@ export function AdminResourcePage({ type }) {
         <ResourceForm type={type} onSubmit={handleSubmit} saving={saving} context={context} prefill={formPrefill} />
       )}
       {type !== "configuracion" && visibleRows.length ? (
-        <Table
-          columns={["consumos", "cochera", "compras"].includes(type) ? [...config.columns, "Acciones"] : config.columns}
-          rows={visibleRows}
-          renderRow={(item) => (
-            <tr key={item.id}>
-              {config.row(item).map((cell, index) => <td className="px-4 py-3" key={index}>{cell}</td>)}
-              {type === "cochera" ? (
-                <td className="px-4 py-3">
-                  {item.entries?.[0] ? <Button disabled={saving} onClick={() => handleAction("vehicleExit", item)} size="sm" variant="secondary">Registrar salida</Button> : "-"}
-                </td>
-              ) : null}
-              {type === "consumos" ? (
-                <td className="px-4 py-3">
-                  {nextOrderStatus(item) ? (
-                    <Button disabled={saving} onClick={() => handleAction("orderStatus", item)} size="sm" variant={nextOrderStatus(item) === "ENTREGADO" ? "gold" : "secondary"}>
-                      Pasar a {nextOrderStatus(item).replaceAll("_", " ")}
-                    </Button>
-                  ) : (
-                    <StatusBadge value={item.status} />
-                  )}
-                </td>
-              ) : null}
-              {type === "compras" ? (
-                <td className="px-4 py-3">
-                  {item.status !== "RECIBIDA" ? <Button disabled={saving} onClick={() => handleAction("receivePurchase", item)} size="sm" variant="gold">Recibir</Button> : <StatusBadge value="RECIBIDA" />}
-                </td>
-              ) : null}
-            </tr>
-          )}
-        />
+        <section className="space-y-3">
+          <div className="flex flex-col gap-2 text-sm text-park-muted sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              Mostrando <strong className="text-park-black">{(currentPage - 1) * RESOURCE_PAGE_SIZE + 1}-{Math.min(currentPage * RESOURCE_PAGE_SIZE, visibleRows.length)}</strong> de <strong className="text-park-black">{visibleRows.length}</strong> registros
+            </p>
+            {visibleRows.length !== rows.length ? <p>{rows.length - visibleRows.length} registros ocultos por los filtros</p> : null}
+          </div>
+          <Table
+            columns={["consumos", "cochera", "compras"].includes(type) ? [...config.columns, "Acciones"] : config.columns}
+            rows={paginatedRows}
+            renderRow={(item) => (
+              <tr key={item.id}>
+                {config.row(item).map((cell, index) => <td className="px-4 py-3" key={index}>{cell}</td>)}
+                {type === "cochera" ? (
+                  <td className="px-4 py-3">
+                    {item.entries?.[0] ? <Button disabled={saving} onClick={() => handleAction("vehicleExit", item)} size="sm" variant="secondary">Registrar salida</Button> : "-"}
+                  </td>
+                ) : null}
+                {type === "consumos" ? (
+                  <td className="px-4 py-3">
+                    {nextOrderStatus(item) ? (
+                      <Button disabled={saving} onClick={() => handleAction("orderStatus", item)} size="sm" variant={nextOrderStatus(item) === "ENTREGADO" ? "gold" : "secondary"}>
+                        Marcar como {statusLabel(nextOrderStatus(item)).toLowerCase()}
+                      </Button>
+                    ) : (
+                      <StatusBadge value={item.status} />
+                    )}
+                  </td>
+                ) : null}
+                {type === "compras" ? (
+                  <td className="px-4 py-3">
+                    {item.status !== "RECIBIDA" ? <Button disabled={saving} onClick={() => handleAction("receivePurchase", item)} size="sm" variant="gold">Recibir</Button> : <StatusBadge value="RECIBIDA" />}
+                  </td>
+                ) : null}
+              </tr>
+            )}
+          />
+          {totalPages > 1 ? (
+            <nav aria-label="Paginacion de registros" className="flex items-center justify-end gap-2">
+              <Button disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} size="sm" variant="secondary">Anterior</Button>
+              <span className="min-w-24 text-center text-sm font-semibold text-park-black">Pagina {currentPage} de {totalPages}</span>
+              <Button disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} size="sm" variant="secondary">Siguiente</Button>
+            </nav>
+          ) : null}
+        </section>
       ) : type !== "configuracion" ? (
         <EmptyState title={`Sin registros en ${config.title}`} description={rows.length ? "No hay resultados con los filtros actuales." : "Cuando existan datos en PostgreSQL apareceran en esta vista."} />
       ) : null}
@@ -562,6 +594,7 @@ function ResourceForm({ type, onSubmit, saving, context, prefill }) {
           <>
             <Input label="RUC" value={form.ruc} onChange={(event) => update("ruc", event.target.value)} required />
             <Input label="Proveedor" value={form.name} onChange={(event) => update("name", event.target.value)} required />
+            <Input label="Persona de contacto" value={form.contact} onChange={(event) => update("contact", event.target.value)} placeholder="Nombre de quien atiende" />
             <Input label="Telefono" value={form.phone} onChange={(event) => update("phone", event.target.value)} />
             <Input label="Correo" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} />
           </>
@@ -639,6 +672,7 @@ function ResourceForm({ type, onSubmit, saving, context, prefill }) {
             <Input label="Nombre" value={form.firstName} onChange={(event) => update("firstName", event.target.value)} required />
             <Input label="Apellido" value={form.lastName} onChange={(event) => update("lastName", event.target.value)} required />
             <Input label="Correo" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} required />
+            <Input label="Contraseña temporal" type="password" minLength="12" value={form.password} onChange={(event) => update("password", event.target.value)} required />
             <Select label="Rol" value={form.roleId} onChange={(event) => update("roleId", event.target.value)} required>
               <option value="">Seleccionar</option>
               {context.roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
@@ -807,12 +841,12 @@ function InvoiceCandidatesPanel({ items, onSelect }) {
 function defaultForm(type) {
   const forms = {
     cochera: { spaceId: "", plate: "", brand: "", model: "" },
-    proveedores: { ruc: "", name: "", phone: "", email: "", status: "ACTIVO" },
+    proveedores: { ruc: "", name: "", contact: "", phone: "", email: "", status: "ACTIVO" },
     compras: { supplierId: "", productId: "", quantity: "1", cost: "0" },
     pagos: { clientId: "", reservationId: "", stayId: "", eventId: "", area: "RECEPCION", concept: "", method: "EFECTIVO", amount: "" },
     facturacion: { clientId: "", paymentId: "", type: "BOLETA", series: "B001", subtotal: "", tax: "", total: "" },
     caja: { type: "INGRESO", concept: "", method: "EFECTIVO", amount: "" },
-    usuarios: { firstName: "", lastName: "", email: "", roleId: "", status: "ACTIVO" },
+    usuarios: { firstName: "", lastName: "", email: "", password: "", roleId: "", status: "ACTIVO" },
     configuracion: { hotelName: "Hotel Park Plaza", ruc: "", phone: "", email: "", logoUrl: "", currency: "PEN", taxRate: "18", timezone: "America/Lima", dateFormat: "dd/MM/yyyy", address: "" }
   };
   return forms[type] || {};

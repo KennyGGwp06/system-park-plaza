@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Search, Scale, AlertCircle } from "lucide-react";
+import { BookOpen, Search, Scale, AlertCircle, PackageCheck } from "lucide-react";
 import { useFetch } from "../../hooks/useFetch";
 import { Input } from "../../components/ui/Input";
 
@@ -56,7 +56,7 @@ export function RestaurantRecipesPage() {
                   </div>
                   <div className="bg-white/20 p-1.5 rounded flex items-center gap-1.5 text-xs font-medium">
                     <Scale className="h-3 w-3" />
-                    {recipe.base_yield} {recipe.unit}
+                    {recipe.yieldQuantity} {recipe.yieldUnitSymbol}
                   </div>
                 </div>
               </div>
@@ -66,9 +66,9 @@ export function RestaurantRecipesPage() {
                   <ul className="space-y-2">
                     {recipe.ingredients?.map((ing, idx) => (
                       <li key={idx} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-700">{ing.product_name}</span>
+                        <span className="text-gray-700">{ing.productName}</span>
                         <span className="font-semibold text-[#0f3d2e] bg-[#0f3d2e]/10 px-2 py-0.5 rounded">
-                          {Number(ing.quantity).toFixed(2)} {ing.unit}
+                          {Number(ing.requiredPerPortion ?? ing.quantity).toFixed(2)} {ing.baseUnitSymbol || ing.unitSymbol}
                         </span>
                       </li>
                     ))}
@@ -79,12 +79,20 @@ export function RestaurantRecipesPage() {
                     )}
                   </ul>
                 </div>
-                {recipe.instructions && (
+                <div className="border-t border-park-border p-4">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex items-center gap-2 font-semibold text-park-dark"><PackageCheck className="h-4 w-4 text-park-green" /> Porciones disponibles</span>
+                    <strong className="text-park-green">{Number(recipe.availablePortions || 0)}</strong>
+                  </div>
+                  {recipe.limitingIngredient ? <p className="mt-1 text-xs text-park-muted">Limitado por {recipe.limitingIngredient.productName}</p> : null}
+                </div>
+                {recipe.manual?.description && (
                   <div className="p-4">
-                    <h4 className="text-xs uppercase font-bold text-gray-500 tracking-wider mb-2">Instrucciones</h4>
-                    <p className="text-sm text-gray-600 line-clamp-3">{recipe.instructions}</p>
+                    <h4 className="text-xs uppercase font-bold text-gray-500 tracking-wider mb-2">Resultado esperado</h4>
+                    <p className="whitespace-pre-line text-sm text-gray-600">{recipe.manual.description}</p>
                   </div>
                 )}
+                {recipe.manual?.steps?.length ? <div className="border-t border-park-border p-4"><h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-park-muted">Preparación paso a paso</h4><ol className="list-decimal space-y-1 pl-5 text-sm text-park-muted">{recipe.manual.steps.map((step, index) => <li key={`${step}-${index}`}>{step}</li>)}</ol></div> : null}
               </div>
             </div>
           ))}

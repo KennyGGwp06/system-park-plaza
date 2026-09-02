@@ -2,7 +2,7 @@ import cors from "cors";
 import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { join } from "node:path";
@@ -25,21 +25,24 @@ import { createStockRequest, listStockRequests, reviewStockRequest, stockRequest
 import { ensureStayAccess, validateOrderSchema } from "./state-stabilization.js";
 import { withOrderTiming } from "./order-operations.js";
 import { dataIntegrityReport, sanitizeDataIntegrity } from "./data-integrity.js";
+import { electronicBillingAccess, electronicBillingConfiguration, electronicDocumentArtifact, issueElectronicDocument, retryElectronicDocument } from "./electronic-billing.js";
 
 const app = express();
 const httpServer = createServer(app);
 const port = Number(process.env.PORT || 3000);
+const isProduction = process.env.NODE_ENV === "production";
+const isExplicitDemo = process.env.PARK_PLAZA_DEMO === "true";
 const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? null : "park-plaza-local-demo");
 const demoStaffPassword = process.env.DEMO_STAFF_PASSWORD || "ParkPlaza123*";
 const uploadRoot = process.env.UPLOAD_DIR || join(process.cwd(), "uploads");
 const cleaningUploadDir = join(uploadRoot, "cleaning");
+const menuUploadDir = join(uploadRoot, "menu");
+const experienceUploadDir = join(uploadRoot, "experience");
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.CUSTOMER_URL,
   process.env.OPERATIONS_URL,
-  "http://localhost:5173",
-  "http://localhost:4173",
-  "http://localhost:4174"
+  ...(isProduction && !isExplicitDemo ? [] : ["http://localhost:5173", "http://localhost:4173", "http://localhost:4174"])
 ].filter(Boolean);
 const corsOptions = {
   origin(origin, callback) {
@@ -49,8 +52,37 @@ const corsOptions = {
   credentials: true
 };
 
-if (!jwtSecret) throw new Error("JWT_SECRET es obligatorio en producción");
+function hashStaffPassword(value) {
+  const password = String(value || "");
+  if (password.length < 12) throw httpError(400, "La contraseña temporal debe tener al menos 12 caracteres");
+  const salt = randomBytes(16);
+  const derived = scryptSync(password, salt, 64);
+  return `scrypt$${salt.toString("hex")}$${derived.toString("hex")}`;
+}
 
+function verifyStaffPassword(value, encoded) {
+  try {
+    const [scheme, saltHex, hashHex] = String(encoded || "").split("$");
+    if (scheme !== "scrypt" || !saltHex || !hashHex) return false;
+    const expected = Buffer.from(hashHex, "hex");
+    const actual = scryptSync(String(value || ""), Buffer.from(saltHex, "hex"), expected.length);
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
+  } catch {
+    return false;
+  }
+}
+
+function safeStaffUser(_state, user) {
+  const { passwordHash: _passwordHash, ...safe } = user;
+  return safe;
+}
+
+if (!jwtSecret) throw new Error("JWT_SECRET es obligatorio en producción");
+if (isProduction && !isExplicitDemo && (!process.env.DEMO_STAFF_PASSWORD || demoStaffPassword === "ParkPlaza123*" || demoStaffPassword.length < 12)) {
+  throw new Error("DEMO_STAFF_PASSWORD debe reemplazarse por una clave segura de al menos 12 caracteres en producción");
+}
+
+app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : false);
 const io = new SocketServer(httpServer, { cors: corsOptions });
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors(corsOptions));
@@ -62,7 +94,7 @@ app.use("/api", (_req, res, next) => {
   next();
 });
 app.use("/uploads", express.static(uploadRoot, { fallthrough: false, maxAge: "7d", immutable: true }));
-app.use(morgan("dev"));
+app.use(morgan(isProduction ? "combined" : "dev"));
 app.use((req, res, next) => {
   res.on("finish", () => {
     if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && res.statusCode < 400) {
@@ -99,7 +131,7 @@ const hotelToday = (state) => {
 const roomReady = (room) => room?.status === "LIBRE";
 
 app.get("/api/health", async (_req, res, next) => {
-  try { await readState(); res.json({ status: "ok", database: "connected", persistence: "postgresql", mode: "demo", realtimeConnections: io.engine.clientsCount }); } catch (error) { next(error); }
+  try { await readState(); res.json({ status: "ok", database: "connected", persistence: "postgresql", mode: isExplicitDemo ? "demo" : isProduction ? "production" : "development", realtimeConnections: io.engine.clientsCount }); } catch (error) { next(error); }
 });
 
 // El navegador no lee huellas. El driver de ZKTeco trabaja en Windows y este
@@ -204,11 +236,13 @@ app.get("/api/public/catalog", async (_req, res, next) => {
     const publicMenuItem = (item) => {
       const hydrated = hydrateMenuItem(state, item);
       const operational = operationalByMenu.get(Number(item.id));
-      return { ...hydrated, available: Number(operational?.availablePortions || 0) > 0, availablePortions: Number(operational?.availablePortions || 0), limitingIngredient: operational?.limitingIngredient || null };
+      const salesEnabled = item.salesEnabled === true;
+      return { ...hydrated, salesEnabled, available: salesEnabled && Number(operational?.availablePortions || 0) > 0, availablePortions: Number(operational?.availablePortions || 0), limitingIngredient: operational?.limitingIngredient || null };
     };
+    const roomMedia = roomTypeMedia(state);
     const roomGroups = Object.values(state.rooms.reduce((acc, room) => {
       const key = room.type.name;
-      acc[key] ||= { ...room.type, capacity: room.capacity, price: room.price, features: room.features, available: 0 };
+      acc[key] ||= { ...room.type, capacity: room.capacity, price: room.price, features: room.features, imageUrl: roomMedia[key]?.imageUrl || "", description: roomMedia[key]?.description || "", available: 0 };
       if (room.status === "LIBRE") acc[key].available++;
       return acc;
     }, {}));
@@ -243,7 +277,8 @@ app.get("/api/public/rooms", async (req, res, next) => {
   try {
     const state = await readState();
     const bookedIds = state.bookings.filter((booking) => !["CANCELADA", "FINALIZADA"].includes(booking.status) && overlaps(req.query.checkIn, req.query.checkOut, booking.checkIn, booking.checkOut)).map((booking) => booking.roomId);
-    res.json(state.rooms.filter((room) => room.status === "LIBRE" && !bookedIds.includes(room.id) && (!req.query.type || room.type.name === req.query.type)));
+    const media = roomTypeMedia(state);
+    res.json(state.rooms.filter((room) => room.status === "LIBRE" && !bookedIds.includes(room.id) && (!req.query.type || room.type.name === req.query.type)).map((room) => ({ ...room, imageUrl: media[room.type?.name]?.imageUrl || "", description: media[room.type?.name]?.description || "" })));
   } catch (error) { next(error); }
 });
 
@@ -468,6 +503,7 @@ app.post("/api/public/orders", clientAuth, async (req, res, next) => {
       const items = (req.body.items || []).map((entry) => {
         const menuItem = state.menuItems.find((item) => item.id === Number(entry.menuItemId) && item.active);
         if (!menuItem) throw httpError(400, "Producto no disponible");
+        if (menuItem.salesEnabled !== true) throw httpError(409, `${menuItem.name} tiene la venta pausada`);
         const allowedServices = (Array.isArray(menuItem.availableFor) ? menuItem.availableFor : String(menuItem.availableFor || "").split(/[\s,|]+/)).map((value) => String(value).toUpperCase()).filter(Boolean);
         if (allowedServices.length && !allowedServices.includes(serviceCode)) throw httpError(409, `${menuItem.name} no está disponible para ${serviceCode}`);
         const technical = technicalRecipes[menuItem.id];
@@ -546,9 +582,10 @@ app.post("/api/auth/login", loginRateLimit, async (req, res, next) => {
   try {
     const state = await readState();
     const user = state.users.find((item) => item.email.toLowerCase() === String(req.body.email || "").toLowerCase());
-    if (!user || user.status !== "ACTIVO" || req.body.password !== demoStaffPassword) return res.status(401).json({ message: "Credenciales incorrectas o cuenta deshabilitada" });
+    const passwordAccepted = user?.passwordHash ? verifyStaffPassword(req.body.password, user.passwordHash) : req.body.password === demoStaffPassword;
+    if (!user || user.status !== "ACTIVO" || !passwordAccepted) return res.status(401).json({ message: "Credenciales incorrectas o cuenta deshabilitada" });
     loginAttempts.delete(req.ip || "unknown");
-    res.json({ token: jwt.sign({ sub: user.id, kind: "STAFF" }, jwtSecret, { expiresIn: "12h" }), user });
+    res.json({ token: jwt.sign({ sub: user.id, kind: "STAFF" }, jwtSecret, { expiresIn: "12h" }), user: safeStaffUser(state, user) });
   } catch (error) { next(error); }
 });
 
@@ -627,9 +664,16 @@ app.post("/api/realtime/ping", (_req, res) => res.json({ ok: true, at: Date.now(
 app.get("/api/admin/menu-items", requireInventoryAdmin, async (req, res, next) => {
   try {
     const state = await readState();
+    const operationalRecipes = (await Promise.all([operationalRecipeManual("RESTAURANTE"), operationalRecipeManual("BARTENDER")])).flat();
+    const operationalByMenu = new Map(operationalRecipes.filter((item) => item.menuItemId).map((item) => [Number(item.menuItemId), item]));
     const rows = state.menuItems
       .filter((item) => item.active !== false && (!req.query.area || item.area === req.query.area))
-      .map((item) => ({ ...hydrateMenuItem(state, item), ingredients: hydrateMenuItem(state, item).ingredients }));
+      .map((item) => {
+        const hydrated = hydrateMenuItem(state, item);
+        const operational = operationalByMenu.get(Number(item.id));
+        const availablePortions = Number(operational?.availablePortions || 0);
+        return { ...hydrated, salesEnabled: item.salesEnabled === true, available: item.salesEnabled === true && availablePortions > 0, availablePortions, limitingIngredient: operational?.limitingIngredient || null };
+      });
     res.json(rows);
   } catch (error) { next(error); }
 });
@@ -658,6 +702,7 @@ app.post("/api/admin/menu-items", requireInventoryAdmin, async (req, res, next) 
         price: round(price),
         prepMinutes: Math.max(0, Number(req.body.prepMinutes || 0)),
         active: req.body.active !== false,
+        salesEnabled: req.body.salesEnabled === true,
         recipe: [],
         availableFor: ["HOSPEDAJE", "PISCINA", "MIRADOR", "EVENTOS"],
         createdAt: now(),
@@ -693,11 +738,20 @@ app.put("/api/admin/menu-items/:id", requireInventoryAdmin, async (req, res, nex
       const item = state.menuItems.find((row) => Number(row.id) === Number(req.params.id));
       if (!item) throw httpError(404, "Producto de venta no encontrado");
       const before = { name: item.name, price: item.price, prepMinutes: item.prepMinutes, active: item.active };
+      const draftIngredients = Array.isArray(req.body.draftIngredients)
+        ? req.body.draftIngredients.map((ingredient) => String(ingredient || "").trim()).filter(Boolean).slice(0, 40)
+        : (item.draftIngredients || []);
       Object.assign(item, {
         name,
         price: round(price),
         prepMinutes: Math.max(0, Number(req.body.prepMinutes || 0)),
         active: req.body.active !== false,
+        category: String(req.body.category ?? item.category ?? "Sin categoría").trim() || "Sin categoría",
+        description: String(req.body.description ?? item.description ?? "").trim(),
+        image: String(req.body.image ?? item.image ?? "").trim() || "/catalog/restaurant-menu-placeholder.png",
+        tags: Array.isArray(req.body.tags) ? req.body.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 12) : (item.tags || []),
+        draftIngredients,
+        recipeStatus: draftIngredients.length ? "PENDIENTE_GRAMAJES" : (item.recipeStatus || "SIN_RECETA"),
         updatedAt: now()
       });
       audit(state, "CATALOGO", "ACTUALIZAR_PRECIO", `${item.name}: S/ ${before.price} → S/ ${item.price}`, req.user.id);
@@ -707,13 +761,106 @@ app.put("/api/admin/menu-items/:id", requireInventoryAdmin, async (req, res, nex
   } catch (error) { next(error); }
 });
 
+// Publicar un producto y habilitar su venta son decisiones independientes.
+// Este cambio no genera una versión nueva de receta ni modifica su stock.
+app.patch("/api/admin/menu-items/:id/sales-enabled", requireInventoryAdmin, async (req, res, next) => {
+  try {
+    if (typeof req.body.salesEnabled !== "boolean") throw httpError(400, "Indica si la venta debe quedar habilitada o pausada");
+    const result = await mutateState((state) => {
+      const item = state.menuItems.find((row) => Number(row.id) === Number(req.params.id));
+      if (!item) throw httpError(404, "Producto de venta no encontrado");
+      item.salesEnabled = req.body.salesEnabled;
+      item.updatedAt = now();
+      audit(state, "CATALOGO", item.salesEnabled ? "HABILITAR_VENTA" : "PAUSAR_VENTA", `${item.area}: ${item.name}`, req.user.id);
+      return hydrateMenuItem(state, item);
+    });
+    res.json(result);
+  } catch (error) { next(error); }
+});
+
+// Las fotos de carta se guardan en el backend para que no dependan de enlaces
+// externos. Reemplazar una foto no modifica la receta ni el historial de ventas.
+app.post(
+  "/api/admin/menu-items/:id/image",
+  requireInventoryAdmin,
+  express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "10mb" }),
+  async (req, res, next) => {
+    try {
+      const extensions = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp" };
+      const mimeType = String(req.headers["content-type"] || "").split(";")[0].toLowerCase();
+      const extension = extensions[mimeType];
+      if (!extension) throw httpError(415, "Formato no permitido. Usa JPG, PNG o WEBP");
+      if (!Buffer.isBuffer(req.body) || !req.body.length) throw httpError(400, "La imagen está vacía");
+      const storedName = `${Date.now()}-${randomUUID()}${extension}`;
+      await mkdir(menuUploadDir, { recursive: true });
+      await writeFile(join(menuUploadDir, storedName), req.body, { flag: "wx" });
+      const image = `/uploads/menu/${storedName}`;
+      const result = await mutateState((state) => {
+        const item = state.menuItems.find((row) => Number(row.id) === Number(req.params.id));
+        if (!item) throw httpError(404, "Producto de venta no encontrado");
+        item.image = image;
+        item.updatedAt = now();
+        audit(state, "CATALOGO", "ACTUALIZAR_IMAGEN", item.name, req.user.id);
+        return hydrateMenuItem(state, item);
+      });
+      res.status(201).json(result);
+    } catch (error) { next(error); }
+  }
+);
+app.delete("/api/admin/menu-items/:id/image", requireInventoryAdmin, async (req, res, next) => {
+  try { const result = await mutateState((state) => { const item = state.menuItems.find((row) => Number(row.id) === Number(req.params.id)); if (!item) throw httpError(404, "Producto de venta no encontrado"); item.image = ""; item.updatedAt = now(); audit(state, "CATALOGO", "QUITAR_IMAGEN", item.name, req.user.id); return hydrateMenuItem(state, item); }); res.json(result); } catch (error) { next(error); }
+});
+
+// Imágenes propias de portadas y habitaciones. Se alojan con el sistema, no en enlaces externos.
+async function saveExperienceImage(req, res, next, target) {
+  try {
+    const extensions = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp" };
+    const mimeType = String(req.headers["content-type"] || "").split(";")[0].toLowerCase();
+    const extension = extensions[mimeType];
+    if (!extension) throw httpError(415, "Formato no permitido. Usa JPG, PNG o WEBP");
+    if (!Buffer.isBuffer(req.body) || !req.body.length) throw httpError(400, "La imagen está vacía");
+    const storedName = `${Date.now()}-${randomUUID()}${extension}`;
+    await mkdir(experienceUploadDir, { recursive: true });
+    await writeFile(join(experienceUploadDir, storedName), req.body, { flag: "wx" });
+    const imageUrl = `/uploads/experience/${storedName}`;
+    const result = await mutateState((state) => {
+      state.settings ||= {};
+      if (target.kind === "SERVICE") {
+        const current = experienceMedia(state);
+        state.settings.experienceMedia = current.map((item) => item.code === target.code ? { ...item, imageUrl } : item);
+      } else {
+        const roomNames = new Set(state.rooms.map((room) => room.type?.name));
+        if (!roomNames.has(target.name)) throw httpError(404, "Tipo de habitación no encontrado");
+        state.settings.roomTypeMedia = { ...(state.settings.roomTypeMedia || {}), [target.name]: { ...(state.settings.roomTypeMedia?.[target.name] || {}), imageUrl } };
+      }
+      audit(state, "COMERCIAL", "ACTUALIZAR_IMAGEN", target.kind === "SERVICE" ? `Portada ${target.code}` : `Habitación ${target.name}`, req.user.id);
+      return { imageUrl };
+    });
+    res.status(201).json(result);
+  } catch (error) { next(error); }
+}
+
+app.post("/api/admin/experience-media/:code/image", requireInventoryAdmin, express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "10mb" }), (req, res, next) => {
+  const code = String(req.params.code || "").toUpperCase();
+  if (!new Set(["HOSPEDAJE", "BAR", "PISCINA", "EVENTOS", "TERRAZA", "MIRADOR"]).has(code)) return next(httpError(404, "Portada no encontrada"));
+  return saveExperienceImage(req, res, next, { kind: "SERVICE", code });
+});
+app.delete("/api/admin/experience-media/:code/image", requireInventoryAdmin, async (req, res, next) => {
+  try { const code = String(req.params.code || "").toUpperCase(); const result = await mutateState((state) => { state.settings ||= {}; state.settings.experienceMedia = experienceMedia(state).map((item) => item.code === code ? { ...item, imageUrl: "" } : item); audit(state, "COMERCIAL", "QUITAR_IMAGEN", `Portada ${code}`, req.user.id); return { ok: true }; }); res.json(result); } catch (error) { next(error); }
+});
+app.post("/api/admin/room-types/:name/image", requireInventoryAdmin, express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "10mb" }), (req, res, next) => saveExperienceImage(req, res, next, { kind: "ROOM", name: String(req.params.name || "") }));
+app.delete("/api/admin/room-types/:name/image", requireInventoryAdmin, async (req, res, next) => {
+  try { const name = String(req.params.name || ""); const result = await mutateState((state) => { state.settings ||= {}; state.settings.roomTypeMedia = { ...(state.settings.roomTypeMedia || {}), [name]: { ...(state.settings.roomTypeMedia?.[name] || {}), imageUrl: "" } }; audit(state, "COMERCIAL", "QUITAR_IMAGEN", `Habitación ${name}`, req.user.id); return { ok: true }; }); res.json(result); } catch (error) { next(error); }
+});
+
 // Centro comercial del dueño. Aquí viven los precios que el cliente ve al reservar.
 app.get("/api/admin/commercial-settings", requireInventoryAdmin, async (_req, res, next) => {
   try {
     const state = await readState();
+    const roomMedia = roomTypeMedia(state);
     const roomTypes = Object.values(state.rooms.reduce((groups, room) => {
       const key = room.type?.name || "Sin tipo";
-      if (!groups[key]) groups[key] = { name: key, capacity: Number(room.capacity || 1), price: Number(room.price || 0), rooms: 0 };
+      if (!groups[key]) groups[key] = { name: key, capacity: Number(room.capacity || 1), price: Number(room.price || 0), rooms: 0, imageUrl: roomMedia[key]?.imageUrl || "", description: roomMedia[key]?.description || "" };
       groups[key].rooms += 1;
       return groups;
     }, {}));
@@ -733,14 +880,17 @@ app.put("/api/admin/commercial-settings", requireInventoryAdmin, async (req, res
         service.price = priceOf(update.price, service.name);
         if (update.capacity !== null && update.capacity !== undefined && update.capacity !== "") service.capacity = Math.max(1, Number(update.capacity));
       });
-      (Array.isArray(payload.roomTypes) ? payload.roomTypes : []).forEach((update) => { const name = String(update.name || ""); const price = priceOf(update.price, `habitaciones ${name}`); state.rooms.filter((room) => room.type?.name === name).forEach((room) => { room.price = price; }); });
+      (Array.isArray(payload.roomTypes) ? payload.roomTypes : []).forEach((update) => { const name = String(update.name || ""); const price = priceOf(update.price, `habitaciones ${name}`); state.rooms.filter((room) => room.type?.name === name).forEach((room) => { room.price = price; }); if (name) state.settings.roomTypeMedia = { ...(state.settings.roomTypeMedia || {}), [name]: { ...(state.settings.roomTypeMedia?.[name] || {}), description: String(update.description || "").trim().slice(0, 500), imageUrl: String(update.imageUrl ?? state.settings.roomTypeMedia?.[name]?.imageUrl ?? "").trim().slice(0, 500) } }; });
       const currentRates = state.settings?.parkingRates || { MOTO: 0, AUTO: 15, CAMIONETA: 20, MINIVAN: 25 }; const rates = payload.parkingRates || {};
       state.settings.parkingRates = Object.fromEntries(Object.keys(currentRates).map((key) => [key, priceOf(rates[key] ?? currentRates[key], `cochera ${key.toLowerCase()}`)]));
       if (payload.experiencePricing && typeof payload.experiencePricing === "object") {
         const currentPricing = experiencePricing(state);
-        state.settings.experiencePricing = Object.fromEntries(Object.entries(currentPricing).map(([group, items]) => [group, items.map((item) => {
-          const update = (payload.experiencePricing[group] || []).find((entry) => String(entry.code || entry.id) === String(item.code || item.id));
-          return update ? { ...item, price: priceOf(update.price, item.name), ...(item.perPerson !== undefined ? { perPerson: priceOf(update.price, item.name) } : {}) } : item;
+        state.settings.experiencePricing = Object.fromEntries(Object.entries(currentPricing).map(([group, items]) => [group, (Array.isArray(payload.experiencePricing[group]) ? payload.experiencePricing[group] : items).map((entry) => {
+          const previous = items.find((item) => String(item.code || item.id) === String(entry.code || entry.id));
+          const identifier = String(entry.id || entry.code || previous?.id || previous?.code || `CUSTOM_${randomUUID()}`).trim();
+          const name = String(entry.name || previous?.name || "").trim();
+          if (!name) throw httpError(400, "Cada plan o extra necesita un nombre");
+          return { ...previous, id: previous?.id || identifier, code: previous?.code || String(entry.code || identifier).toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 60), name: name.slice(0, 100), description: String(entry.description ?? previous?.description ?? "").trim().slice(0, 500), price: priceOf(entry.price ?? previous?.price, name), active: entry.active !== false, ...(previous?.perPerson !== undefined ? { perPerson: priceOf(entry.price ?? previous?.price, name) } : {}) };
         })]));
       }
       if (Array.isArray(payload.eventSpaces) && payload.eventSpaces.length) state.settings.eventSpaces = eventSpaces(state).map((space) => { const update = payload.eventSpaces.find((item) => Number(item.id) === Number(space.id)); return update ? { ...space, name: String(update.name || space.name).trim() || space.name, capacity: Math.max(1, Number(update.capacity || space.capacity)), basePrice: priceOf(update.basePrice, `evento ${space.name}`) } : space; });
@@ -782,9 +932,9 @@ app.post("/api/daily-inventory/assign", requireInventoryAdmin, async (req, res, 
         const product = state.inventory.find((item) => Number(item.id) === Number(entry.productId) && item.area === area && isOperationalProduct(item));
         if (!product) throw httpError(400, "Uno de los productos no pertenece al área");
         const beforeQty = Number(product.stock || 0);
-        product.stock = round(beforeQty + quantity);
+        product.stock = roundQuantity(beforeQty + quantity);
         const line = box.items.find((item) => Number(item.productId) === Number(product.id));
-        if (line) line.assignedQuantity = round(Number(line.assignedQuantity || 0) + quantity);
+        if (line) line.assignedQuantity = roundQuantity(Number(line.assignedQuantity || 0) + quantity);
         else box.items.push({ productId: product.id, productName: product.name, unit: product.unit, openingQuantity: beforeQty, assignedQuantity: quantity });
         const movementId = nextId(state, "movement");
         state.inventoryMovements.unshift({ id: movementId, productId: product.id, product: { ...product }, type: "ASIGNACION_DIARIA", quantity, beforeQty, afterQty: product.stock, reason: `Asignación a caja diaria ${area}`, createdById: req.user.id, createdAt: now() });
@@ -818,7 +968,7 @@ app.post("/api/daily-inventory/close", async (req, res, next) => {
         if (!Number.isFinite(actualQuantity) || actualQuantity < 0) throw httpError(400, `Cantidad física no válida para ${line.productName}`);
         const variance = round(actualQuantity - expectedQuantity);
         const beforeQty = expectedQuantity;
-        if (product) product.stock = round(actualQuantity);
+        if (product) product.stock = roundQuantity(actualQuantity);
         if (product && Math.abs(variance) > 0.000001) {
           const movementId = nextId(state, "movement");
           state.inventoryMovements.unshift({ id: movementId, productId: product.id, product: { ...product }, type: "DIFERENCIA_CIERRE", quantity: Math.abs(variance), beforeQty, afterQty: product.stock, reason: `Cierre físico ${area}: diferencia ${variance} ${product.unit}`, createdById: req.user.id, createdAt: now() });
@@ -1526,7 +1676,42 @@ app.patch("/api/events/:id/status", requireReceptionAdmin, async (req, res, next
 app.post("/api/events/:id/payments", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState(async (state,client) => { const item = state.events.find((row) => row.id === Number(req.params.id)); if (!item) throw httpError(404, "Evento no encontrado"); const amount = Number(req.body.amount); if (amount <= 0 || amount > item.balance) throw httpError(409, "Monto de pago no valido"); const payment = attachCashSession(state, { id: nextId(state, "payment"), eventId: item.id, clientId: item.clientId, amount, method: req.body.method || "EFECTIVO", reference: req.body.reference || "", concept: `Pago evento ${item.name}`, area: "EVENTOS", status: "APROBADO", createdAt: now() }, req.user.id); state.payments.push(payment); item.advance = round(Number(item.advance) + amount); item.balance = round(Number(item.price) - item.advance); const before=new Set(state.orders.map((order)=>order.id));if (item.balance <= 0) { item.status = "CONFIRMADO"; createEventCateringOrder(state, item); }await confirmOrdersInventory(client,state,state.orders.filter((order)=>!before.has(order.id)),req.user.id);audit(state, "PAGOS", "EVENTO", item.code, req.user.id); return hydratePayment(state, payment); }); res.status(201).json(result); } catch (error) { next(error); } });
 
 app.post("/api/pagos", requireReceptionAdmin, async (req, res, next) => { try { const result = await mutateState(async (state,client) => {const before=new Set(state.orders.map((order)=>order.id));const payment=registerPayment(state,req.body,req.user.id);await confirmOrdersInventory(client,state,state.orders.filter((order)=>!before.has(order.id)),req.user.id);return payment;}); res.status(201).json(result); } catch (error) { next(error); } });
-app.post("/api/facturacion", requireFullAdministration("emitir comprobantes"), async (req, res, next) => { try { const result = await mutateState((state) => { const payment = state.payments.find((item) => item.id === Number(req.body.paymentId)); if (!payment) throw httpError(404, "Pago no encontrado"); if (payment.invoiceId) throw httpError(409, "El pago ya tiene comprobante"); const id = nextId(state, "invoice"); const item = { id, ...req.body, clientId: Number(req.body.clientId || payment.clientId), number: String(id).padStart(8, "0"), subtotal: Number(req.body.subtotal), tax: Number(req.body.tax), total: Number(req.body.total), status: "EMITIDO", issuedAt: now() }; state.facturacion.push(item); payment.invoiceId = id; audit(state, "FACTURACION", "EMITIR", `${item.series}-${item.number}`, req.user.id); return hydrateInvoice(state, item); }); res.status(201).json(result); } catch (error) { next(error); } });
+app.get("/api/facturacion/configuration", requireBillingAccess("canView", "consultar facturación electrónica"), (req, res) => {
+  res.json({ ...electronicBillingConfiguration(), access: electronicBillingAccess(req.user) });
+});
+app.post("/api/facturacion", requireBillingAccess("canIssue", "emitir comprobantes"), async (req, res, next) => {
+  try {
+    const result = await mutateState(async (state) => {
+      const document = await issueElectronicDocument(state, req.body, req.user.id, () => nextId(state, "invoice"));
+      audit(state, "FACTURACION", "EMITIR", `${document.fullNumber} · ${document.status} · pago #${document.paymentId}`, req.user.id);
+      return hydrateInvoice(state, document);
+    });
+    res.status(201).json(result);
+  } catch (error) { next(error); }
+});
+app.post("/api/facturacion/:id/retry", requireBillingAccess("canRetry", "reintentar comprobantes"), async (req, res, next) => {
+  try {
+    const result = await mutateState(async (state) => {
+      const document = state.facturacion.find((item) => Number(item.id) === Number(req.params.id));
+      if (!document) throw httpError(404, "Comprobante no encontrado");
+      await retryElectronicDocument(document);
+      audit(state, "FACTURACION", "REINTENTAR", `${document.fullNumber || `${document.series}-${document.number}`} · ${document.status}`, req.user.id);
+      return hydrateInvoice(state, document);
+    });
+    res.json(result);
+  } catch (error) { next(error); }
+});
+app.get("/api/facturacion/:id/download/:kind", requireBillingAccess("canDownload", "descargar archivos de comprobantes"), async (req, res, next) => {
+  try {
+    const state = await readState();
+    const document = state.facturacion.find((item) => Number(item.id) === Number(req.params.id));
+    if (!document) throw httpError(404, "Comprobante no encontrado");
+    const artifact = electronicDocumentArtifact(document, String(req.params.kind || "").toLowerCase());
+    res.set("Content-Type", artifact.contentType);
+    res.set("Content-Disposition", `attachment; filename="${artifact.filename}"`);
+    res.send(artifact.body);
+  } catch (error) { next(error); }
+});
 
 app.post("/api/usuarios", requireFullAdministration("crear usuarios"), async (req, res, next) => { try { const result = await mutateState((state) => saveUser(state, null, req.body, req.user.id)); res.status(201).json(result); } catch (error) { next(error); } });
 app.put("/api/usuarios/:id", requireFullAdministration("editar usuarios"), async (req, res, next) => { try { const result = await mutateState((state) => saveUser(state, Number(req.params.id), req.body, req.user.id)); res.json(result); } catch (error) { next(error); } });
@@ -1582,7 +1767,7 @@ const resourceRoles = {
   restaurante: ["SUPERADMIN", "ADMINISTRADOR", "RESTAURANTE"], bartender: ["SUPERADMIN", "ADMINISTRADOR", "BARTENDER"],
   cleaning: ["SUPERADMIN", "ADMINISTRADOR"], products: ["SUPERADMIN"], proveedores: ["SUPERADMIN"], compras: ["SUPERADMIN"],
   orders: ["SUPERADMIN", "ADMINISTRADOR"], cochera: ["SUPERADMIN", "ADMINISTRADOR"], pagos: ["SUPERADMIN", "ADMINISTRADOR"],
-  facturacion: ["SUPERADMIN"], auditoria: ["SUPERADMIN"], usuarios: ["SUPERADMIN"], roles: ["SUPERADMIN"], pool: ["SUPERADMIN", "ADMINISTRADOR"], requests: ["SUPERADMIN", "ADMINISTRADOR"]
+  facturacion: ["SUPERADMIN", "ADMINISTRADOR"], auditoria: ["SUPERADMIN"], usuarios: ["SUPERADMIN"], roles: ["SUPERADMIN"], pool: ["SUPERADMIN", "ADMINISTRADOR"], requests: ["SUPERADMIN", "ADMINISTRADOR"]
 };
 function requireResourceRole(req, resource) { if (!resourceRoles[resource]?.includes(staffAccessRole(req.user))) throw httpError(403, "No tienes permisos para este recurso."); }
 app.get("/api/:resource", async (req, res, next) => { try { const state = await readState(); const key = resourceMap[req.params.resource]; if (!key) return res.status(404).json({ message: "Recurso no encontrado" }); requireResourceRole(req, req.params.resource); let rows = state[key]; if (["restaurante", "bartender"].includes(req.params.resource)) rows = rows.filter((item) => item.area === req.params.resource.toUpperCase()); if (req.params.resource === "products" && req.query.includeArchived !== "true") rows = rows.filter(isOperationalProduct); if (req.query.status) rows = rows.filter((item) => item.status === req.query.status); if (["clients", "events", "orders", "payments", "requests", "tasks", "facturacion", "cashMovements", "poolEntries", "compras", "audit"].includes(key)) rows = sortRecent(rows, req.query.order); const hydrators = { restaurante: (item) => hydrateOrder(state, item), bartender: (item) => hydrateOrder(state, item), orders: (item) => hydrateOrder(state, item), products: (item) => hydrateProduct(item), pagos: (item) => hydratePayment(state, item), facturacion: (item) => hydrateInvoice(state, item), usuarios: (item) => hydrateUser(state, item), roles: (item) => hydrateRole(item), auditoria: (item) => ({ ...item, user: state.users.find((user) => user.id === item.userId) }), compras: (item) => ({ ...item, supplier: state.proveedores.find((supplier) => supplier.id === Number(item.supplierId)) }), cochera: (item) => ({ ...item, entries: (item.entries || []).map((entry) => hydrateParkingEntry(state, entry)) }) }; res.json(rows.map(hydrators[req.params.resource] || ((item) => item))); } catch (error) { next(error); } });
@@ -1601,7 +1786,7 @@ async function biometricBridgeAuth(req, res, next) {
     next();
   } catch { res.status(401).json({ message: "Puente biométrico no autorizado o no configurado" }); }
 }
-async function staffAuth(req, res, next) { try { const payload = jwt.verify(req.headers.authorization?.replace(/^Bearer\s+/i, "") || "", jwtSecret); if (payload.kind !== "STAFF") throw new Error(); const state = await readState(); const identity = state.users.find((item) => item.id === Number(payload.sub)); if (!identity || identity.status !== "ACTIVO") throw new Error(); req.user = identity.role === "SUPERADMIN" ? { ...identity, role: "ADMINISTRADOR", displayRole: "SUPERADMIN" } : identity; next(); } catch { void writeSecurityAudit({ req, eventType: "AUTH_REJECTED", operation: "STAFF_AUTH", reason: "Token inválido, expirado o cuenta deshabilitada", status: 401 }); res.status(401).json({ message: "Sesión no válida o expirada" }); } }
+async function staffAuth(req, res, next) { try { const payload = jwt.verify(req.headers.authorization?.replace(/^Bearer\s+/i, "") || "", jwtSecret); if (payload.kind !== "STAFF") throw new Error(); const state = await readState(); const identity = state.users.find((item) => item.id === Number(payload.sub)); if (!identity || identity.status !== "ACTIVO") throw new Error(); const safeIdentity = safeStaffUser(state, identity); req.user = safeIdentity.role === "SUPERADMIN" ? { ...safeIdentity, role: "ADMINISTRADOR", displayRole: "SUPERADMIN" } : safeIdentity; next(); } catch { void writeSecurityAudit({ req, eventType: "AUTH_REJECTED", operation: "STAFF_AUTH", reason: "Token inválido, expirado o cuenta deshabilitada", status: 401 }); res.status(401).json({ message: "Sesión no válida o expirada" }); } }
 function roleName(user) { return normalizeStaffRole(typeof user?.role === "string" ? user.role : user?.role?.name); }
 function isOperationalEmployeeAvailable(state, employee, role) {
   if (!employee || roleName(employee) !== role || employee.status !== "ACTIVO") return false;
@@ -1624,6 +1809,18 @@ function requireFullAdministration(operation, message) { return async (req, res,
 function requireInventoryAdmin(req, res, next) { return requireFullAdministration("ADMIN_INVENTORY", "Solo el Superadmin puede administrar costos, recetas e inventario central")(req, res, next); }
 function requireCashAdmin(req, res, next) { return guarded("CASH_CLOSING", ["ADMINISTRADOR"], "Solo Administración puede cerrar la caja diaria")(req, res, next); }
 function requireReceptionAdmin(req, res, next) { if (isSuperAdmin(req.user) || isReceptionAdmin(req.user)) return next(); return res.status(403).json({ message: "Solo el Admin de recepción o el Superadmin pueden realizar esta operación." }); }
+function requireBillingAccess(capability, operation) {
+  return async (req, res, next) => {
+    if (!electronicBillingAccess(req.user)[capability]) {
+      void writeSecurityAudit({ req, user: req.user, eventType: "AUTHORIZATION_REJECTED", operation: `BILLING_${operation}`, reason: "El perfil no posee esta responsabilidad de facturación", status: 403 });
+      return res.status(403).json({ message: capability === "canRetry" ? "Solo el Superadmin puede reintentar envíos a SUNAT." : "Solo Recepción o Superadmin pueden gestionar comprobantes." });
+    }
+    res.once("finish", () => {
+      if (res.statusCode >= 200 && res.statusCode < 400) void writeSecurityAudit({ req, user: req.user, eventType: "API_OPERATION", operation: `BILLING_${operation}`, reason: "Operación de facturación autorizada", status: res.statusCode });
+    });
+    next();
+  };
+}
 function requireCleaningWorker(req, res, next) { return guarded("CLEANING_WORKER", ["LIMPIEZA"], "Esta estación es exclusiva para el personal de Limpieza.")(req, res, next); }
 function requireCleaningEvidenceUploader(req, res, next) {
   if (["LIMPIEZA", "MANTENIMIENTO"].includes(roleName(req.user)) || isReceptionAdmin(req.user) || isSuperAdmin(req.user)) return next();
@@ -1698,6 +1895,7 @@ function sortRecent(rows = [], order = "newest") {
   });
 }
 function round(value) { return Math.round(Number(value) * 100) / 100; }
+function roundQuantity(value) { return Math.round(Number(value) * 1000000) / 1000000; }
 function dayDiff(from, to) { return Math.ceil((new Date(to) - new Date(from)) / 86400000); }
 function overlaps(aStart, aEnd, bStart, bEnd) { if (!aStart || !aEnd || !bStart || !bEnd) return false; return new Date(aStart) < new Date(bEnd) && new Date(aEnd) > new Date(bStart); }
 function httpError(status, message) { const error = new Error(message); error.status = status; return error; }
@@ -1866,8 +2064,24 @@ function hydrateStay(state, stay, includeReservation = true) {
     return { ...payment, client: state.clients.find((item) => item.id === Number(payment.clientId)), reservation: reservation ? { ...reservation, client: state.clients.find((item) => item.id === reservation.clientId), room: state.rooms.find((item) => item.id === reservation.roomId) } : null, stay: stay ? { ...stay, room: state.rooms.find((item) => item.id === stay.roomId) } : null, event, invoice: state.facturacion.find((item) => item.id === payment.invoiceId) || null, registeredBy: registeredBy ? { id: registeredBy.id, name: `${registeredBy.firstName || ""} ${registeredBy.lastName || ""}`.trim() || registeredBy.email, role: registeredBy.displayRole || registeredBy.role } : null, concept: payment.concept || (reservation ? `Pago ${reservation.code}` : event ? `Pago evento ${event.name}` : "Pago de servicio"), area: payment.area || (event ? "EVENTOS" : "RECEPCION"), method: payment.method || "EFECTIVO" };
 }
 
-function hydrateInvoice(state, invoice) { return { ...invoice, client: state.clients.find((item) => item.id === Number(invoice.clientId)), payment: state.payments.find((item) => item.id === Number(invoice.paymentId)) }; }
-function hydrateUser(state, user) { const role = state.roles.find((item) => item.id === Number(user.roleId) || item.name === user.role); return { ...user, role: role ? { id: role.id, name: role.name } : { name: user.role }, attendanceStatus: state.employees.find((item) => item.id === user.id)?.attendanceStatus || "FUERA_DE_TURNO" }; }
+function hydrateInvoice(state, invoice) {
+  const client = state.clients.find((item) => item.id === Number(invoice.clientId));
+  const payment = state.payments.find((item) => item.id === Number(invoice.paymentId));
+  return {
+    ...invoice,
+    fullNumber: invoice.fullNumber || `${invoice.series}-${invoice.number}`,
+    recipient: invoice.recipient || (client ? {
+      documentType: client.documentType || "DNI",
+      documentNumber: client.documentNumber,
+      name: `${client.firstName || ""} ${client.lastName || ""}`.trim(),
+      email: client.email || "",
+      address: client.address || ""
+    } : null),
+    client,
+    payment
+  };
+}
+function hydrateUser(state, user) { const role = state.roles.find((item) => item.id === Number(user.roleId) || item.name === user.role); const { passwordHash: _passwordHash, ...safe } = user; return { ...safe, role: role ? { id: role.id, name: role.name } : { name: user.role }, attendanceStatus: state.employees.find((item) => item.id === user.id)?.attendanceStatus || "FUERA_DE_TURNO" }; }
 function hydrateRole(role) { return { ...role, permissions: (role.permissions || []).map((item) => ({ ...item, permissionId: item.id })) }; }
 function hydrateProduct(product) { const categoryId = Number(product.categoryId || (product.area === "BARTENDER" ? 2 : 1)); const stock = Number(product.stock || 0); const minStock = Number(product.minStock || 0); return { ...product, categoryId, category: { id: categoryId, name: categoryId === 2 ? "Bebidas" : "Alimentos" }, stockStatus: stock <= 0 ? "SIN_STOCK" : stock <= minStock ? "STOCK_BAJO" : "OK" }; }
 function hydrateMenuItem(state, item) { return { ...item, ingredients: (item.recipe || []).map((line) => { const product = state.inventory.find((row) => row.id === line.inventoryId); return { inventoryId: line.inventoryId, name: product?.name || "Insumo", quantity: line.quantity, unit: product?.unit || "unidad", available: product && isOperationalProduct(product) ? Number(product.stock) - Number(product.reserved || 0) >= Number(line.quantity) : false }; }), available: (item.recipe || []).every((line) => { const product = state.inventory.find((row) => row.id === line.inventoryId); return product && isOperationalProduct(product) && Number(product.stock) - Number(product.reserved || 0) >= Number(line.quantity); }) }; }
@@ -1960,6 +2174,7 @@ function experiencePricing(state) { const defaults = {
   EXTRAS_MIRADOR: [{ id: "VENTANA", name: "Mesa junto a la vista", price: 20 }, { id: "DECORACION", name: "Detalle de celebración", price: 45 }],
   EQUIPO_EVENTO: [{ id: "SONIDO", name: "Sonido y micrófonos", price: 350 }, { id: "PROYECTOR", name: "Proyector y pantalla", price: 180 }, { id: "DECORACION", name: "Decoración temática", price: 500 }, { id: "DJ", name: "DJ por 4 horas", price: 650 }]
 }; return { ...defaults, ...(state?.settings?.experiencePricing || {}) }; }
+function roomTypeMedia(state) { return state?.settings?.roomTypeMedia && typeof state.settings.roomTypeMedia === "object" ? state.settings.roomTypeMedia : {}; }
 function experienceMedia(state) {
   const defaults = [
     { code: "HOSPEDAJE", place: "Hotel Park Plaza", title: "HOTEL", title2: "PARK PLAZA", description: "Hospedaje pensado para descansar con reservas y accesos conectados.", imageUrl: "/images/experiences/hospedaje.webp" },
@@ -1975,10 +2190,10 @@ function experienceMedia(state) {
 function experienceCatalog(state) {
   const pricing = experiencePricing(state);
   return {
-    plans: { HOSPEDAJE: pricing.HOSPEDAJE, PISCINA: pricing.PISCINA, MIRADOR: pricing.MIRADOR },
-    extrasByService: { HOSPEDAJE: pricing.EXTRAS_HOSPEDAJE, PISCINA: pricing.EXTRAS_PISCINA, MIRADOR: pricing.EXTRAS_MIRADOR },
+    plans: { HOSPEDAJE: pricing.HOSPEDAJE.filter((item) => item.active !== false), PISCINA: pricing.PISCINA.filter((item) => item.active !== false), MIRADOR: pricing.MIRADOR.filter((item) => item.active !== false) },
+    extrasByService: { HOSPEDAJE: pricing.EXTRAS_HOSPEDAJE.filter((item) => item.active !== false), PISCINA: pricing.EXTRAS_PISCINA.filter((item) => item.active !== false), MIRADOR: pricing.EXTRAS_MIRADOR.filter((item) => item.active !== false) },
     eventLayouts: [{ code: "BANQUETE", name: "Banquete", description: "Mesas redondas y pista central" }, { code: "COCTEL", name: "Cóctel", description: "Mesas altas y circulación libre" }, { code: "AUDITORIO", name: "Auditorio", description: "Sillas orientadas al escenario" }, { code: "IMPERIAL", name: "Mesa imperial", description: "Celebración privada y cercana" }],
-    eventEquipment: pricing.EQUIPO_EVENTO,
+    eventEquipment: pricing.EQUIPO_EVENTO.filter((item) => item.active !== false),
     // Eventos necesita una fuente única para poder separar Platillos
     // (Restaurante) y Bebidas (Bartender) en la interfaz pública.
     restaurantMenu: state.menuItems.filter((item) => ["RESTAURANTE", "BARTENDER"].includes(item.area) && item.active).map((item) => hydrateMenuItem(state, item))
@@ -2076,9 +2291,16 @@ function saveUser(state, id, payload, actorId) {
   let user = id ? state.users.find((item) => item.id === id) : null;
   if (id && !user) throw httpError(404, "Usuario no encontrado");
   if (!user) { const nextUserId = Math.max(0, ...state.users.map((item) => item.id)) + 1; user = { id: nextUserId }; state.users.push(user); }
-  Object.assign(user, payload, { roleId: role.id, role: role.name, permissions: role.permissions.map((item) => item.code), status: payload.status || user.status || "ACTIVO", username: payload.username || payload.email, updatedAt: now() });
+  const { password, passwordHash: _ignoredPasswordHash, ...profile } = payload;
+  if (!id && !String(password || "").trim()) throw httpError(400, "Asigna una contraseña temporal al nuevo trabajador");
+  Object.assign(user, profile, { roleId: role.id, role: role.name, permissions: role.permissions.map((item) => item.code), status: payload.status || user.status || "ACTIVO", username: payload.username || payload.email, updatedAt: now() });
+  if (String(password || "").trim()) {
+    user.passwordHash = hashStaffPassword(password);
+    user.passwordChangedAt = now();
+  }
   let employee = state.employees.find((item) => item.id === user.id); if (!employee) { employee = { id: user.id, dailyRate: Number(payload.dailyRate || 60), attendanceStatus: "FUERA_DE_TURNO" }; state.employees.push(employee); }
-  Object.assign(employee, user, { baseRole: role.name, dailyRate: Number(payload.dailyRate || employee.dailyRate || 60) });
+  const { passwordHash: _employeePasswordHash, ...employeeProfile } = user;
+  Object.assign(employee, employeeProfile, { baseRole: role.name, dailyRate: Number(payload.dailyRate || employee.dailyRate || 60) });
   audit(state, "USUARIOS", id ? "EDITAR" : "CREAR", user.email, actorId); return hydrateUser(state, user);
 }
 
@@ -2088,3 +2310,26 @@ const attendanceRolloverWatcher = setInterval(() => {
 }, 60_000);
 attendanceRolloverWatcher.unref?.();
 httpServer.listen(port, "0.0.0.0", () => console.log(`Hotel Park Plaza API + tiempo real running on http://0.0.0.0:${port}`));
+
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal}: cerrando conexiones de Park Plaza de forma segura`);
+  const forceExit = setTimeout(() => process.exit(1), 10000);
+  forceExit.unref();
+  httpServer.close(async () => {
+    try {
+      io.close();
+      const { db } = await import("./db.js");
+      await db.end();
+      process.exit(0);
+    } catch (error) {
+      console.error("No se pudo cerrar el backend limpiamente", error);
+      process.exit(1);
+    }
+  });
+}
+
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.on("SIGINT", () => void shutdown("SIGINT"));

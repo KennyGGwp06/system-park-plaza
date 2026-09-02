@@ -21,6 +21,7 @@ const RestaurantRecipesPage = lazyPage(() => import("./modules/employees/Restaur
 const RestaurantInventoryPage = lazyPage(() => import("./modules/employees/RestaurantInventoryPage"), "RestaurantInventoryPage");
 const CleaningPage = lazyPage(() => import("./modules/employees/CleaningPage"), "CleaningPage");
 const MaintenancePage = lazyPage(() => import("./modules/employees/MaintenancePage"), "MaintenancePage");
+const RestaurantReceiptsPage = lazyPage(() => import("./modules/employees/RestaurantReceiptsPage"), "RestaurantReceiptsPage");
 const BarDashboard = lazyPage(() => import("./modules/employees/BarPages"), "BarDashboard");
 const BarOrdersPage = lazyPage(() => import("./modules/employees/BarPages"), "BarOrdersPage");
 const BarRecipesPage = lazyPage(() => import("./modules/employees/BarPages"), "BarRecipesPage");
@@ -31,6 +32,7 @@ const InventoryPage = lazyPage(() => import("./modules/inventory/InventoryPage")
 const ProductCatalogPage = lazyPage(() => import("./modules/inventory/ProductCatalogPage"), "ProductCatalogPage");
 const PurchasesPage = lazyPage(() => import("./modules/inventory/PurchasesPage"), "PurchasesPage");
 const TransfersPage = lazyPage(() => import("./modules/inventory/TransfersPage"), "TransfersPage");
+const StockRequestsPage = lazyPage(() => import("./modules/inventory/StockRequestsPage"), "StockRequestsPage");
 const OperationalInventoryPage = lazyPage(() => import("./modules/inventory/OperationalInventoryPage"), "OperationalInventoryPage");
 const TechnicalRecipesPage = lazyPage(() => import("./modules/inventory/TechnicalRecipesPage"), "TechnicalRecipesPage");
 const TransformationsPage = lazyPage(() => import("./modules/inventory/TransformationsPage"), "TransformationsPage");
@@ -49,11 +51,16 @@ const InventoryAdminDashboardPage = lazyPage(() => import("./modules/admin/Inven
 const AdminMasterDashboard = lazyPage(() => import("./modules/admin/AdminCommandCenter"), "AdminCommandCenter");
 const CentralCashRegister = lazyPage(() => import("./modules/finance/CentralCashRegister"), "CentralCashRegister");
 const AdminMiCajaPage = lazyPage(() => import("./modules/finance/AdminMiCajaPage"), "AdminMiCajaPage");
+const ElectronicBillingPage = lazyPage(() => import("./modules/finance/ElectronicBillingPage"), "ElectronicBillingPage");
 const AccessControlPage = lazyPage(() => import("./modules/admin/AccessControlPage"), "AccessControlPage");
 const AttendanceClockPage = lazyPage(() => import("./modules/employees/AttendanceClockPage"), "AttendanceClockPage");
 const WorkforcePage = lazyPage(() => import("./modules/admin/WorkforcePage"), "WorkforcePage");
 const DataIntegrityPage = lazyPage(() => import("./modules/admin/DataIntegrityPage"), "DataIntegrityPage");
 const CommercialSettingsPage = lazyPage(() => import("./modules/admin/CommercialSettingsPage"), "CommercialSettingsPage");
+const CatalogContentPage = lazyPage(() => import("./modules/admin/CatalogContentPage"), "CatalogContentPage");
+const HotelHomePage = lazyPage(() => import("./modules/hotel/HotelHomePage"), "HotelHomePage");
+const HotelWorkspacePage = lazyPage(() => import("./modules/hotel/HotelWorkspacePage"), "HotelWorkspacePage");
+const HotelMovementsPage = lazyPage(() => import("./modules/hotel/HotelMovementsPage"), "HotelMovementsPage");
 
 const preloadersByRole = {
   ADMINISTRADOR: [
@@ -67,7 +74,8 @@ const preloadersByRole = {
     () => import("./modules/employees/RestaurantDashboard"),
     () => import("./modules/employees/RestaurantOrdersPage"),
     () => import("./modules/employees/RestaurantRecipesPage"),
-    () => import("./modules/employees/RestaurantInventoryPage")
+    () => import("./modules/employees/RestaurantInventoryPage"),
+    () => import("./modules/employees/RestaurantReceiptsPage")
   ],
   BARTENDER: [
     () => import("./modules/employees/BarPages")
@@ -84,7 +92,15 @@ const protectedRoutes = [
   ["/admin-panel/caja-central", "ADMINISTRADOR:VER", <CentralCashRegister />, ["SUPERADMIN"]],
   ["/admin/comercial", "INVENTARIO:VER", <CommercialSettingsPage />, ["SUPERADMIN"]],
   ["/admin/alimentos-bebidas", "INVENTARIO:VER", <FoodBeverageControlPage />, ["SUPERADMIN"]],
+  ["/admin/contenido", "INVENTARIO:VER", <CatalogContentPage />, ["SUPERADMIN"]],
+  ["/admin/solicitudes-stock", "INVENTARIO:VER", <StockRequestsPage />, ["SUPERADMIN"]],
   ["/clientes", "CLIENTES:VER", <ClientsPage />],
+  ["/hotel", "HABITACIONES:VER", <HotelHomePage />],
+  ["/hotel/reservas", "RESERVAS:VER", <ReservationsPage />],
+  ["/hotel/movimientos", "CHECK_IN:VER", <HotelMovementsPage />],
+  ["/hotel/habitaciones", "HABITACIONES:VER", <RoomsPage />],
+  ["/hotel/limpieza", "LIMPIEZA:VER", <AdminCleaningPage view="resumen" />, ["SUPERADMIN", "ADMINISTRADOR"]],
+  ["/hotel/mantenimiento", "REPORTES:VER", <AdminMaintenancePage view="resumen" />, ["SUPERADMIN", "ADMINISTRADOR", "RECEPCION"]],
   ["/habitaciones", "HABITACIONES:VER", <RoomsPage />],
   ["/reservas", "RESERVAS:VER", <ReservationsPage />],
   ["/checkin", "CHECK_IN:VER", <CheckInPage />],
@@ -96,6 +112,9 @@ const protectedRoutes = [
   ["/restaurante/dashboard", "RESTAURANTE:VER", <RestaurantDashboard />],
   ["/restaurante/pedidos", "RESTAURANTE:VER", <RestaurantOrdersPage />],
   ["/restaurante/inventario/insumos", "RESTAURANTE:VER", <RestaurantInventoryPage />],
+  ["/restaurante/inventario/solicitudes", "RESTAURANTE:VER", <StockRequestsPage />],
+  ["/restaurante/inventario/recepciones", "RESTAURANTE:VER", <RestaurantReceiptsPage />],
+  ["/bartender/inventario/recepciones", "BARTENDER:VER", <RestaurantReceiptsPage />],
   ["/restaurante/inventario/recetas", "RESTAURANTE:VER", <RestaurantRecipesPage />],
   ["/restaurante/inventario/mermas", "RESTAURANTE:VER", <RestaurantInventoryPage />],
   ["/restaurante/inventario/cierre", "RESTAURANTE:VER", <RestaurantInventoryPage />],
@@ -105,10 +124,11 @@ const protectedRoutes = [
   ["/bartender/dashboard", "BARTENDER:VER", <BarDashboard />],
   ["/bartender/pedidos", "BARTENDER:VER", <BarOrdersPage />],
   ["/bartender/inventario/insumos", "BARTENDER:VER", <BarInventoryPage />],
+  ["/bartender/inventario/solicitudes", "BARTENDER:VER", <StockRequestsPage />],
   ["/bartender/inventario/recetas", "BARTENDER:VER", <BarRecipesPage />],
   ["/bartender/inventario/mermas", "BARTENDER:VER", <BarInventoryPage />],
   ["/bartender/inventario/cierre", "BARTENDER:VER", <BarInventoryPage />],
-  ["/bartender/botellas", "BARTENDER:VER", <BarBottlePage />, ["SUPERADMIN"]],
+  ["/bartender/botellas", "BARTENDER:VER", <BarBottlePage />, ["SUPERADMIN", "BARTENDER"]],
   ["/bar/estacion", "BARTENDER:VER", <BarOrdersPage />],
   ["/limpieza", "LIMPIEZA:VER", <CleaningPage view="ALERTAS" />, ["LIMPIEZA"]],
   ["/limpieza/en-atencion", "LIMPIEZA:VER", <CleaningPage view="EN_ATENCION" />, ["LIMPIEZA"]],
@@ -154,7 +174,7 @@ const protectedRoutes = [
   ["/compras", "COMPRAS:VER", <PurchasesPage />, ["SUPERADMIN"]],
   ["/proveedores", "PROVEEDORES:VER", <AdminResourcePage type="proveedores" />],
   ["/pagos", "PAGOS:VER", <AdminResourcePage type="pagos" />],
-  ["/facturacion", "FACTURACION:VER", <AdminResourcePage type="facturacion" />],
+  ["/facturacion", "FACTURACION:VER", <ElectronicBillingPage />, ["SUPERADMIN", "ADMINISTRADOR"]],
   ["/caja", "CAJA:VER", <AdminResourcePage type="caja" />],
   ["/usuarios", "USUARIOS:VER", <UsersPage />],
   ["/roles", "ROLES:VER", <RolesPage />],

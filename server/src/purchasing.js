@@ -99,12 +99,13 @@ export async function getPurchaseOrder(id) {
 
 export async function createPurchaseOrder(payload, actorId) {
   const errors = {};
-  if (!payload.supplierId) errors.supplierId = "Selecciona el proveedor.";
   if (!(payload.lines || []).length) errors.lines = "Agrega al menos un producto.";
   if (Object.keys(errors).length) fail(400, "Revisa los datos de la compra", errors);
   const orderId = await transaction(async (client) => {
-    const supplier = (await client.query("SELECT * FROM inventory_suppliers WHERE id=$1 AND status='ACTIVE'", [Number(payload.supplierId)])).rows[0];
-    if (!supplier) fail(400, "Proveedor no válido", { supplierId: "Selecciona un proveedor activo." });
+    const supplier = payload.supplierId
+      ? (await client.query("SELECT * FROM inventory_suppliers WHERE id=$1 AND status='ACTIVE'", [Number(payload.supplierId)])).rows[0]
+      : null;
+    if (payload.supplierId && !supplier) fail(400, "Proveedor no válido", { supplierId: "Selecciona un proveedor activo." });
     const prepared = [];
     for (const [index, input] of payload.lines.entries()) {
       const quantity = n(input.orderedQuantity);
@@ -123,14 +124,14 @@ export async function createPurchaseOrder(payload, actorId) {
     const state = await lockState(client);
     const legacyId = nextLegacyId(state.compras);
     const inserted = (await client.query(`INSERT INTO inventory_purchase_orders(legacy_id,code,supplier_id,status,ordered_at,expected_at,total,notes,currency,requested_by_legacy_user_id,metadata)
-      VALUES($1,$2,$3,'APPROVED',NOW(),$4,$5,$6,'PEN',$7,$8::jsonb) RETURNING id`, [legacyId, code, supplier.id, payload.expectedAt || null, total, payload.notes || null, actorId, JSON.stringify({ source: "PURCHASING_V2" })])).rows[0];
+      VALUES($1,$2,$3,'APPROVED',NOW(),$4,$5,$6,'PEN',$7,$8::jsonb) RETURNING id`, [legacyId, code, supplier?.id || null, payload.expectedAt || null, total, payload.notes || null, actorId, JSON.stringify({ source: payload.quick ? "QUICK_PURCHASE" : "PURCHASING_V2" })])).rows[0];
     const legacyLines = [];
     for (const item of prepared) {
       const line = (await client.query(`INSERT INTO inventory_purchase_order_lines(purchase_order_id,product_id,presentation_id,ordered_quantity,unit_cost,presentation_factor,ordered_base_quantity,base_unit_cost,observation)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`, [inserted.id, item.row.product_id, item.row.presentation_id, item.quantity, item.unitCost, item.factor, item.orderedBase, item.baseCost, item.input.observation || null])).rows[0];
       legacyLines.push({ id: Number(line.id), productId: Number(item.row.product_id), relationalProductId: Number(item.row.product_id), presentationId: item.row.presentation_id ? Number(item.row.presentation_id) : null, quantity: item.quantity, orderedQuantity: item.quantity, cost: item.unitCost, theoreticalBaseQuantity: item.orderedBase });
     }
-    state.compras.push({ id: legacyId, relationalId: Number(inserted.id), code, supplierId: Number(supplier.legacy_id || supplier.id), relationalSupplierId: Number(supplier.id), items: legacyLines, total: round6(total), status: "PENDIENTE_RECEPCION", expectedAt: payload.expectedAt || null, notes: payload.notes || "", createdAt: new Date().toISOString() });
+    state.compras.push({ id: legacyId, relationalId: Number(inserted.id), code, supplierId: supplier ? Number(supplier.legacy_id || supplier.id) : null, relationalSupplierId: supplier ? Number(supplier.id) : null, supplierName: supplier?.name || "Compra directa", items: legacyLines, total: round6(total), status: "PENDIENTE_RECEPCION", expectedAt: payload.expectedAt || null, notes: payload.notes || "", createdAt: new Date().toISOString() });
     state.audit.unshift({ id: ++state.counters.audit, module: "COMPRAS", action: "CREAR_ORDEN", detail: code, userId: actorId, createdAt: new Date().toISOString() });
     await saveState(client, state);
     await audit(client, "CREATE", "PURCHASE_ORDER", inserted.id, actorId, "Orden creada y pendiente de recepción", null, { code, total });

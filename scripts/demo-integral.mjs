@@ -24,7 +24,7 @@ async function main() {
   add("Catálogo de cuatro experiencias", catalog.services?.length === 4, `${catalog.services?.length || 0} servicios`);
 
   const [receptionToken, restaurantToken, bartenderToken, cleaningToken, adminToken] = await Promise.all([
-    staff("recepcion@parkplaza.com"), staff("restaurante@parkplaza.com"), staff("bartender@parkplaza.com"), staff("limpieza@parkplaza.com"), staff("admin@parkplaza.com")
+    staff("recepcion@parkplaza.com"), staff("restaurante@parkplaza.com"), staff("bartender@parkplaza.com"), staff("limpieza@parkplaza.com"), staff("superadmin@parkplaza.com")
   ]);
   add("Acceso de cinco roles ERP", [receptionToken, restaurantToken, bartenderToken, cleaningToken, adminToken].every(Boolean), "Recepción, Restaurante, Bartender, Limpieza y Admin");
 

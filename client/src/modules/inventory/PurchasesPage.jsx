@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, ClipboardCheck, PackageCheck, Plus, RefreshCw, Scale, ShoppingCart, Trash2, Warehouse } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, PackageCheck, Plus, RefreshCw, Scale, Send, ShoppingCart, Sparkles, Trash2, Warehouse } from "lucide-react";
+import { Link } from "react-router-dom";
 import { EmptyState } from "../../components/EmptyState";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -11,7 +12,13 @@ import { api } from "../../services/api";
 const money = (value) => `S/ ${Number(value || 0).toFixed(2)}`;
 const qty = (value) => Number(value || 0).toLocaleString("es-PE", { maximumFractionDigits: 6 });
 const date = (value) => value ? new Date(value).toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" }) : "—";
-const blankOrderLine = () => ({ productId: "", presentationId: "", orderedQuantity: "1", unitCost: "0", observation: "" });
+const blankOrderLine = () => ({ productId: "", productName: "", presentationId: "", orderedQuantity: "1", unitCost: "0", observation: "" });
+const unitChoices = (symbol) => {
+  const key = String(symbol || "").toLowerCase();
+  if (["g", "gr", "kg"].includes(key)) return [{ value: "kg", label: "Kilogramo (kg)", factor: key === "kg" ? 1 : 1000 }, { value: "g", label: "Gramo (g)", factor: key === "kg" ? .001 : 1 }, { value: "custom", label: "Saco, paquete o caja", factor: null }];
+  if (["ml", "l", "lt"].includes(key)) return [{ value: "l", label: "Litro (L)", factor: key === "ml" ? 1000 : 1 }, { value: "ml", label: "Mililitro (ml)", factor: key === "ml" ? 1 : .001 }, { value: "custom", label: "Botella, bidón o caja", factor: null }];
+  return [{ value: "unit", label: "Unidad", factor: 1 }, { value: "dozen", label: "Docena", factor: 12 }, { value: "custom", label: "Paquete, bandeja o caja", factor: null }];
+};
 
 export function PurchasesPage() {
   const { data: orders = [], loading, error, reload } = useFetch("/purchasing/orders", { initialData: [] });
@@ -53,13 +60,14 @@ export function PurchasesPage() {
 
   return <div>
     <Toast message={message} onClose={() => setMessage("")} />
-    <PageHeader eyebrow="Inventario inteligente" title="Compras y recepción física" description="La orden registra lo pedido. Solo una recepción verificada actualiza existencias, costo promedio y kardex." actions={<>
+    <PageHeader eyebrow="Inventario · trabajo diario" title="Comprar y recibir" description="Registra lo que compraste con palabras simples. El sistema hará por detrás el ingreso, costo y kardex." actions={<>
       {mode !== "LIST" ? <Button variant="secondary" icon={ArrowLeft} onClick={() => { setMode("LIST"); setSelectedOrder(null); }}>Volver</Button> : null}
       <Button variant="secondary" icon={RefreshCw} onClick={refresh}>Actualizar</Button>
-      {mode === "LIST" ? <Button icon={Plus} onClick={() => setMode("NEW")}>Nueva orden</Button> : null}
+      {mode === "LIST" ? <><Button as={Link} to="/proveedores" variant="secondary">Proveedores</Button><Button variant="secondary" icon={ClipboardCheck} onClick={() => setMode("NEW")}>Pedido a proveedor</Button><Button icon={Plus} onClick={() => setMode("QUICK")}>Registrar compra recibida</Button></> : null}
     </>} />
 
-    <ProcessGuide />
+    {mode === "LIST" ? <DailyGuide /> : null}
+    {mode === "NEW" || mode === "RECEIVE" ? <ProcessGuide /> : null}
     {failure ? <div className="mb-4"><Alert tone="danger" title="Revisa la operación">{failure}</Alert></div> : null}
 
     {mode === "LIST" ? <>
@@ -71,8 +79,77 @@ export function PurchasesPage() {
       <OrderList orders={orders} onReceive={startReceipt} onAction={receiptAction} saving={saving} />
     </> : null}
     {mode === "NEW" ? <OrderForm references={references} saving={saving} setSaving={setSaving} onCreated={async (order) => { setMessage(`Orden ${order.code} creada y pendiente de recepción.`); setMode("LIST"); await reload(); }} onError={setFailure} /> : null}
+    {mode === "QUICK" ? <QuickPurchaseForm references={references} saving={saving} setSaving={setSaving} onError={setFailure} onCreated={async (text) => { setMessage(text); setMode("LIST"); await reload(); }} /> : null}
     {mode === "RECEIVE" && selectedOrder ? <ReceiptForm order={selectedOrder} references={references} saving={saving} setSaving={setSaving} onCreated={async () => { setMessage("Recepción física guardada en borrador."); setMode("LIST"); setSelectedOrder(null); await reload(); }} onError={setFailure} /> : null}
   </div>;
+}
+
+function DailyGuide() {
+  return <section className="mb-5 grid gap-3 rounded-card border border-park-border bg-white p-4 shadow-card md:grid-cols-[auto_1fr_auto] md:items-center">
+    <span className="grid h-11 w-11 place-items-center rounded-xl bg-park-green-soft text-park-green"><Sparkles size={22} /></span>
+    <div><h2 className="font-black text-park-dark">¿Ya tienes los productos contigo?</h2><p className="text-sm text-park-muted">Usa <b>Registrar compra recibida</b>. Escribe el producto, indica cuánto compraste y adónde debe ir.</p></div>
+    <div className="flex items-center gap-2 text-xs font-bold text-park-green"><span>Compra</span><span>→</span><span>Almacén</span><span>→</span><span>Restaurante o Bar</span></div>
+  </section>;
+}
+
+function QuickPurchaseForm({ references, saving, setSaving, onError, onCreated }) {
+  const general = references.warehouses.find((item) => item.code === "GENERAL");
+  const [form, setForm] = useState({ productName: "", productId: "", quantity: "", purchaseUnit: "", customFactor: "", totalPaid: "", supplierId: "", destination: "GENERAL", lotCode: "", expiresOn: "", notes: "" });
+  const selected = references.products.find((item) => Number(item.id) === Number(form.productId)) || references.products.find((item) => item.name.toLowerCase() === form.productName.trim().toLowerCase());
+  const choices = unitChoices(selected?.baseUnitSymbol);
+  const choice = choices.find((item) => item.value === form.purchaseUnit) || choices[0];
+  const factor = choice?.factor ?? Number(form.customFactor || 0);
+  const baseQuantity = Number(form.quantity || 0) * Number(factor || 0);
+  function chooseProduct(value) {
+    const product = references.products.find((item) => item.name.toLowerCase() === value.trim().toLowerCase());
+    const firstUnit = unitChoices(product?.baseUnitSymbol)[0]?.value || "";
+    setForm((current) => ({ ...current, productName: value, productId: product?.id || "", purchaseUnit: product ? firstUnit : "" }));
+  }
+  async function submit(event) {
+    event.preventDefault(); onError("");
+    if (!selected) return onError("Escribe el nombre y elige un producto existente de las sugerencias. Así evitamos duplicados y el descuento de recetas seguirá conectado.");
+    if (!general) return onError("No se encontró el Almacén general.");
+    if (!(baseQuantity > 0) || !(Number(form.totalPaid) >= 0)) return onError("Revisa la cantidad, la unidad y el total pagado.");
+    if (selected.trackExpiry && !form.expiresOn) return onError("Este producto controla vencimiento. Ingresa la fecha que figura en el empaque.");
+    setSaving(true);
+    try {
+      const total = Number(form.totalPaid || 0);
+      const order = await api("/purchasing/orders", { method: "POST", body: { quick: true, supplierId: form.supplierId ? Number(form.supplierId) : null, notes: form.notes || "Compra recibida directamente", lines: [{ productId: Number(selected.id), presentationId: null, orderedQuantity: baseQuantity, unitCost: baseQuantity ? total / baseQuantity : 0 }] } });
+      const orderLine = order.lines[0];
+      const receipt = await api(`/purchasing/orders/${order.id}/receipts`, { method: "POST", body: { warehouseId: Number(general.id), observation: form.notes, lines: [{ orderLineId: Number(orderLine.id), receivedPresentationQuantity: baseQuantity, measurementMode: "DIRECT", decision: "ACCEPTED", lotCode: selected.trackLots ? (form.lotCode.trim() || `COMPRA-${new Date().toISOString().slice(0, 10)}-${order.id}`) : null, expiresOn: form.expiresOn || null }] } });
+      await api(`/purchasing/receipts/${receipt.id}/verify`, { method: "POST", body: { observation: "Verificación automática de compra rápida" } });
+      await api(`/purchasing/receipts/${receipt.id}/post`, { method: "POST", body: {} });
+      let suffix = "y quedó disponible en el Almacén general.";
+      if (form.destination !== "GENERAL") {
+        const transferRefs = await api("/transfers/references");
+        const destination = transferRefs.warehouses.find((item) => item.code === form.destination);
+        const candidates = transferRefs.stock.filter((item) => item.warehouseCode === "GENERAL" && Number(item.productId) === Number(selected.id) && Number(item.available) > 0).sort((a, b) => String(a.expiresOn || "9999").localeCompare(String(b.expiresOn || "9999")));
+        let remaining = baseQuantity; const lines = [];
+        for (const stock of candidates) { const amount = Math.min(remaining, Number(stock.available)); if (amount > 0) lines.push({ productId: Number(stock.productId), lotId: stock.lotId ? Number(stock.lotId) : null, quantity: amount }); remaining -= amount; if (remaining <= .000001) break; }
+        if (!destination || remaining > .000001) throw new Error("La compra ingresó al Almacén general, pero no se pudo preparar el envío automático. Puedes enviarla desde Distribuir insumos.");
+        const transfer = await api("/transfers", { method: "POST", body: { fromWarehouseId: Number(general.id), toWarehouseId: Number(destination.id), observation: `Distribución de compra ${order.code}`, lines } });
+        await api(`/transfers/${transfer.id}/send`, { method: "POST", body: {} });
+        suffix = `y fue enviada a ${destination.name}. El personal debe confirmar que la recibió.`;
+      }
+      await onCreated(`${selected.name}: compra registrada ${suffix}`);
+    } catch (error) { onError(error.message); } finally { setSaving(false); }
+  }
+  return <form className="rounded-card border border-park-border bg-white p-4 shadow-card md:p-6" onSubmit={submit}>
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wide text-park-gold">CAMINO RÁPIDO</p><h2 className="text-xl font-black text-park-dark">Registrar una compra que ya llegó</h2><p className="text-sm text-park-muted">Completa una sola pantalla. La verificación, el ingreso y el kardex se generan automáticamente.</p></div><span className="rounded-full bg-park-green-soft px-3 py-1 text-xs font-black text-park-green">Recomendado para el día a día</span></div>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <label className="block xl:col-span-2"><span className="mb-1.5 block text-sm font-semibold">¿Qué compraste?</span><input className="w-full rounded-input border border-park-border px-3 py-2.5" list="purchase-products" placeholder="Escribe: arroz, pisco, limón..." value={form.productName} onChange={(event) => chooseProduct(event.target.value)} required/><datalist id="purchase-products">{references.products.map((item) => <option key={item.id} value={item.name} />)}</datalist><small className={`mt-1 block ${selected ? "text-park-green" : "text-park-muted"}`}>{selected ? `Conectado a recetas · se controla en ${selected.baseUnitSymbol}` : "Escribe para buscar; no necesitas recorrer una lista."}</small></label>
+      <Input label="Cantidad comprada" type="number" min="0.000001" step="any" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} required />
+      <Select label="¿Cómo lo compraste?" value={form.purchaseUnit || choice?.value || ""} onChange={(event) => setForm({ ...form, purchaseUnit: event.target.value })} required disabled={!selected}>{choices.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select>
+      {choice?.value === "custom" ? <Input label={`Contenido de cada empaque (${selected?.baseUnitSymbol || "base"})`} type="number" min="0.000001" step="any" value={form.customFactor} onChange={(event) => setForm({ ...form, customFactor: event.target.value })} required /> : null}
+      <Input label="Total pagado (S/)" type="number" min="0" step="0.01" value={form.totalPaid} onChange={(event) => setForm({ ...form, totalPaid: event.target.value })} required />
+      <Select label="Proveedor (opcional)" value={form.supplierId} onChange={(event) => setForm({ ...form, supplierId: event.target.value })}><option value="">Compra directa / mercado</option>{references.suppliers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
+      <Select label="¿Adónde debe ir?" value={form.destination} onChange={(event) => setForm({ ...form, destination: event.target.value })}><option value="GENERAL">Guardar en Almacén general</option><option value="RESTAURANTE">Enviar a Restaurante</option><option value="BARTENDER">Enviar a Bar</option></Select>
+      {selected?.trackLots ? <Input label="Lote (opcional; se genera si falta)" value={form.lotCode} onChange={(event) => setForm({ ...form, lotCode: event.target.value })} /> : null}
+      {selected?.trackExpiry ? <Input label="Fecha de vencimiento" type="date" value={form.expiresOn} onChange={(event) => setForm({ ...form, expiresOn: event.target.value })} required /> : null}
+    </div>
+    {selected && baseQuantity > 0 ? <div className="mt-4 rounded-xl border border-park-green/20 bg-park-green-soft p-3 text-sm text-park-dark"><b>El sistema guardará:</b> {qty(baseQuantity)} {selected.baseUnitSymbol}. {form.destination === "GENERAL" ? "Quedará en Almacén general." : `Saldrá hacia ${form.destination === "RESTAURANTE" ? "Restaurante" : "Bar"} para confirmación.`}</div> : null}
+    <div className="mt-5 flex justify-end"><Button loading={saving} icon={form.destination === "GENERAL" ? PackageCheck : Send}>Confirmar compra e ingreso</Button></div>
+  </form>;
 }
 
 function ProcessGuide() {
@@ -106,8 +183,9 @@ function OrderForm({ references, saving, setSaving, onCreated, onError }) {
   function selectProduct(index, productId) {
     const product = references.products.find((item) => Number(item.id) === Number(productId));
     const presentation = product?.presentations?.[0];
-    updateLine(index, { productId, presentationId: presentation?.id || "", unitCost: presentation?.purchaseCost ?? product?.cost ?? "0" });
+    updateLine(index, { productId, productName: product?.name || "", presentationId: presentation?.id || "", unitCost: presentation?.purchaseCost ?? product?.cost ?? "0" });
   }
+  function typeProduct(index, value) { const product = references.products.find((item) => item.name.toLowerCase() === value.trim().toLowerCase()); if (product) selectProduct(index, product.id); else updateLine(index, { productName: value, productId: "", presentationId: "" }); }
   async function submit(event) {
     event.preventDefault(); setSaving(true); onError("");
     try { await onCreated(await api("/purchasing/orders", { method: "POST", body: { ...form, supplierId: Number(form.supplierId), lines: form.lines.map((line) => ({ ...line, productId: Number(line.productId), presentationId: Number(line.presentationId), orderedQuantity: Number(line.orderedQuantity), unitCost: Number(line.unitCost) })) } })); }
@@ -120,7 +198,7 @@ function OrderForm({ references, saving, setSaving, onCreated, onError }) {
     <div className="mt-5 space-y-3">{form.lines.map((line, index) => {
       const product = references.products.find((item) => Number(item.id) === Number(line.productId));
       const presentation = product?.presentations?.find((item) => Number(item.id) === Number(line.presentationId));
-      return <div className="rounded-card border border-park-border bg-park-bg p-4" key={index}><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"><Select label="Producto" value={line.productId} onChange={(event) => selectProduct(index, event.target.value)} required><option value="">Seleccionar</option>{references.products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select><Select label="Presentación" value={line.presentationId} onChange={(event) => updateLine(index, { presentationId: event.target.value })} required><option value="">Seleccionar</option>{(product?.presentations || []).map((item) => <option key={item.id} value={item.id}>{item.name} ({item.unitSymbol})</option>)}</Select><Input label="Cantidad pedida" type="number" min="0.000001" step="any" value={line.orderedQuantity} onChange={(event) => updateLine(index, { orderedQuantity: event.target.value })} required /><Input label="Costo por presentación" type="number" min="0" step="0.01" value={line.unitCost} onChange={(event) => updateLine(index, { unitCost: event.target.value })} required /><div className="flex items-end"><Button className="w-full" type="button" variant="ghost" icon={Trash2} disabled={form.lines.length === 1} onClick={() => setForm({ ...form, lines: form.lines.filter((_, row) => row !== index) })}>Quitar</Button></div></div>{presentation ? <p className="mt-2 text-xs font-semibold text-park-muted">Teórico: {qty(Number(line.orderedQuantity) * Number(presentation.factor))} {product.baseUnitSymbol} · Costo base {money(Number(line.unitCost) / Number(presentation.factor || 1))}/{product.baseUnitSymbol}</p> : null}</div>;
+      return <div className="rounded-card border border-park-border bg-park-bg p-4" key={index}><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"><label className="block"><span className="mb-1.5 block text-sm font-semibold">Producto</span><input className="w-full rounded-input border border-park-border px-3 py-2.5" list={`advanced-products-${index}`} value={line.productName} onChange={(event) => typeProduct(index, event.target.value)} placeholder="Escribe para buscar" required/><datalist id={`advanced-products-${index}`}>{references.products.map((item) => <option key={item.id} value={item.name}/>)}</datalist></label><Select label="Presentación" value={line.presentationId} onChange={(event) => updateLine(index, { presentationId: event.target.value })} required><option value="">Seleccionar</option>{(product?.presentations || []).map((item) => <option key={item.id} value={item.id}>{item.name} ({item.unitSymbol})</option>)}</Select><Input label="Cantidad pedida" type="number" min="0.000001" step="any" value={line.orderedQuantity} onChange={(event) => updateLine(index, { orderedQuantity: event.target.value })} required /><Input label="Costo por presentación" type="number" min="0" step="0.01" value={line.unitCost} onChange={(event) => updateLine(index, { unitCost: event.target.value })} required /><div className="flex items-end"><Button className="w-full" type="button" variant="ghost" icon={Trash2} disabled={form.lines.length === 1} onClick={() => setForm({ ...form, lines: form.lines.filter((_, row) => row !== index) })}>Quitar</Button></div></div>{presentation ? <p className="mt-2 text-xs font-semibold text-park-muted">Teórico: {qty(Number(line.orderedQuantity) * Number(presentation.factor))} {product.baseUnitSymbol} · Costo base {money(Number(line.unitCost) / Number(presentation.factor || 1))}/{product.baseUnitSymbol}</p> : null}</div>;
     })}</div>
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><Button type="button" variant="secondary" icon={Plus} onClick={() => setForm({ ...form, lines: [...form.lines, blankOrderLine()] })}>Agregar producto</Button><div className="text-right"><p className="text-xs text-park-muted">Total estimado</p><p className="text-xl font-black text-park-dark">{money(total)}</p></div></div>
     <div className="mt-5 flex justify-end"><Button loading={saving} icon={ShoppingCart}>Crear y dejar pendiente</Button></div>
