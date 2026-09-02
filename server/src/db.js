@@ -321,7 +321,9 @@ function upgradeState(state) {
     user.roleId = role?.id || user.roleId;
     user.permissions = (role?.permissions || []).map((item) => item.code);
     user.username ||= user.email;
-    user.pin ||= String(user.id).repeat(4);
+    // Los registros antiguos conservan su PIN temporal hasta que el Superadmin
+    // lo cambie; los PIN nuevos se almacenan cifrados y nunca se regeneran.
+    if (!user.pinHash) user.pin ||= String(user.id).repeat(4);
     user.hireDate ||= today;
     user.position ||= user.role;
   });

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Bell, CalendarDays, LogOut, Menu, Search, X } from "lucide-react";
+import { Bell, CalendarDays, Clock3, LogOut, Menu, Search, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { menuByRole, routeTitles } from "../constants/menu";
@@ -72,6 +72,7 @@ export function Navbar({ onMenu }) {
         <CalendarDays size={17} className="text-park-green" />
         {today}
       </div>
+      {user?.role !== "SUPERADMIN" ? <a className="hidden h-11 items-center gap-2 rounded-xl border border-park-border px-3 text-xs font-black text-park-dark transition hover:bg-park-green-soft md:flex" href="/reloj" target="_blank" rel="noreferrer" title="Abrir reloj de asistencia"><Clock3 size={17} className="text-park-green"/>Marcar turno</a> : null}
       <div className="relative border-l border-park-border/70 pl-3">
         <button className="relative grid h-11 w-11 place-items-center rounded-xl text-park-dark transition hover:bg-slate-100" onClick={() => setAlertsOpen((value) => !value)} type="button" aria-label="Ver alertas operativas" aria-expanded={alertsOpen}>
           <Bell size={20} />

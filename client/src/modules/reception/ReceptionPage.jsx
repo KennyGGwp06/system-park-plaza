@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Banknote, BedDouble, CalendarCheck, Clock3, ConciergeBell, Eye, LogIn, LogOut, ScanLine, SunMedium, Users, Waves } from "lucide-react";
+import { Banknote, BedDouble, CalendarCheck, Clock3, ConciergeBell, Eye, LogIn, LogOut, ScanLine, SunMedium, Users, Waves, X } from "lucide-react";
 import { useState } from "react";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -14,7 +14,8 @@ export function ReceptionPage() {
   const [experienceFilter, setExperienceFilter] = useState("TODAS");
   const [shiftBusy, setShiftBusy] = useState(false);
   const [shiftMessage, setShiftMessage] = useState("");
-  const { data: currentShift, setData: setCurrentShift } = useFetch("/attendance/current", { initialData: { active: user?.role === "ADMINISTRADOR", cash: 0 }, cacheTime: 0, realtime: false });
+  const [shiftClockOpen, setShiftClockOpen] = useState(false);
+  const { data: currentShift, setData: setCurrentShift } = useFetch("/attendance/current", { initialData: { active: user?.role === "SUPERADMIN", cash: 0 }, cacheTime: 0, realtime: false });
   const { data, loading, error } = useFetch("/dashboard");
   const { data: reservations } = useFetch("/reservations", { initialData: [] });
   const { data: serviceBookings, reload: reloadServices } = useFetch("/service-bookings", { initialData: [] });
@@ -23,13 +24,13 @@ export function ReceptionPage() {
 
   async function collectServiceBalance(item) { await api(`/service-bookings/${item.id}/pay`, { method: "POST", body: { amount: item.balance, method: "EFECTIVO" } }); reloadServices(); }
   async function resolveRequest(item) { await api(`/reports/${item.id}/status`, { method: "PATCH", body: { status: "RESUELTO" } }); reloadRequests(); }
-  async function changeShift(action) { setShiftBusy(true); setShiftMessage(""); try { const record = await api(`/attendance/${action}`, { method: "POST", body: { employeeId: user.id } }); const active = action === "check-in"; setCurrentShift((current) => ({ ...(current || {}), active, record: active ? record : null, shift: active ? { ...(current?.shift || {}), area: record.role || "RECEPCION", status: "EN_CURSO" } : null })); setShiftMessage(active ? "Turno iniciado. Ya puedes operar Recepción." : "Turno cerrado y asistencia registrada."); } catch (cause) { setShiftMessage(cause.message); } finally { setShiftBusy(false); } }
+  async function changeShift(credentials) { setShiftBusy(true); setShiftMessage(""); try { const result = await api("/attendance/self/clock", { method: "POST", body: credentials }); const active = result.action === "CHECK_IN"; setCurrentShift((current) => ({ ...(current || {}), active, record: active ? result.record : null, shift: active ? { ...(current?.shift || {}), area: "RECEPCION", status: "EN_CURSO" } : null })); setShiftClockOpen(false); setShiftMessage(active ? "Turno iniciado con DNI y PIN. Ya puedes operar Recepción." : "Turno cerrado con DNI y PIN."); } catch (cause) { throw cause; } finally { setShiftBusy(false); } }
 
   if (loading) return <LoadingSpinner />;
   if (error) return <p className="rounded-card bg-park-danger-soft p-4 font-semibold text-park-danger">{error.message}</p>;
 
   const metrics = data?.metrics || { reservationsToday: 0, checkInsToday: 0, checkOutsToday: 0, occupiedRooms: 0, availableRooms: 0, incidentsOpen: 0, incidentsHighPriority: 0 };
-  const shiftActive = user?.role === "ADMINISTRADOR" || currentShift?.active;
+  const shiftActive = user?.role === "SUPERADMIN" || currentShift?.active;
   const arrivals = (reservations || [])
     .filter((reservation) => isToday(reservation.checkInDate) && !reservation.stay)
     .slice(0, 5);
@@ -50,11 +51,13 @@ export function ReceptionPage() {
         eyebrow="Operacion diaria"
         title="Centro de atención"
         description="Atiende al huésped desde una sola jornada: reserva, pago, llegada, QR, solicitudes y salida."
-        actions={<div className="flex flex-wrap gap-2">{user?.role !== "ADMINISTRADOR" ? <Button icon={Clock3} loading={shiftBusy} variant={shiftActive ? "secondary" : "gold"} onClick={() => changeShift(shiftActive ? "check-out" : "check-in")}>{shiftActive ? "Cerrar turno" : "Iniciar turno"}</Button> : null}{shiftActive ? <Button as={Link} to="/reservas?nueva=1" variant="gold">Nueva reserva</Button> : null}</div>}
+        actions={<div className="flex flex-wrap gap-2">{user?.role !== "SUPERADMIN" ? <Button icon={Clock3} loading={shiftBusy} variant={shiftActive ? "secondary" : "gold"} onClick={() => setShiftClockOpen(true)}>{shiftActive ? "Cerrar turno" : "Iniciar turno"}</Button> : null}{shiftActive ? <Button as={Link} to="/reservas?nueva=1" variant="gold">Nueva reserva</Button> : null}</div>}
       />
 
+      {shiftClockOpen ? <ReceptionShiftClock active={shiftActive} busy={shiftBusy} user={user} onClose={() => setShiftClockOpen(false)} onConfirm={changeShift} /> : null}
+
       <section className={`rounded-card border p-4 shadow-card ${shiftActive ? "border-park-green bg-park-green-soft" : "border-amber-300 bg-amber-50"}`}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}><Clock3 size={21}/></span><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">Turno de Recepción</p><h2 className="text-lg font-black text-park-dark">{shiftActive ? user?.role === "ADMINISTRADOR" ? "Supervisión administrativa activa" : "Jornada operativa iniciada" : "Inicia tu turno para atender"}</h2><p className="text-sm text-park-muted">{shiftActive ? `Ingreso ${currentShift?.record?.checkIn ? time(currentShift.record.checkIn) : "administrativo"} · ${currentShift?.shift?.area || "RECEPCIÓN"}` : "Puedes revisar la agenda, pero cobros, QR, check-in y check-out permanecen bloqueados."}</p></div></div><div className="flex items-center gap-2 rounded-xl bg-white px-4 py-3"><Banknote size={18} className="text-park-green"/><div><small className="block text-park-muted">Efectivo registrado hoy</small><strong className="text-park-dark">S/ {Number(currentShift?.cash || 0).toFixed(2)}</strong></div></div></div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${shiftActive ? "bg-park-green text-white" : "bg-amber-500 text-white"}`}><Clock3 size={21}/></span><div><p className="text-xs font-black uppercase tracking-wide text-park-muted">Turno de Recepción</p><h2 className="text-lg font-black text-park-dark">{shiftActive ? user?.role === "SUPERADMIN" ? "Supervisión administrativa activa" : "Jornada operativa iniciada" : "Inicia tu turno para atender"}</h2><p className="text-sm text-park-muted">{shiftActive ? `Ingreso ${currentShift?.record?.checkIn ? time(currentShift.record.checkIn) : "administrativo"} · ${currentShift?.shift?.area || "RECEPCIÓN"}` : "Puedes revisar la agenda, pero cobros, QR, check-in y check-out permanecen bloqueados."}</p></div></div><div className="flex items-center gap-2 rounded-xl bg-white px-4 py-3"><Banknote size={18} className="text-park-green"/><div><small className="block text-park-muted">Efectivo registrado hoy</small><strong className="text-park-dark">S/ {Number(currentShift?.cash || 0).toFixed(2)}</strong></div></div></div>
         {shiftMessage ? <p className="mt-3 rounded-lg bg-white px-3 py-2 text-sm font-bold text-park-dark">{shiftMessage}</p> : null}
       </section>
 
@@ -163,6 +166,19 @@ export function ReceptionPage() {
       </div>
     </div>
   );
+}
+
+function ReceptionShiftClock({ active, busy, user, onClose, onConfirm }) {
+  const [documentNumber, setDocumentNumber] = useState(String(user?.documentNumber || "").replace(/\D/g, "").slice(0, 8));
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+  async function submit(event) {
+    event.preventDefault(); setError("");
+    if (!/^\d{8}$/.test(documentNumber) || !/^\d{4}$/.test(pin)) return setError("Ingresa tu DNI de 8 dígitos y tu PIN de 4 dígitos.");
+    try { await onConfirm({ documentNumber, pin }); }
+    catch (cause) { setError(cause.message || "No se pudo validar la asistencia."); }
+  }
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4 backdrop-blur-sm"><form className="w-full max-w-md rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-wide text-park-gold">Asistencia personal</p><h2 className="mt-1 text-xl font-black text-park-dark">{active ? "Cerrar turno" : "Iniciar turno"}</h2></div><button className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button" aria-label="Cerrar"><X size={18}/></button></div><p className="mt-3 text-sm text-park-muted">Confirma tu identidad con el DNI y el PIN asignado por el Superadmin.</p><div className="mt-5 grid gap-4"><label className="text-sm font-black text-park-dark">DNI<input className="mt-2 h-11 w-full rounded-input border border-park-border px-3 outline-none focus:border-park-green" inputMode="numeric" maxLength={8} value={documentNumber} onChange={(event) => setDocumentNumber(event.target.value.replace(/\D/g, "").slice(0, 8))} required /></label><label className="text-sm font-black text-park-dark">PIN de asistencia<input className="mt-2 h-11 w-full rounded-input border border-park-border px-3 outline-none focus:border-park-green" type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 4))} required autoFocus /></label></div>{error ? <p className="mt-4 rounded-card bg-park-danger-soft p-3 text-sm font-semibold text-park-danger">{error}</p> : null}<div className="mt-6 flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit" variant="gold" loading={busy}>{active ? "Confirmar salida" : "Confirmar ingreso"}</Button></div></form></div>;
 }
 
 function nights(reservation) {
