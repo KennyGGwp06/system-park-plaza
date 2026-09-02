@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BedDouble, CalendarDays, Car, Check, ChevronRight, Clock3, Minus, Plus, Sparkles, SunMedium, UserPlus, Users, Waves, X } from "lucide-react";
+import { gsap } from "gsap";
+import { ArrowLeft, ArrowRight, BedDouble, CalendarDays, Car, Check, ChevronLeft, ChevronRight, Clock3, Minus, Plus, Sparkles, SunMedium, UserPlus, Users, Waves, X } from "lucide-react";
 import { apiBaseUrl } from "./config/api";
 
 const roomImages = {
@@ -10,18 +11,22 @@ const roomImages = {
   Suite: "/images/rooms/suite.webp"
 };
 
+function formatStudioDate(value) { return new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T12:00:00`)); }
+
 export function ExperienceFlow({ service, catalog, hasExistingParking = false, onBack, onCheckout, onEventCheckout }) {
   if (!service) return null;
   if (service.code === "HOSPEDAJE") return <LodgingFlow service={service} catalog={catalog} hasExistingParking={hasExistingParking} onBack={onBack} onCheckout={onCheckout}/>;
-  if (service.code === "PISCINA") return <PoolFlowEnhanced service={service} catalog={catalog} hasExistingParking={hasExistingParking} onBack={onBack} onCheckout={onCheckout}/>;
+  if (service.code === "PISCINA") return <PoolBookingStudio service={service} catalog={catalog} hasExistingParking={hasExistingParking} onBack={onBack} onCheckout={onCheckout}/>;
   if (service.code === "MIRADOR") return <LookoutFlowEnhanced service={service} catalog={catalog} hasExistingParking={hasExistingParking} onBack={onBack} onCheckout={onCheckout}/>;
-  return <EventFlowEnhanced catalog={catalog} hasExistingParking={hasExistingParking} onBack={onBack} onCheckout={onEventCheckout}/>;
+  return <EventBookingStudio catalog={catalog} hasExistingParking={hasExistingParking} onBack={onBack} onCheckout={onEventCheckout}/>;
 }
 
 function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout }) {
   const initialDate = today(); 
   const [checkIn, setCheckIn] = useState(initialDate); 
   const [checkOut, setCheckOut] = useState(addDays(initialDate, 1)); 
+  const [checkInTime, setCheckInTime] = useState("15:00");
+  const [checkOutTime, setCheckOutTime] = useState("12:00");
   const [calendarFrom, setCalendarFrom] = useState(initialDate);
   const [availability, setAvailability] = useState([]); 
   const [rooms, setRooms] = useState([]); 
@@ -32,8 +37,13 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
   const [vehicles, setVehicles] = useState([]); 
   const [guests, setGuests] = useState([]);
   const [viewingRoom, setViewingRoom] = useState(null);
+  const [spotlightRoom, setSpotlightRoom] = useState(null);
   const [roomType, setRoomType] = useState("TODAS");
   const [masterBundle, setMasterBundle] = useState(false);
+  const heroRef = useRef(null);
+  const copyRef = useRef(null);
+  const summaryRef = useRef(null);
+  const roomRailRef = useRef(null);
 
   useEffect(() => { api(`/public/availability/HOSPEDAJE?from=${calendarFrom}`).then(setAvailability); }, [calendarFrom]);
   useEffect(() => { api(`/public/rooms?checkIn=${checkIn}&checkOut=${checkOut}`).then(setRooms); }, [checkIn, checkOut]);
@@ -41,6 +51,14 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
     const lodgingPlans = catalog.plans?.HOSPEDAJE || [];
     setPlan((current) => lodgingPlans.find((item) => item.code === current?.code) || lodgingPlans[0] || null);
   }, [catalog.plans]);
+  useEffect(() => {
+    if (!viewingRoom) return;
+    const capacity = Math.max(1, Number(viewingRoom.capacity || 1));
+    const validAdults = Math.min(Math.max(1, Number(adults)), capacity);
+    const validChildren = Math.min(Math.max(0, Number(children)), capacity - validAdults);
+    if (validAdults !== adults) setAdults(validAdults);
+    if (validChildren !== children) setChildren(validChildren);
+  }, [viewingRoom, adults, children]);
 
   const nights = Math.max(1, daysBetween(checkIn, checkOut)); 
   const people = adults + children; 
@@ -55,49 +73,55 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
   const total = base + extrasTotal + parkingTotal + bundleTotal;
   const roomTypes = ["TODAS", ...new Set(rooms.map((item) => item.type.name))];
   const visibleRooms = roomType === "TODAS" ? rooms : rooms.filter((item) => item.type.name === roomType);
+  const activeRoom = spotlightRoom && visibleRooms.some((item) => item.id === spotlightRoom.id) ? spotlightRoom : visibleRooms[0] || null;
+  const previewTotal = Number(activeRoom?.price || 0) * nights;
+  const roomSignature = visibleRooms.map((item) => item.id).join(",");
+  const roomsByFloor = rooms.reduce((result, room) => { const floor = room.floor || "—"; result[floor] = (result[floor] || 0) + 1; return result; }, {});
+  useEffect(() => { if (!spotlightRoom && visibleRooms[0]) setSpotlightRoom(visibleRooms[0]); }, [visibleRooms, spotlightRoom]);
+  useEffect(() => {
+    if (!activeRoom) return;
+    const targets = [heroRef.current, copyRef.current, summaryRef.current].filter(Boolean);
+    gsap.killTweensOf(targets);
+    const timeline = gsap.timeline();
+    if (heroRef.current) timeline.fromTo(heroRef.current, { opacity: .3, scale: 1.06, filter: "blur(9px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: .82, ease: "power3.out" });
+    if (copyRef.current) timeline.fromTo(copyRef.current, { y: 22, opacity: .25 }, { y: 0, opacity: 1, duration: .56, ease: "power3.out" }, "-=.58");
+    if (summaryRef.current) timeline.fromTo(summaryRef.current, { y: 16, opacity: .45 }, { y: 0, opacity: 1, duration: .5, ease: "power2.out" }, "-=.46");
+    roomRailRef.current?.querySelector(`[data-room-id="${activeRoom.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    return () => timeline.kill();
+  }, [activeRoom?.id]);
+  useEffect(() => {
+    if (visibleRooms.length < 2) return undefined;
+    const interval = window.setInterval(() => {
+      setSpotlightRoom((current) => {
+        const currentIndex = visibleRooms.findIndex((item) => item.id === current?.id);
+        return visibleRooms[(currentIndex + 1 + visibleRooms.length) % visibleRooms.length];
+      });
+    }, 5600);
+    return () => window.clearInterval(interval);
+  }, [roomSignature]);
 
   function next() {
     if (!viewingRoom || !plan) return;
-
-    onCheckout({ service, planCode: plan.code, planName: plan.name, room: viewingRoom, date: checkIn, checkIn, checkOut, slot: "15:00", people, adults, children, guests: normalizedGuests(guests, adults, children), nights, extras, parking: vehicles[0] || null, vehicles, preferences: {}, preorderItems: [], base, extrasTotal, parkingTotal, bundleCode: masterBundle ? "HOSPEDAJE_PISCINA_MIRADOR" : null, bundleServices: masterBundle ? [{ serviceCode: "PISCINA", date: checkIn, slot: "09:00", people }, { serviceCode: "MIRADOR", date: checkIn, slot: "16:30", people }] : [], bundleTotal, bundleDiscount, total }); 
+    onCheckout({ service, planCode: plan.code, planName: plan.name, room: viewingRoom, date: checkIn, checkIn, checkOut, slot: checkInTime, people, adults, children, guests: normalizedGuests(guests, adults, children), nights, extras, parking: vehicles[0] || null, vehicles, preferences: { checkInTime, checkOutTime }, preorderItems: [], base, extrasTotal, parkingTotal, bundleCode: masterBundle ? "HOSPEDAJE_PISCINA_MIRADOR" : null, bundleServices: masterBundle ? [{ serviceCode: "PISCINA", date: checkIn, slot: "09:00", people }, { serviceCode: "MIRADOR", date: checkIn, slot: "16:30", people }] : [], bundleTotal, bundleDiscount, total });
   }
 
   return (
-    <FlowPage icon={BedDouble} eyebrow="RESERVA DE HOSPEDAJE" title="Elige cómo quieres descansar" subtitle="Selecciona tus fechas y descubre nuestras habitaciones disponibles." onBack={onBack}>
-      <Progress current={1}/>
-      <DateAvailability days={availability} selected={checkIn} onSelect={(date) => { setCheckIn(date); if (checkOut <= date) setCheckOut(addDays(date, 1)); }} onWindowChange={setCalendarFrom}/>
-      
-      <section className="flow-card">
-        <div className="flow-heading"><div><h2>Escoge tu habitación</h2><p>Filtra por tipo y abre cada opción para ver todos sus detalles.</p></div></div>
-        <div className="room-filter" aria-label="Filtrar habitaciones por tipo">{roomTypes.map((type) => <button type="button" className={roomType === type ? "selected" : ""} onClick={() => setRoomType(type)} key={type}>{type === "TODAS" ? "Todas" : type}</button>)}</div>
-        <div className="room-catalog">
-          {visibleRooms.map((item) => (
-            <button type="button" className="room-choice" onClick={() => {
-              const capacity = Math.max(1, Number(item.capacity || 1));
-              const nextChildren = Math.min(children, Math.max(0, capacity - 1));
-              const nextAdults = Math.min(Math.max(1, adults), capacity - nextChildren);
-
-              setChildren(nextChildren);
-              setAdults(nextAdults);
-              setViewingRoom(item);
-            }} key={item.id}>
-              <img src={item.imageUrl || roomImages[item.type.name] || roomImages.Simple} alt={item.type.name}/>
-              <div>
-                <small>HABITACIÓN {item.number}</small>
-                <h3>{item.type.name}</h3>
-                <p>{item.features.join(" · ")}</p>
-                <span>Hasta {item.capacity} personas · Piso {item.floor}</span>
-                <strong>S/ {item.price} por noche</strong>
-              </div>
-            </button>
-          ))}
-        </div>
-        {!visibleRooms.length && <p className="availability-note" style={{marginTop: '1rem'}}>No hay habitaciones de este tipo disponibles para estas fechas.</p>}
+    <main className="lodging-studio">
+      <section className="lodging-studio-hero">
+        <img ref={heroRef} src={activeRoom?.imageUrl || roomImages[activeRoom?.type?.name] || roomImages.Suite} alt="Habitación Park Plaza"/>
+        <div className="lodging-studio-veil"/>
+        <header className="lodging-studio-nav"><div className="lodging-studio-brand"><img src="/brand/park-plaza-mark.svg" alt="Park Plaza"/><span><b>PARK PLAZA</b><small>PUCALLPA</small></span></div><div className="lodging-studio-steps"><b className="active">1 <span>Elige tu habitación</span></b><b>2 <span>Revisa tu reserva</span></b><b>3 <span>Confirma y paga</span></b></div><button type="button" onClick={onBack}><ArrowLeft/> Volver</button></header>
+        <div className="lodging-studio-copy" ref={copyRef}><small>DESCANSO A TU RITMO</small><h1>Encuentra tu<br/>habitación ideal</h1><p>Descansa rodeado de naturaleza, atención cálida y todas las comodidades de Park Plaza.</p><span className="lodging-studio-live">Habitaciones que se revelan a tu ritmo</span></div>
+      </section>
+      <section className="lodging-studio-main">
+        <aside className="lodging-studio-filter"><b>Filtrar por tipo</b>{roomTypes.map((type) => <button type="button" className={roomType === type ? "active" : ""} onClick={() => { setRoomType(type); setSpotlightRoom(null); }} key={type}>{type === "TODAS" ? "Todas" : type}</button>)}<hr/><strong>Incluye</strong><span>Vista al río</span><span>Desayuno incluido</span><span>Aire acondicionado</span><span>Wi‑Fi</span><button type="button" className="lodging-clear" onClick={() => setRoomType("TODAS")}>Limpiar filtros</button></aside>
+        <section className="lodging-studio-list"><header><div><small>HABITACIONES DISPONIBLES</small><h2>Elige tu habitación</h2><p>{visibleRooms.length} opciones disponibles para tus fechas</p></div><button type="button">Rotación automática <ChevronRight/></button></header><div className="lodging-studio-rail" ref={roomRailRef}>{visibleRooms.map((item) => <button type="button" data-room-id={item.id} className={activeRoom?.id === item.id ? "active" : ""} onClick={() => setSpotlightRoom(item)} key={item.id}><img src={item.imageUrl || roomImages[item.type.name] || roomImages.Simple} alt={item.type.name}/><i/><div><small>{item.type.name === "Suite" ? "MÁS ELEGIDA" : `HAB. ${item.number}`}</small><h3>{item.type.name}</h3><p>{item.features.slice(0, 3).join(" · ")}</p><b>Desde <strong>S/ {item.price}</strong> por noche</b></div></button>)}</div>{!visibleRooms.length ? <p className="availability-note">No hay habitaciones disponibles con este filtro.</p> : null}<div className="lodging-studio-dots">{visibleRooms.slice(0, 5).map((item) => <button type="button" key={item.id} className={activeRoom?.id === item.id ? "active" : ""} onClick={() => setSpotlightRoom(item)}/>)}</div></section>
+        <aside className="lodging-studio-summary" ref={summaryRef}><small>TU RESERVA</small><h2>{formatStudioDate(checkIn)} <ArrowRight/> {formatStudioDate(checkOut)}</h2><p>{nights} noche{nights > 1 ? "s" : ""} · {adults + children} huéspedes</p><hr/>{activeRoom ? <><b>{activeRoom.type.name}</b><span>Habitación {activeRoom.number} · Piso {activeRoom.floor}</span></> : <span>Aún no seleccionas una habitación</span>}<hr/><small>TOTAL ESTIMADO</small><strong>S/ {previewTotal.toFixed(0)}</strong><button type="button" disabled={!activeRoom} onClick={() => activeRoom && setViewingRoom(activeRoom)}>Continuar <ChevronRight/></button><p className="lodging-studio-safe">Precio garantizado · Reserva segura</p></aside>
       </section>
 
       {viewingRoom && (
         <div className="room-modal-overlay" onClick={() => setViewingRoom(null)}>
-          <div className="room-modal" role="dialog" aria-modal="true" aria-label={`Detalle de habitación ${viewingRoom.number}`} onClick={e => e.stopPropagation()}>
+          <div className="room-modal reservation-white" role="dialog" aria-modal="true" aria-label={`Detalle de habitación ${viewingRoom.number}`} onClick={e => e.stopPropagation()}>
             <button className="room-modal-close" type="button" aria-label="Cerrar detalle de habitación" onClick={() => setViewingRoom(null)}>
               <X size={16}/>
             </button>
@@ -107,24 +131,35 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
                 <small style={{ color: 'var(--primary)', fontWeight: 'bold' }}>HABITACIÓN {viewingRoom.number} · PISO {viewingRoom.floor}</small>
                 <h2 style={{ margin: '0.5rem 0' }}>{viewingRoom.type.name}</h2>
                 <p style={{ color: 'var(--text-light)', marginBottom: '1.5rem' }}>{viewingRoom.description || `Disfruta de nuestra habitación ${viewingRoom.type.name.toLowerCase()}, equipada con ${viewingRoom.features.join(", ")}. Perfecta para hasta ${viewingRoom.capacity} personas.`}</p>
+                <section className="room-availability-strip" aria-label="Disponibilidad de habitaciones"><div><strong>{rooms.length}</strong><span>habitaciones libres</span></div><div><strong>{Object.keys(roomsByFloor).length}</strong><span>pisos con disponibilidad</span></div><div className="room-floor-chips">{Object.entries(roomsByFloor).map(([floor, count]) => <span key={floor}>Piso {floor} · {count}</span>)}</div></section>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <section>
+                <div className="room-reservation-layout">
+                  <div className="reservation-column reservation-column-main">
+                  <section className="room-stay-panel">
                     <h3 style={{ fontSize: '1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}><Clock3 size={18} style={{verticalAlign: 'text-bottom', marginRight: '0.5rem'}}/>Tu estadía</h3>
+                    <ReservationCalendar days={availability} checkIn={checkIn} checkOut={checkOut} onWindowChange={setCalendarFrom} onSelect={(date) => { if (date <= checkIn) { setCheckIn(date); if (checkOut <= date) setCheckOut(addDays(date, 1)); } else { setCheckOut(date); } }}/>
                     <div className="flow-two">
                       <Field label="Entrada" type="date" min={today()} value={checkIn} onChange={(v) => { setCheckIn(v); if(checkOut <= v) setCheckOut(addDays(v, 1)); }}/>
                       <Field label="Salida" type="date" min={addDays(checkIn, 1)} value={checkOut} onChange={setCheckOut}/>
                     </div>
+                    <div className="flow-two lodging-time-fields">
+                      <Field label="Hora de entrada" type="time" value={checkInTime} onChange={setCheckInTime}/>
+                      <Field label="Hora de salida" type="time" value={checkOutTime} onChange={setCheckOutTime}/>
+                    </div>
                     <div className="flow-two" style={{ marginTop: '1rem' }}>
-                      <Counter label="Adultos" value={adults} setValue={setAdults}/>
-                      <Counter label="Niños" value={children} setValue={setChildren} min={0}/>
+                      <Counter label="Adultos" value={adults} setValue={setAdults} max={Math.max(1, Number(viewingRoom.capacity || 1) - children)}/>
+                      <Counter label="Niños" value={children} setValue={setChildren} min={0} max={Math.max(0, Number(viewingRoom.capacity || 1) - adults)}/>
                     </div>
                     <GuestsEditor adults={adults} children={children} value={guests} onChange={setGuests}/>
                   </section>
 
+                  <Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/>
+                  </div>
+
+                  <div className="reservation-column reservation-column-side">
                   <ChoiceSection title="Elige el beneficio de tu estadía" subtitle="Cada alternativa muestra lo que incluye tu reserva. Administración puede actualizar estas opciones." options={catalog.plans?.HOSPEDAJE || []} selected={plan?.code} onSelect={setPlan}/>
 
-                  <section>
+                  <section className="room-extras-panel">
                     <h3 style={{ fontSize: '1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}><Sparkles size={18} style={{verticalAlign: 'text-bottom', marginRight: '0.5rem'}}/>Mejora tu descanso</h3>
                     <div className="extras-grid" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <div>
@@ -137,18 +172,17 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
                     </div>
                   </section>
 
-                  <Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/>
-
                   <section className={`master-bundle ${masterBundle ? "selected" : ""}`}>
                     <div><small>OFERTA PARA HUÉSPEDES</small><h3>Llave Maestra Park Plaza</h3><p>Incluye tu hospedaje, Piscina y Mirador en un único QR. Puedes reservar cada servicio por separado si prefieres armar tu experiencia a tu manera.</p><span>Piscina desde 09:00 · Mirador desde 16:30</span></div>
                     <button type="button" onClick={() => setMasterBundle(!masterBundle)}>{masterBundle ? "Paquete incluido" : "Agregar paquete"}</button>
                     {masterBundle ? <strong>Incluyes Piscina + Mirador · ahorro S/ {bundleDiscount.toFixed(2)}</strong> : null}
                   </section>
+                  </div>
 
                   <Summary lines={[[`${viewingRoom.type.name} ${viewingRoom.number} · ${nights} noche(s)`, base], [`Huéspedes · ${adults} adulto(s) y ${children} niño(s)`, 0], [`Mejoras · ${extras.length} seleccionada(s)`, extrasTotal], [`Cochera · ${vehicles.length} vehículo(s)`, parkingTotal], ...(masterBundle ? [["Llave Maestra · Piscina + Mirador", poolBundlePrice + lookoutBundlePrice], ["Ahorro del paquete", -bundleDiscount]] : [])]} total={total}/>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+                <div className="room-reservation-action">
                   <button className="primary" type="button" disabled={!plan || people > viewingRoom.capacity} style={{ padding: '1rem 2rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '0.5rem', fontWeight: 'bold', cursor: !plan || people > viewingRoom.capacity ? 'not-allowed' : 'pointer', opacity: !plan || people > viewingRoom.capacity ? 0.5 : 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={next}>
                     {!plan ? "Cargando opciones..." : people > viewingRoom.capacity ? "Excede capacidad máxima" : "Confirmar reserva de habitación"}
                     <ChevronRight size={20}/>
@@ -159,7 +193,7 @@ function LodgingFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
           </div>
         </div>
       )}
-    </FlowPage>
+    </main>
   );
 }
 
@@ -177,12 +211,38 @@ function LookoutFlow({ service, catalog, hasExistingParking, onBack, onCheckout 
   return <FlowPage icon={SunMedium} eyebrow="RESERVA DE MIRADOR" title="Tu mesa para el atardecer" subtitle="Escoge horario. Después de validar el ingreso podrás seguir comprando desde tu mesa." onBack={onBack}><Progress current={1}/><DateAvailability days={days} selected={date} onSelect={(value) => { setDate(value); setSlot(""); }}/><section className="flow-card"><h2>Hora de llegada</h2><div className="slot-grid">{(selectedDay?.slots || []).map((item) => <button disabled={!item.available} className={slot === item.time ? "selected" : ""} onClick={() => setSlot(item.time)} key={item.time}><b>{item.time}</b><small>{item.remaining} lugares</small></button>)}</div><Counter label="Personas en la mesa" value={people} setValue={setPeople}/></section><ChoiceSection title="Tipo de visita" options={catalog.plans?.MIRADOR || []} selected={plan?.code} onSelect={setPlan}/><MenuPicker title="Preordena tu consumo" subtitle="La cocina lo recibirá como pedido programado al completar el pago." menu={catalog.restaurantMenu || []} cart={cart} setCart={setCart}/><Extras title="Detalles para tu visita" items={catalog.extrasByService?.MIRADOR || []} selected={extras} setSelected={setExtras}/><Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/><Summary lines={[[`${plan?.name || "Acceso"} · ${people} personas`, base], ["Consumo y detalles", extrasTotal], [`Cochera · ${vehicles.length} vehículo(s)`, parkingTotal]]} total={total}/><button className="flow-sticky" disabled={!slot || people > Number(selectedDay?.slots?.find((item) => item.time === slot)?.remaining || 0)} onClick={next}>Revisar visita al mirador <ChevronRight/></button></FlowPage>;
 }
 
+function PoolBookingStudio({ service, catalog, hasExistingParking, onBack, onCheckout }) {
+  const [days, setDays] = useState([]); const [date, setDate] = useState(today()); const [slot, setSlot] = useState("09:00"); const [adults, setAdults] = useState(1); const [children, setChildren] = useState(0); const [plan, setPlan] = useState(catalog.plans?.PISCINA?.[0]); const [extras, setExtras] = useState([]); const [vehicles, setVehicles] = useState([]);
+  useEffect(() => { api(`/public/availability/PISCINA?from=${today()}`).then(setDays); }, []);
+  useEffect(() => { if (!plan && catalog.plans?.PISCINA?.[0]) setPlan(catalog.plans.PISCINA[0]); }, [catalog.plans, plan]);
+  const selectedDay = days.find((item) => item.date === date) || days[0]; const people = plan?.code === "FAMILIAR" ? 4 : adults + children; const adultPrice = Number(catalog.plans?.PISCINA?.find((item) => item.code === "ADULTO")?.price || 0); const childPrice = Number(catalog.plans?.PISCINA?.find((item) => item.code === "NINO")?.price || 0); const base = plan?.code === "FAMILIAR" ? Number(plan.price || 0) : adults * adultPrice + children * childPrice; const extrasTotal = extras.reduce((sum, item) => sum + Number(item.price || 0), 0); const parkingTotal = vehicles.reduce((sum, item) => sum + Number(item.price || 0), 0); const total = base + extrasTotal + parkingTotal; const selectedSlot = selectedDay?.slots?.find((item) => item.time === slot); const dateText = date ? new Intl.DateTimeFormat("es-PE", { weekday: "short", day: "2-digit", month: "long" }).format(new Date(`${date}T12:00:00`)) : "Elige tu fecha";
+  function next() { if (!plan) return; onCheckout({ service, planCode: plan.code, planName: plan.name, date, checkIn: date, checkOut: date, slot, people, adults, children, extras, parking: vehicles[0] || null, vehicles, preferences: { access: "Piscina" }, preorderItems: [], nights: 1, base, extrasTotal, parkingTotal, total }); }
+  return <main className="pool-booking-studio">
+    <section className="pool-booking-hero">
+      <img src="/images/experiences/piscina.webp" alt="Piscina Park Plaza"/><div className="pool-booking-veil"/>
+      <header><button type="button" className="pool-booking-back" onClick={onBack}><ArrowLeft/><span>Volver</span></button><div className="pool-booking-brand"><img src="/brand/park-plaza-mark.svg" alt="Park Plaza"/><span><b>PARK PLAZA</b><small>PUCALLPA</small></span></div><span className="pool-booking-kicker"><Waves/> PASE DE PISCINA</span></header>
+      <div className="pool-booking-copy"><small>UN DÍA PARA TI</small><h1>Un día de piscina<br/><em>a tu ritmo</em></h1><p>Elige fecha, horario, personas y comodidades para disfrutar Park Plaza sin esperas.</p></div>
+      <div className="pool-booking-progress"><b className="active"><i>1</i><span>Configura<small>Tu día ideal</small></span></b><b><i>2</i><span>Revisa<small>Tu reserva</small></span></b><b><i>3</i><span>Confirma<small>Y disfruta</small></span></b></div>
+    </section>
+    <section className="pool-booking-layout">
+      <div className="pool-booking-primary">
+        <section className="flow-card pool-date-picker"><div className="pool-section-heading"><span>1</span><div><h2>Elige la fecha</h2><p>Cupos actualizados en tiempo real.</p></div></div><div className="pool-date-strip">{days.slice(0, 7).map((item) => <button type="button" disabled={!item.available} className={item.date === date ? "selected" : ""} onClick={() => { setDate(item.date); setSlot(""); }} key={item.date}><small>{new Date(`${item.date}T12:00:00`).toLocaleDateString("es-PE", { weekday: "short" })}</small><b>{item.date.slice(-2)}</b><span>{item.available ? `${(item.slots || []).reduce((sum, entry) => sum + Number(entry.remaining || 0), 0)} cupos` : "No disponible"}</span></button>)}</div></section>
+        <section className="flow-card pool-slot-picker"><div className="pool-section-heading"><span>2</span><div><h2>Elige tu horario</h2><p>Llega sin esperas: los cupos se actualizan al momento.</p></div></div><div className="slot-grid">{(selectedDay?.slots || []).map((item) => <button type="button" disabled={!item.available} className={slot === item.time ? "selected" : ""} onClick={() => setSlot(item.time)} key={item.time}><b>{item.time}</b><small>{item.remaining} cupos libres</small>{slot === item.time ? <Check/> : null}</button>)}</div></section>
+        <div className="pool-plan-card"><div className="pool-section-heading"><span>3</span><div><h2>Tu acceso a piscina</h2><p>Escoge el pase que mejor se adapta a tu día.</p></div></div><ChoiceSection title="" options={catalog.plans?.PISCINA || []} selected={plan?.code} onSelect={setPlan}/></div>
+        <section className="flow-card pool-people-card"><div className="pool-section-heading"><span>4</span><div><h2>¿Quiénes vienen?</h2><p>El QR controla la cantidad exacta reservada.</p></div></div>{plan?.code === "FAMILIAR" ? <div className="family-note"><Users/><div><b>Pase familiar para 4 personas</b><p>Incluye 2 adultos y 2 niños.</p></div></div> : <><PeoplePresets people={people} showHeader={false} onSelect={(value) => { setAdults(value); setChildren(0); }}/><div className="flow-two"><Counter label={`Adultos · S/ ${adultPrice}`} value={adults} setValue={setAdults}/><Counter label={`Niños · S/ ${childPrice}`} value={children} setValue={setChildren} min={0}/></div></>}</section>
+      </div>
+      <div className="pool-booking-options"><Extras title="Haz tu día más cómodo" items={catalog.extrasByService?.PISCINA || []} selected={extras} setSelected={setExtras}/><Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/><aside className="pool-booking-note"><img src="/images/experiences/piscina.webp" alt=""/><div><Waves/><p>Vive el día<br/><em>que te mereces</em></p></div></aside></div>
+      <aside className="pool-booking-summary"><div className="pool-summary-title"><Waves/><h2>Tu reserva</h2></div><div className="pool-summary-when"><span><CalendarDays/><small>Fecha</small><b>{dateText}</b></span><span><Clock3/><small>Horario</small><b>{slot || "Por elegir"}</b></span><span><Users/><small>Pase seleccionado</small><b>{plan?.name || "Por elegir"} · {people} persona{people === 1 ? "" : "s"}</b></span></div><Summary lines={[[plan?.name || "Pase de piscina", base], ["Comodidades", extrasTotal], ["Cochera", parkingTotal]]} total={total}/><div className="pool-summary-trust"><span>✓ Cupos reales</span><span>✓ Reserva segura</span></div><button className="primary" type="button" disabled={!slot || !plan || people > Number(selectedSlot?.remaining || 0)} onClick={next}>Revisar y continuar <ChevronRight/></button></aside>
+    </section>
+  </main>;
+}
+
 function PoolFlowEnhanced({ service, catalog, hasExistingParking, onBack, onCheckout }) {
   const [days, setDays] = useState([]); const [date, setDate] = useState(today()); const [slot, setSlot] = useState("09:00"); const [adults, setAdults] = useState(1); const [children, setChildren] = useState(0); const [plan, setPlan] = useState(catalog.plans?.PISCINA?.[0]); const [extras, setExtras] = useState([]); const [vehicles, setVehicles] = useState([]);
   useEffect(() => { api(`/public/availability/PISCINA?from=${today()}`).then(setDays); }, []);
   const selectedDay = days.find((item) => item.date === date) || days[0]; const people = plan?.code === "FAMILIAR" ? 4 : adults + children; const adultPrice = Number(catalog.plans?.PISCINA?.find((item) => item.code === "ADULTO")?.price || 0); const childPrice = Number(catalog.plans?.PISCINA?.find((item) => item.code === "NINO")?.price || 0); const base = plan?.code === "FAMILIAR" ? plan.price : adults * adultPrice + children * childPrice; const extrasTotal = extras.reduce((sum, item) => sum + item.price, 0); const parkingTotal = vehicles.reduce((sum, item) => sum + Number(item.price || 0), 0); const total = base + extrasTotal + parkingTotal;
   function next() { onCheckout({ service, planCode: plan.code, planName: plan.name, date, checkIn: date, checkOut: date, slot, people, adults, children, extras, parking: vehicles[0] || null, vehicles, preferences: { access: "Piscina" }, preorderItems: [], nights: 1, base, extrasTotal, parkingTotal, total }); }
-  return <FlowPage icon={Waves} eyebrow="PASE DE PISCINA" title="Un día de piscina a tu ritmo" subtitle="Elige hora, personas y comodidades. El control validará tu acceso cuando llegues." onBack={onBack}><Progress current={1}/><DateAvailability days={days} selected={date} onSelect={(value) => { setDate(value); setSlot(""); }}/><section className="flow-card"><h2>Elige tu horario</h2><p>Mostramos los cupos reales para que llegues sin esperas.</p><div className="slot-grid">{(selectedDay?.slots || []).map((item) => <button disabled={!item.available} className={slot === item.time ? "selected" : ""} onClick={() => setSlot(item.time)} key={item.time}><b>{item.time}</b><small>{item.remaining} cupos libres</small></button>)}</div></section><ChoiceSection title="Tu acceso a piscina" subtitle="Escoge el pase que se adapta a tu grupo." options={catalog.plans?.PISCINA || []} selected={plan?.code} onSelect={setPlan}/>{plan?.code !== "FAMILIAR" ? <section className="flow-card"><h2>¿Quiénes vienen?</h2><PeoplePresets people={people} onSelect={(value) => { setAdults(value); setChildren(0); }}/><div className="flow-two"><Counter label={`Adultos · S/ ${adultPrice}`} value={adults} setValue={setAdults}/><Counter label={`Niños · S/ ${childPrice}`} value={children} setValue={setChildren} min={0}/></div></section> : <div className="flow-card family-note"><Users/><div><b>Pase familiar para 4 personas</b><p>Incluye 2 adultos y 2 niños en un solo control de acceso.</p></div></div>}<Extras title="Haz tu día más cómodo" items={catalog.extrasByService?.PISCINA || []} selected={extras} setSelected={setExtras}/><Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/><Summary lines={[[`${plan?.name || "Pase"} · ${people} personas`, base], ["Comodidades", extrasTotal], [`Cochera · ${vehicles.length} vehículo(s)`, parkingTotal]]} total={total}/><button className="flow-sticky" disabled={!slot || people > Number(selectedDay?.slots?.find((item) => item.time === slot)?.remaining || 0)} onClick={next}>Revisar y pagar piscina <ChevronRight/></button></FlowPage>;
+  return <FlowPage icon={Waves} eyebrow="PASE DE PISCINA" title="Un día de piscina a tu ritmo" subtitle="Elige hora, personas y comodidades. El control validará tu acceso cuando llegues." onBack={onBack}><Progress current={1}/><DateAvailability days={days} selected={date} onSelect={(value) => { setDate(value); setSlot(""); }}/><section className="flow-card"><h2>Elige tu horario</h2><p>Mostramos los cupos reales para que llegues sin esperas.</p><div className="slot-grid">{(selectedDay?.slots || []).map((item) => <button disabled={!item.available} className={slot === item.time ? "selected" : ""} onClick={() => setSlot(item.time)} key={item.time}><b>{item.time}</b><small>{item.remaining} cupos libres</small></button>)}</div></section><ChoiceSection title="Tu acceso a piscina" subtitle="Escoge el pase que se adapta a tu grupo." options={catalog.plans?.PISCINA || []} selected={plan?.code} onSelect={setPlan}/>{plan?.code !== "FAMILIAR" ? <section className="flow-card"><h2>¿Quiénes vienen?</h2><PeoplePresets people={people} showHeader={false} onSelect={(value) => { setAdults(value); setChildren(0); }}/><div className="flow-two"><Counter label={`Adultos · S/ ${adultPrice}`} value={adults} setValue={setAdults}/><Counter label={`Niños · S/ ${childPrice}`} value={children} setValue={setChildren} min={0}/></div></section> : <div className="flow-card family-note"><Users/><div><b>Pase familiar para 4 personas</b><p>Incluye 2 adultos y 2 niños en un solo control de acceso.</p></div></div>}<Extras title="Haz tu día más cómodo" items={catalog.extrasByService?.PISCINA || []} selected={extras} setSelected={setExtras}/><Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/><Summary lines={[[`${plan?.name || "Pase"} · ${people} personas`, base], ["Comodidades", extrasTotal], [`Cochera · ${vehicles.length} vehículo(s)`, parkingTotal]]} total={total}/><button className="flow-sticky" disabled={!slot || people > Number(selectedDay?.slots?.find((item) => item.time === slot)?.remaining || 0)} onClick={next}>Revisar y pagar piscina <ChevronRight/></button></FlowPage>;
 }
 
 function LookoutFlowEnhanced({ service, catalog, hasExistingParking, onBack, onCheckout }) {
@@ -190,7 +250,20 @@ function LookoutFlowEnhanced({ service, catalog, hasExistingParking, onBack, onC
   useEffect(() => { api(`/public/availability/MIRADOR?from=${today()}`).then(setDays); }, []);
   const selectedDay = days.find((item) => item.date === date) || days[0]; const preorderItems = (catalog.restaurantMenu || []).filter((item) => cart[item.id]).map((item) => ({ menuItemId: item.id, name: item.name, quantity: cart[item.id], price: item.price })); const menuTotal = preorderItems.reduce((sum, item) => sum + item.price * item.quantity, 0); const base = Number(plan?.price || 0) * people; const extrasTotal = extras.reduce((sum, item) => sum + item.price, 0) + menuTotal; const parkingTotal = vehicles.reduce((sum, item) => sum + Number(item.price || 0), 0); const total = base + extrasTotal + parkingTotal;
   function next() { onCheckout({ service, planCode: plan.code, planName: plan.name, date, checkIn: date, checkOut: date, slot, people, adults: people, children: 0, extras, parking: vehicles[0] || null, vehicles, preferences: {}, preorderItems, nights: 1, base, extrasTotal, parkingTotal, total }); }
-  return <FlowPage icon={SunMedium} eyebrow="RESERVA DE MIRADOR" title="Diseña tu atardecer" subtitle="Reserva tu hora, define tu grupo y añade detalles si quieres una experiencia especial." onBack={onBack}><Progress current={1}/><DateAvailability days={days} selected={date} onSelect={(value) => { setDate(value); setSlot(""); }}/><section className="flow-card"><h2>Elige tu horario</h2><div className="slot-grid">{(selectedDay?.slots || []).map((item) => <button disabled={!item.available} className={slot === item.time ? "selected" : ""} onClick={() => setSlot(item.time)} key={item.time}><b>{item.time}</b><small>{item.remaining} lugares libres</small></button>)}</div><PeoplePresets people={people} onSelect={setPeople}/><Counter label="Personas" value={people} setValue={setPeople}/></section><ChoiceSection title="Tu acceso al mirador" subtitle="Elige la alternativa que mejor acompañe tu visita." options={catalog.plans?.MIRADOR || []} selected={plan?.code} onSelect={setPlan}/><MenuPicker title="Personaliza tu atardecer" subtitle="Puedes añadir platos y bebidas para que el equipo los tenga listos al llegar." menu={catalog.restaurantMenu || []} cart={cart} setCart={setCart}/><Extras title="Detalles para tu momento especial" items={catalog.extrasByService?.MIRADOR || []} selected={extras} setSelected={setExtras}/><Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/><Summary lines={[[`${plan?.name || "Acceso"} · ${people} personas`, base], ["Consumo y detalles", extrasTotal], [`Cochera · ${vehicles.length} vehículo(s)`, parkingTotal]]} total={total}/><button className="flow-sticky" disabled={!slot || people > Number(selectedDay?.slots?.find((item) => item.time === slot)?.remaining || 0)} onClick={next}>Revisar visita al mirador <ChevronRight/></button></FlowPage>;
+  return <main className="lookout-booking-studio">
+    <section className="lookout-booking-hero"><img src="/images/experiences/mirador.webp" alt="Atardecer desde el mirador Park Plaza"/><div className="lookout-booking-veil"/><header><button type="button" onClick={onBack}><ArrowLeft/>Volver</button><div className="lookout-booking-brand"><img src="/brand/park-plaza-mark.svg" alt="Park Plaza"/><span><b>PARK PLAZA</b><small>PUCALLPA</small></span></div><span><SunMedium/></span></header><div className="lookout-booking-copy"><small>RESERVA DE MIRADOR</small><h1>Diseña tu atardecer</h1><p>Reserva tu hora, define tu grupo y añade detalles para una experiencia especial.</p></div></section>
+    <section className="lookout-booking-content"><Progress current={1}/><div className="lookout-booking-grid"><div><DateAvailability days={days} selected={date} onSelect={(value) => { setDate(value); setSlot(""); }}/><section className="flow-card"><h2>Elige tu horario</h2><div className="slot-grid">{(selectedDay?.slots || []).map((item) => <button type="button" disabled={!item.available} className={slot === item.time ? "selected" : ""} onClick={() => setSlot(item.time)} key={item.time}><b>{item.time}</b><small>{item.remaining} lugares libres</small></button>)}</div><PeoplePresets people={people} onSelect={setPeople}/><Counter label="Personas" value={people} setValue={setPeople}/></section><ChoiceSection title="Tu acceso al mirador" subtitle="Elige la alternativa que mejor acompañe tu visita." options={catalog.plans?.MIRADOR || []} selected={plan?.code} onSelect={setPlan}/></div><div><MenuPicker title="Personaliza tu atardecer" subtitle="Puedes añadir platos y bebidas para que el equipo los tenga listos al llegar." menu={catalog.restaurantMenu || []} cart={cart} setCart={setCart}/><Extras title="Detalles para tu momento especial" items={catalog.extrasByService?.MIRADOR || []} selected={extras} setSelected={setExtras}/><Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/></div><aside className="lookout-booking-summary"><Summary lines={[[`${plan?.name || "Acceso"} · ${people} personas`, base], ["Consumo y detalles", extrasTotal], [`Cochera · ${vehicles.length} vehículo(s)`, parkingTotal]]} total={total}/><div><SunMedium/><span><b>Tu atardecer te espera</b><small>Disfruta una vista única, gastronomía y momentos inolvidables.</small></span></div><button type="button" disabled={!slot || people > Number(selectedDay?.slots?.find((item) => item.time === slot)?.remaining || 0)} onClick={next}>Revisar visita al mirador <ChevronRight/></button></aside></div></section>
+  </main>;
+}
+
+function EventBookingStudio({ catalog, hasExistingParking, onBack, onCheckout }) {
+  const initialDate = addDays(today(), 7); const [days, setDays] = useState([]); const [form, setForm] = useState({ name: "Mi celebración", type: "CUMPLEAÑOS", date: initialDate, start: "18:00", end: "23:00", guests: 40, spaceId: catalog.eventSpaces?.[0]?.id || 1, notes: "" }); const [layouts, setLayouts] = useState(["BANQUETE"]); const [addons, setAddons] = useState([]); const [theme, setTheme] = useState("Tropical amazónica"); const [menuQty, setMenuQty] = useState({}); const [protein, setProtein] = useState("TODOS"); const [vehicles, setVehicles] = useState([]); const [equipment, setEquipment] = useState([]);
+  useEffect(() => { api(`/public/event-availability?from=${initialDate}`).then(setDays); }, []);
+  const day = days.find((item) => item.date === form.date); const space = (day?.spaces || catalog.eventSpaces || []).find((item) => Number(item.id) === Number(form.spaceId)) || catalog.eventSpaces?.[0]; const themes = ({ CUMPLEAÑOS: ["Tropical amazónica", "Neón", "Elegante nocturna", "Infantil"], MATRIMONIO: ["Elegante nocturna", "Natural amazónica", "Romántica", "Boho"], EMPRESARIAL: ["Corporativa", "Elegante nocturna", "Natural amazónica"], ANIVERSARIO: ["Romántica", "Elegante nocturna", "Tropical amazónica"] })[form.type] || ["Personalizada", "Natural amazónica", "Tropical amazónica"];
+  const allMenu = catalog.restaurantMenu || []; const food = allMenu.filter((item) => item.area !== "BARTENDER"); const drinks = allMenu.filter((item) => item.area === "BARTENDER"); const visibleFood = protein === "TODOS" ? food : food.filter((item) => `${item.name} ${item.description} ${(item.ingredients || []).map((entry) => entry.name).join(" ")}`.toUpperCase().includes(protein)); const catering = allMenu.filter((item) => menuQty[item.id]).map((item) => ({ menuItemId: item.id, name: item.name, quantity: Number(menuQty[item.id]), price: item.price })); const menuTotal = catering.reduce((sum, item) => sum + item.price * item.quantity, 0); const equipmentTotal = equipment.reduce((sum, item) => sum + item.price, 0); const parkingTotal = vehicles.reduce((sum, item) => sum + Number(item.price || 0), 0); const addonTotal = addons.length * 120; const estimatedTotal = Number(space?.basePrice || 0) + menuTotal + equipmentTotal + parkingTotal + addonTotal;
+  const toggle = (value, setValue) => setValue((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  function submit() { onCheckout({ ...form, spaceId: Number(form.spaceId), guests: Number(form.guests), startsAt: `${form.date}T${form.start}:00`, endsAt: `${form.date}T${form.end}:00`, layout: layouts[0] || "BANQUETE", layouts, addons, theme, catering, equipment, vehicles, parkingCount: vehicles.filter((item) => item.type !== "MOTO").length, estimatedTotal, payMode: "HALF", paymentMethod: "YAPE" }); }
+  return <main className="event-booking-studio"><img className="event-booking-image" src="/images/experiences/eventos.webp" alt="Eventos Park Plaza"/><div className="event-booking-veil"/><header className="event-booking-head"><button type="button" onClick={onBack}><ArrowLeft/>Volver</button><div><img src="/brand/park-plaza-mark.svg" alt="Park Plaza"/><span><b>PARK PLAZA</b><small>PUCALLPA</small></span></div><span>EVENTOS</span></header><section className="event-booking-hero"><div><small>EVENTO PRIVADO</small><h1>Crea tu celebración</h1><p>Construye una propuesta a tu medida. Al final reservarás la fecha con el adelanto requerido.</p></div><Progress current={1}/></section><section className="event-booking-panel"><div className="event-booking-workspace"><div className="event-booking-editor"><section className="flow-card event-calendar"><div className="flow-heading"><div><h2><CalendarDays/>Fecha y horario</h2><p>Elige el día, horario y cantidad de invitados.</p></div></div><div className="event-date-grid">{days.map((item) => { const free = (item.spaces || []).filter((entry) => entry.available).length; return <button type="button" className={form.date === item.date ? "selected" : ""} disabled={!item.available} onClick={() => setForm({ ...form, date: item.date })} key={item.date}><small>{new Date(`${item.date}T12:00:00`).toLocaleDateString("es-PE", { weekday: "short" })}</small><b>{item.date.slice(-2)}</b><span>{item.available ? `${free} ambientes` : "Ocupado"}</span></button>; })}</div><div className="event-booking-timing"><Field label="Fecha elegida" type="date" value={form.date} min={addDays(today(), 1)} onChange={(date) => setForm({ ...form, date })}/><Field label="Inicio" type="time" value={form.start} onChange={(start) => setForm({ ...form, start })}/><Field label="Fin" type="time" value={form.end} onChange={(end) => setForm({ ...form, end })}/><Counter label="Invitados" value={form.guests} setValue={(guests) => setForm({ ...form, guests })}/></div></section><section className="flow-card"><h2><Sparkles/>Tu celebración</h2><div className="flow-two"><Field label="Nombre del evento" value={form.name} onChange={(name) => setForm({ ...form, name })}/><Field label="Tipo de celebración" type="select" value={form.type} onChange={(type) => { setForm({ ...form, type }); setTheme((({ CUMPLEAÑOS: "Tropical amazónica", MATRIMONIO: "Romántica", EMPRESARIAL: "Corporativa" })[type] || "Personalizada")); }} options={["CUMPLEAÑOS", "MATRIMONIO", "EMPRESARIAL", "ANIVERSARIO", "GRADUACIÓN", "REUNIÓN PRIVADA", "OTRO"]}/></div></section><section className="flow-card"><h2>Ambiente principal</h2><p>Elige el espacio perfecto para tu celebración.</p><div className="space-grid">{(day?.spaces || catalog.eventSpaces || []).map((item) => <button type="button" disabled={!item.available || form.guests > item.capacity} className={Number(form.spaceId) === Number(item.id) ? "selected" : ""} onClick={() => setForm({ ...form, spaceId: item.id })} key={item.id}><small>{item.available ? `HASTA ${item.capacity} PERSONAS` : "OCUPADO"}</small><h3>{item.name}</h3><p>{item.description}</p><span>{item.amenities?.join(" · ")}</span><strong>Base S/ {item.basePrice}</strong></button>)}</div><h3 className="event-booking-subtitle">Distribución del ambiente</h3><div className="choice-row">{(catalog.eventLayouts || []).map((item) => <button type="button" className={layouts.includes(item.code) ? "selected" : ""} onClick={() => toggle(item.code, setLayouts)} key={item.code}>{item.name || item.code}</button>)}</div></section><div className="event-booking-pair"><section className="flow-card"><h2>Complementos y servicios</h2><div className="event-booking-services"><button type="button" className={addons.includes("PISCINA") ? "selected" : ""} onClick={() => toggle("PISCINA", setAddons)}>Acceso a piscina<small>+ S/ 120</small></button><button type="button" className={addons.includes("MIRADOR") ? "selected" : ""} onClick={() => toggle("MIRADOR", setAddons)}>Acceso al mirador<small>+ S/ 120</small></button>{(catalog.eventEquipment || []).map((item) => <button type="button" className={equipment.some((selected) => selected.id === item.id) ? "selected" : ""} onClick={() => setEquipment((current) => current.some((selected) => selected.id === item.id) ? current.filter((selected) => selected.id !== item.id) : [...current, item])} key={item.id}>{item.name}<small>+ S/ {item.price}</small></button>)}</div></section><section className="flow-card"><h2>Temática sugerida</h2><p>Elige el estilo que mejor acompaña tu celebración.</p><div className="choice-row">{themes.map((item) => <button type="button" className={theme === item ? "selected" : ""} onClick={() => setTheme(item)} key={item}>{item}</button>)}</div></section></div><div className="event-booking-menu"><EventMenuPicker title="Platillos" subtitle="Selecciona los platos para tu celebración." menu={visibleFood} cart={menuQty} setCart={setMenuQty} filter={protein} setFilter={setProtein}/><EventMenuPicker title="Bebidas" subtitle="Selecciona bebidas del bar." menu={drinks} cart={menuQty} setCart={setMenuQty}/></div></div><aside className="event-booking-summary"><div className="event-booking-summary-head"><small>TU RESUMEN</small><h2>Tu celebración</h2><p>Revisa la propuesta en tiempo real.</p></div><img src="/images/experiences/eventos.webp" alt="Ambiente para eventos"/><div className="event-booking-summary-meta"><span><CalendarDays/>{formatStudioDate(form.date)}</span><span><Clock3/>{form.start} – {form.end}</span><span><Users/>{form.guests} invitados</span></div><Summary estimate lines={[[`Ambiente · ${space?.name || "por definir"}`, Number(space?.basePrice || 0)], ["Platillos y bebidas", menuTotal], ["Equipo y producción", equipmentTotal], ["Complementos", addonTotal], ["Cochera", parkingTotal]]} total={estimatedTotal}/><Parking catalog={catalog} value={vehicles} setValue={setVehicles} hasExistingParking={hasExistingParking}/><section className="flow-card event-booking-notes"><h2>Indicaciones para el equipo</h2><Field label="Alergias, decoración o detalles especiales" value={form.notes} onChange={(notes) => setForm({ ...form, notes })}/></section></aside></div><button className="event-booking-submit" disabled={!space || space.available === false || form.guests > Number(space?.capacity || 0)} onClick={submit}>Continuar a revisión <ChevronRight/></button><footer>Reserva segura <i/> Tus datos protegidos <i/> Atención personalizada</footer></section></main>;
 }
 
 function EventFlowEnhanced({ catalog, hasExistingParking, onBack, onCheckout }) {
@@ -215,9 +288,40 @@ function EventFlow({ catalog, onBack, onCheckout }) {
 
 function FlowPage({ icon: Icon, eyebrow, title, subtitle, onBack, children }) { return <main className="experience-shell"><header className="experience-hero"><button className="flow-back" onClick={onBack}><ArrowLeft/></button><span className="flow-icon"><Icon/></span><small>{eyebrow}</small><h1>{title}</h1><p>{subtitle}</p></header><div className="experience-content">{children}</div></main>; }
 function Progress({ current }) { return <div className="flow-progress">{["Configura", "Revisa", "Confirma"].map((item, index) => <span className={index + 1 <= current ? "active" : ""} key={item}><i>{index + 1}</i>{item}</span>)}</div>; }
-function PeoplePresets({ people, onSelect }) {
+function PeoplePresets({ people, onSelect, showHeader = true }) {
   const options = [{ label: "Solo", value: 1 }, { label: "Pareja", value: 2 }, { label: "Familia", value: 4 }, { label: "Grupo", value: 6 }];
-  return <div className="party-selector"><div className="party-selector-head"><div><b>¿Quiénes vienen?</b><span>El QR controla la cantidad exacta reservada.</span></div><strong><Users/> {people} {people === 1 ? "persona" : "personas"}</strong></div><div className="party-presets">{options.map((option) => <button type="button" className={people === option.value ? "selected" : ""} onClick={() => onSelect(option.value)} key={option.label}><b>{option.label}</b><small>{option.value} {option.value === 1 ? "persona" : "personas"}</small></button>)}</div></div>;
+  return <div className="party-selector">{showHeader ? <div className="party-selector-head"><div><b>¿Quiénes vienen?</b><span>El QR controla la cantidad exacta reservada.</span></div><strong><Users/> {people} {people === 1 ? "persona" : "personas"}</strong></div> : null}<div className="party-presets">{options.map((option) => <button type="button" className={people === option.value ? "selected" : ""} onClick={() => onSelect(option.value)} key={option.label}><b>{option.label}</b><small>{option.value} {option.value === 1 ? "persona" : "personas"}</small></button>)}</div></div>;
+}
+
+function ReservationCalendar({ days, checkIn, checkOut, onSelect, onWindowChange }) {
+  const [visibleMonth, setVisibleMonth] = useState(() => checkIn.slice(0, 7));
+  const [year, month] = visibleMonth.split("-").map(Number);
+  const firstWeekday = new Date(year, month - 1, 1).getDay();
+  const totalDays = new Date(year, month, 0).getDate();
+  const availability = new Map((days || []).map((day) => [day.date, day]));
+  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString("es-PE", { month: "long", year: "numeric" });
+  const changeMonth = (amount) => {
+    const date = new Date(year, month - 1 + amount, 1);
+    const nextMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    setVisibleMonth(nextMonth);
+    onWindowChange?.(`${nextMonth}-01`);
+  };
+  const cells = [
+    ...Array.from({ length: firstWeekday }, () => null),
+    ...Array.from({ length: totalDays }, (_, index) => `${year}-${String(month).padStart(2, "0")}-${String(index + 1).padStart(2, "0")}`)
+  ];
+  return <div className="reservation-calendar">
+    <div className="reservation-calendar-head"><button type="button" onClick={() => changeMonth(-1)} aria-label="Mes anterior"><ChevronLeft/></button><strong>{monthLabel}</strong><button type="button" onClick={() => changeMonth(1)} aria-label="Mes siguiente"><ChevronRight/></button></div>
+    <div className="reservation-weekdays">{["DO","LU","MA","MI","JU","VI","SÁ"].map((day) => <span key={day}>{day}</span>)}</div>
+    <div className="reservation-days">{cells.map((date, index) => {
+      if (!date) return <span className="empty" key={`empty-${index}`}/>;
+      const status = availability.get(date);
+      const unavailable = date < today() || status?.available === false;
+      const selectedStart = date === checkIn; const selectedEnd = date === checkOut; const inRange = date > checkIn && date < checkOut;
+      return <button type="button" disabled={unavailable} className={`${selectedStart ? "range-start" : ""} ${selectedEnd ? "range-end" : ""} ${inRange ? "in-range" : ""}`} onClick={() => onSelect(date)} key={date}><b>{Number(date.slice(-2))}</b>{status?.available ? <i aria-label={`${status.remaining} disponibles`}/> : null}</button>;
+    })}</div>
+    <div className="reservation-calendar-legend"><span><i/> Entrada</span><span><i/> Salida</span><b>{daysBetween(checkIn, checkOut)} noche(s)</b></div>
+  </div>;
 }
 
 function DateAvailability({ days, selected, onSelect }) { 
@@ -322,9 +426,9 @@ function GuestsEditor({ adults, children, value, onChange }) {
 }
 function normalizedGuests(value, adults, children) { const companionCount=Math.max(0,Number(adults)-1)+Number(children); const adultCount=Math.max(0,Number(adults)-1); return Array.from({length:companionCount},(_,index)=>({ ...(value[index]||{}), kind:index<adultCount?"ADULTO":"NIÑO" })); }
 function Summary({ lines, total, estimate }) { return <section className="flow-summary"><h2>{estimate ? "Estimación en vivo" : "Resumen en vivo"}</h2>{lines.map(([label, value]) => <div key={label}><span>{label}</span><b>S/ {Number(value || 0).toFixed(2)}</b></div>)}<div className="flow-total"><span>{estimate ? "Estimado" : "Total"}</span><b>S/ {Number(total || 0).toFixed(2)}</b></div></section>; }
-function Counter({ label, value, setValue, min = 1 }) {
+function Counter({ label, value, setValue, min = 1, max = Number.POSITIVE_INFINITY }) {
   const offersProfiles = label === "Personas en la mesa" || label === "Número de personas";
-  return <div className="counter-block">{offersProfiles ? <PeoplePresets people={Number(value)} onSelect={setValue}/> : null}<div className="flow-counter"><span>{label}</span><div><button type="button" aria-label={`Quitar ${label}`} onClick={() => setValue(Math.max(min, Number(value) - 1))}><Minus/></button><b>{value}</b><button type="button" aria-label={`Agregar ${label}`} onClick={() => setValue(Number(value) + 1)}><Plus/></button></div></div></div>;
+  return <div className="counter-block">{offersProfiles ? <PeoplePresets people={Number(value)} onSelect={setValue}/> : null}<div className="flow-counter"><span>{label}</span><div><button type="button" aria-label={`Quitar ${label}`} onClick={() => setValue(Math.max(min, Number(value) - 1))}><Minus/></button><b>{value}</b><button type="button" aria-label={`Agregar ${label}`} disabled={Number(value) >= max} onClick={() => setValue(Math.min(max, Number(value) + 1))}><Plus/></button></div></div></div>;
 }
 function Field({ label, value, onChange, type = "text", min, options = [] }) { return <label className="flow-field"><span>{label}</span>{type === "select" ? <select value={value} onChange={(event) => onChange(event.target.value)}>{options.map((item) => <option key={item}>{item}</option>)}</select> : <input required type={type} min={min} value={value} onChange={(event) => onChange(event.target.value)}/>}</label>; }
 function today() {

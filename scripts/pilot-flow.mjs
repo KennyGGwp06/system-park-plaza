@@ -1,7 +1,9 @@
 const BASE = process.env.DEMO_API || "http://localhost:3000/api";
 const PASSWORD = process.env.DEMO_STAFF_PASSWORD || "ParkPlaza123*";
+const ATTENDANCE_PINS = { "recepcion@parkplaza.com": "2222", "restaurante@parkplaza.com": "3333", "bartender@parkplaza.com": "4444", "limpieza@parkplaza.com": "5555" };
 const runId = String(Date.now()).slice(-8);
 const results = [];
+const openedAttendance = [];
 let cleanupAdmin = null;
 let cleanupClient = null;
 const cleanupSalesIds = [];
@@ -29,6 +31,12 @@ async function api(path, { method = "GET", token, body } = {}) {
   return data;
 }
 
+async function rawApi(path, { token } = {}) {
+  const response = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!response.ok) throw new Error(`GET ${path} -> ${response.status}`);
+  return response;
+}
+
 async function login(email) {
   return api("/auth/login", { method: "POST", body: { email, password: PASSWORD } });
 }
@@ -36,7 +44,8 @@ async function login(email) {
 async function ensureAttendance(auth) {
   let current = await api("/attendance/current", { token: auth.token });
   if (!current.active) {
-    await api("/attendance/check-in", { method: "POST", token: auth.token, body: { employeeId: auth.user.id } });
+    await api("/attendance/self/clock", { method: "POST", token: auth.token, body: { documentNumber: auth.user.documentNumber, pin: ATTENDANCE_PINS[auth.user.email] } });
+    openedAttendance.push(auth);
     current = await api("/attendance/current", { token: auth.token });
   }
   if (!current.active) throw new Error(`No se pudo abrir la jornada de ${auth.user.role}`);
@@ -135,7 +144,7 @@ async function main() {
     method: "POST",
     body: {
       documentType: "DNI",
-      documentNumber: `88${runId}`,
+      documentNumber: `88${runId.slice(-6)}`,
       firstName: "Cliente",
       lastName: `Piloto ${runId.slice(-4)}`,
       phone: `9${runId}`.slice(0, 9),
@@ -165,7 +174,7 @@ async function main() {
       people: 2,
       adults: 2,
       children: 0,
-      guests: [{ firstName: "Acompañante", lastName: "Piloto", documentNumber: `77${runId}` }],
+      guests: [{ firstName: "Acompañante", lastName: "Piloto", documentNumber: `77${runId.slice(-6)}` }],
       extras: [],
       total: Number(room.price) * 2,
       payMode: "FULL",
@@ -175,6 +184,31 @@ async function main() {
   const booking = bookingResult.booking;
   if (booking.paymentStatus !== "PAGADO" || booking.accessStatus !== "LISTO_INGRESO") throw new Error("La reserva pagada no quedó lista para ingreso");
   pass("Reserva del cliente", `${booking.code}, habitación ${room.number}, pago completo y QR listo`);
+
+  const paidExperience = await api("/public/my-experience", { token: customer.token });
+  const bookingPayment = paidExperience.payments.find((item) => Number(item.bookingId) === Number(booking.id));
+  if (!bookingPayment) throw new Error("El pago del cliente no llegó al módulo de facturación");
+  const invoice = await api("/facturacion", {
+    method: "POST",
+    token: reception.token,
+    body: {
+      paymentId: bookingPayment.id,
+      clientId: customer.client.id,
+      type: "BOLETA",
+      recipient: {
+        documentType: customer.client.documentType,
+        documentNumber: customer.client.documentNumber,
+        name: `${customer.client.firstName} ${customer.client.lastName}`,
+        email: customer.client.email
+      },
+      simulationResult: "ACEPTADO"
+    }
+  });
+  const invoicedExperience = await api("/public/my-experience", { token: customer.token });
+  if (!invoicedExperience.invoices.some((item) => Number(item.id) === Number(invoice.id))) throw new Error("El cliente no puede ver su comprobante emitido");
+  const invoicePdf = await rawApi(`/public/invoices/${invoice.id}/pdf`, { token: customer.token });
+  if (!String(invoicePdf.headers.get("content-type")).includes("application/pdf") || (await invoicePdf.arrayBuffer()).byteLength < 100) throw new Error("El PDF del comprobante no es descargable por el cliente");
+  pass("Facturación", `${invoice.fullNumber} emitida por Recepción y PDF disponible para el cliente`);
 
   const receptionReservations = await api("/reservations", { token: reception.token });
   const visibleReservation = receptionReservations.find((item) => Number(item.id) === Number(booking.id));
@@ -234,11 +268,15 @@ async function main() {
   const task = tasks.find((item) => Number(item.id) === Number(cleaningRequest.taskId));
   if (!task) throw new Error("Limpieza no recibió la solicitud del huésped");
   await api(`/cleaning/tasks/${task.id}/start`, { method: "PATCH", token: cleaning.token });
-  await api(`/cleaning/tasks/${task.id}/evidence`, {
-    method: "POST",
-    token: cleaning.token,
-    body: { description: "Habitación atendida y verificada", files: [{ fileUrl: "/demo-evidence.svg", name: "evidencia-piloto.svg" }] }
-  });
+  for (const area of ["BAÑO", "CUARTO", "REFRI / DESPENSA"]) {
+    for (const stage of ["ENTRADA", "SALIDA"]) {
+      await api(`/cleaning/tasks/${task.id}/evidence`, {
+        method: "POST",
+        token: cleaning.token,
+        body: { area, stage, description: `${stage}: ${area} verificado`, files: [{ fileUrl: "/demo-evidence.svg", name: `evidencia-${area}-${stage}.svg` }] }
+      });
+    }
+  }
   await api(`/cleaning/tasks/${task.id}/finish`, { method: "PATCH", token: cleaning.token });
   const finalExperience = await api("/public/my-experience", { token: customer.token });
   const finalRequest = finalExperience.requests.find((item) => Number(item.id) === Number(cleaningRequest.id));
@@ -265,6 +303,9 @@ try {
   console.error(JSON.stringify({ status: "FAILED", runId, error: error.message, completed: results }, null, 2));
   process.exitCode = 1;
 } finally {
+  for (const auth of openedAttendance.reverse()) {
+    await api("/attendance/self/clock", { method: "POST", token: auth.token, body: { documentNumber: auth.user.documentNumber, pin: ATTENDANCE_PINS[auth.user.email] } }).catch(() => null);
+  }
   if (cleanupAdmin) {
     await Promise.all(cleanupSalesIds.map((id) => api(`/admin/menu-items/${id}/sales-enabled`, { method: "PATCH", token: cleanupAdmin.token, body: { salesEnabled: false } }).catch(() => null)));
     if (cleanupClient) await api(`/clients/${cleanupClient.id}`, { method: "DELETE", token: cleanupAdmin.token, body: { confirmDocument: cleanupClient.documentNumber } }).catch(() => null);

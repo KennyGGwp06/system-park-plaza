@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 const BASE = process.env.DEMO_API || "http://localhost:3000/api";
 const PASSWORD = process.env.DEMO_STAFF_PASSWORD || "ParkPlaza123*";
+const ATTENDANCE_PINS = { "recepcion@parkplaza.com": "2222", "limpieza@parkplaza.com": "5555", "mantenimiento@parkplaza.com": "6666" };
 const runId = String(Date.now()).slice(-8);
 const openedAttendance = [];
 let testClient = null;
@@ -32,8 +33,12 @@ async function login(email) {
 async function ensureAttendance(auth) {
   const current = await api("/attendance/current", { token: auth.token });
   if (current.active) return;
-  await api("/attendance/check-in", { method: "POST", token: auth.token, body: {} });
+  await api("/attendance/self/clock", { method: "POST", token: auth.token, body: { documentNumber: auth.user.documentNumber, pin: ATTENDANCE_PINS[auth.user.email] } });
   openedAttendance.push(auth);
+}
+
+async function closeAttendance(auth) {
+  await api("/attendance/self/clock", { method: "POST", token: auth.token, body: { documentNumber: auth.user.documentNumber, pin: ATTENDANCE_PINS[auth.user.email] } });
 }
 
 const result = [];
@@ -57,7 +62,7 @@ try {
   pass("Accesos internos", "Recepción, Limpieza, Mantenimiento y Superadmin autenticados con permisos separados");
 
   const identity = await api("/public/identify", { method: "POST", body: {
-    documentType: "DNI", documentNumber: `97${runId}`, firstName: "Conectividad", lastName: "Park Plaza",
+    documentType: "DNI", documentNumber: `97${runId.slice(-6)}`, firstName: "Conectividad", lastName: "Park Plaza",
     phone: `9${runId}`.slice(0, 9), email: `conectividad-${runId}@parkplaza.test`
   } });
   testClient = identity.client;
@@ -131,15 +136,23 @@ try {
 
   const receptionTasks = await api("/reception/tasks", { token: reception.token });
   const cleaningTask = receptionTasks.find((item) => Number(item.id) === Number(cleaningRequest.taskId));
-  assert.ok(cleaningTask && !cleaningTask.assignedEmployeeId);
-  assert.ok(!(await api("/cleaning/tasks", { token: cleaning.token })).some((item) => Number(item.id) === Number(cleaningTask.id)), "Limpieza vio una tarea antes de ser asignada");
+  assert.ok(cleaningTask);
+  const preAcceptedCleaningQueue = await api("/cleaning/tasks", { token: cleaning.token });
+  assert.ok(preAcceptedCleaningQueue.some((item) => Number(item.id) === Number(cleaningTask.id)), "La tarea autoasignada no llegó a Limpieza");
+  let cleaningBlockedBeforeReception = false;
+  try { await api(`/cleaning/tasks/${cleaningTask.id}/start`, { method: "PATCH", token: cleaning.token, body: {} }); } catch (error) { cleaningBlockedBeforeReception = error.message.includes("409"); }
+  assert.ok(cleaningBlockedBeforeReception, "Limpieza pudo iniciar antes de la aceptación de Recepción");
   const cleaningEmployees = await api("/reception/cleaning-employees", { token: reception.token });
   const cleaner = cleaningEmployees.find((item) => Number(item.id) === Number(cleaning.user.id));
   assert.ok(cleaner);
   await api(`/reception/tasks/${cleaningTask.id}/assign`, { method: "PATCH", token: reception.token, body: { employeeId: cleaner.id } });
   assert.ok((await api("/cleaning/tasks", { token: cleaning.token })).some((item) => Number(item.id) === Number(cleaningTask.id)));
   await api(`/cleaning/tasks/${cleaningTask.id}/start`, { method: "PATCH", token: cleaning.token, body: {} });
-  await api(`/cleaning/tasks/${cleaningTask.id}/evidence`, { method: "POST", token: cleaning.token, body: { description: "Servicio verificado", files: [{ fileUrl: "/demo-evidence.svg", name: "limpieza.svg" }] } });
+  for (const area of ["BAÑO", "CUARTO", "REFRI / DESPENSA"]) {
+    for (const stage of ["ENTRADA", "SALIDA"]) {
+      await api(`/cleaning/tasks/${cleaningTask.id}/evidence`, { method: "POST", token: cleaning.token, body: { area, stage, description: `${stage}: ${area} verificado`, files: [{ fileUrl: "/demo-evidence.svg", name: `limpieza-${area}-${stage}.svg` }] } });
+    }
+  }
   await api(`/cleaning/tasks/${cleaningTask.id}/finish`, { method: "PATCH", token: cleaning.token, body: {} });
   pass("Recepción → Limpieza → Cliente", `${cleaningTask.code} fue asignada, atendida con evidencia y finalizada`);
 
@@ -153,7 +166,8 @@ try {
   await api(`/reception/reports/${maintenanceRequest.id}/assign-maintenance`, { method: "PATCH", token: reception.token, body: { employeeId: technician.id } });
   assert.ok((await api("/maintenance/reports", { token: maintenance.token })).some((item) => Number(item.id) === Number(maintenanceRequest.id)));
   await api(`/maintenance/reports/${maintenanceRequest.id}/start`, { method: "PATCH", token: maintenance.token, body: {} });
-  await api(`/maintenance/reports/${maintenanceRequest.id}/evidence`, { method: "POST", token: maintenance.token, body: { files: [{ fileUrl: "/demo-evidence.svg", name: "mantenimiento.svg" }] } });
+  await api(`/maintenance/reports/${maintenanceRequest.id}/evidence`, { method: "POST", token: maintenance.token, body: { stage: "ANTES", files: [{ fileUrl: "/demo-evidence.svg", name: "mantenimiento-antes.svg" }] } });
+  await api(`/maintenance/reports/${maintenanceRequest.id}/evidence`, { method: "POST", token: maintenance.token, body: { stage: "DESPUES", files: [{ fileUrl: "/demo-evidence.svg", name: "mantenimiento-despues.svg" }] } });
   await api(`/maintenance/reports/${maintenanceRequest.id}/finish`, { method: "PATCH", token: maintenance.token, body: { workDescription: "Control revisado y funcionamiento validado", observations: "Prueba automática" } });
   await api(`/reports/${receptionRequest.id}/status`, { method: "PATCH", token: reception.token, body: { status: "RESUELTO" } });
   pass("Recepción → Mantenimiento → Cliente", `${maintenanceRequest.code} fue asignada, reparada con evidencia y cerrada por el técnico`);
@@ -162,7 +176,7 @@ try {
   const testedIds = new Set([cleaningRequest.id, maintenanceRequest.id, receptionRequest.id].map(Number));
   const customerRequests = experience.requests.filter((item) => testedIds.has(Number(item.id)));
   assert.equal(customerRequests.length, 3);
-  assert.ok(customerRequests.every((item) => item.status === "RESUELTO"));
+  assert.ok(customerRequests.every((item) => ["RESUELTO", "SOLUCIONADO"].includes(item.status)));
   const ownerState = await api("/superadmin/control-state", { token: owner.token });
   assert.ok(ownerState.requests.some((item) => Number(item.id) === Number(maintenanceRequest.id)));
   assert.ok(ownerState.tasks.some((item) => Number(item.id) === Number(cleaningTask.id)));
@@ -176,6 +190,6 @@ try {
   console.error(JSON.stringify({ status: "FAILED", completed: result, message: error.message, stack: error.stack }, null, 2));
   process.exitCode = 1;
 } finally {
-  for (const auth of openedAttendance.reverse()) await api("/attendance/check-out", { method: "POST", token: auth.token, body: {} }).catch(() => {});
+  for (const auth of openedAttendance.reverse()) await closeAttendance(auth).catch(() => {});
   if (testClient && superadmin) await api(`/clients/${testClient.id}`, { method: "DELETE", token: superadmin.token, body: { confirmDocument: testClient.documentNumber } }).catch((error) => console.error(`No se pudo limpiar el cliente de prueba: ${error.message}`));
 }
