@@ -2,7 +2,7 @@ import cors from "cors";
 import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { join } from "node:path";
@@ -85,6 +85,24 @@ const code = (prefix, id) => `${prefix}-${String(id).padStart(4, "0")}`;
 // La sesión de huésped es deliberadamente corta. La renovación se realizará con
 // una nueva verificación de reserva; nunca con DNI como único factor.
 const publicToken = (clientId) => jwt.sign({ sub: clientId, kind: "CLIENT" }, jwtSecret, { expiresIn: "12h" });
+const hashCustomerPassword = (password) => {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(String(password), salt, 64).toString("hex")}`;
+};
+const verifyCustomerPassword = (password, stored) => {
+  try {
+    const [salt, key] = String(stored || "").split(":");
+    if (!salt || !key) return false;
+    const expected = Buffer.from(key, "hex");
+    const actual = scryptSync(String(password), salt, expected.length);
+    return expected.length === actual.length && timingSafeEqual(expected, actual);
+  } catch { return false; }
+};
+const publicClient = (client) => {
+  if (!client) return client;
+  const { passwordHash: _passwordHash, ...safe } = client;
+  return safe;
+};
 const dateKey = (value) => String(value || "").slice(0, 10);
 const hotelToday = (state) => {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -160,38 +178,57 @@ app.post("/api/public/identify", loginRateLimit, async (req, res, next) => {
   try {
     const documentNumber = normalizeDocument(req.body.documentNumber);
     if (!documentNumber) return res.status(400).json({ message: "Ingresa un documento" });
+    const isGoogle = String(req.body.documentType || "").toUpperCase() === "GOOGLE";
+    const isDni = String(req.body.documentType || "DNI").toUpperCase() === "DNI";
+    const phone = String(req.body.phone || "").replace(/\D/g, "");
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (isDni && !/^\d{8}$/.test(documentNumber)) return res.status(400).json({ message: "El DNI debe tener exactamente 8 dígitos." });
+    if (!isGoogle && !/^\d{9}$/.test(phone)) return res.status(400).json({ message: "El celular debe tener exactamente 9 dígitos." });
+    const password = String(req.body.password || "");
+    if (!isGoogle && (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password))) return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres, una letra y un número." });
     const client = await mutateState((state) => {
       const existing = state.clients.find((row) => normalizeDocument(row.documentNumber) === documentNumber);
-      if (existing) throw httpError(409, "Este documento ya tiene una cuenta. Usa ‘Recuperar mi reserva’ con tu DNI para continuar.");
+      if (existing) throw httpError(409, "Este documento ya tiene una cuenta. Inicia sesión con tu contraseña.");
+      if (email && state.clients.some((row) => String(row.email || "").trim().toLowerCase() === email)) throw httpError(409, "Este correo ya tiene una cuenta. Inicia sesión con tu correo y contraseña.");
       const id = nextId(state, "client");
-      const item = { id, documentType: req.body.documentType || "DNI", documentNumber, firstName: req.body.firstName || "Visitante", lastName: req.body.lastName || "Park Plaza", phone: req.body.phone || "", email: req.body.email || "", status: "ACTIVO", createdAt: now() };
+      const item = { id, documentType: req.body.documentType || "DNI", documentNumber, firstName: req.body.firstName || "Visitante", lastName: req.body.lastName || "Park Plaza", phone, email, passwordHash: isGoogle ? null : hashCustomerPassword(password), status: "ACTIVO", createdAt: now() };
       state.clients.push(item);
       audit(state, "CLIENTE", "IDENTIFICAR", `Cliente ${documentNumber}`, null);
       return item;
     });
-    res.json({ client, token: publicToken(client.id) });
+    res.json({ client: publicClient(client), token: publicToken(client.id) });
+  } catch (error) { next(error); }
+});
+
+app.post("/api/public/login", loginRateLimit, async (req, res, next) => {
+  try {
+    const identifier = String(req.body.identifier || req.body.documentNumber || "").trim();
+    const password = String(req.body.password || "");
+    if (!identifier || !password) return res.status(400).json({ message: "Ingresa tu correo o documento y contraseña." });
+    const state = await readState();
+    const normalizedIdentifier = normalizeDocument(identifier);
+    const normalizedEmail = identifier.toLowerCase();
+    const client = state.clients.find((item) => normalizeDocument(item.documentNumber) === normalizedIdentifier || String(item.email || "").trim().toLowerCase() === normalizedEmail);
+    if (!client || !verifyCustomerPassword(password, client.passwordHash)) return res.status(401).json({ message: client && !client.passwordHash ? "Esta cuenta aún no tiene contraseña. Usa ‘Verificar mi reserva’ para recuperar el acceso." : "Correo, documento o contraseña incorrectos." });
+    if (["BLOQUEADO", "INACTIVO"].includes(client.status)) return res.status(403).json({ message: "Esta cuenta está deshabilitada. Acércate a Recepción para reactivarla." });
+    res.json({ client: publicClient(client), token: publicToken(client.id) });
   } catch (error) { next(error); }
 });
 
 app.post("/api/public/recover", loginRateLimit, async (req, res, next) => {
   try {
     const documentNumber = normalizeDocument(req.body.documentNumber);
-    const reservationCode = String(req.body.reservationCode || "").trim().toUpperCase();
-    if (!documentNumber || !reservationCode) {
-      return res.status(400).json({ message: "Ingresa tu documento y el código de tu reserva para verificarla." });
+    const password = String(req.body.password || "");
+    if (!documentNumber || !password) {
+      return res.status(400).json({ message: "Ingresa tu documento y la contraseña de tu cuenta." });
     }
     const state = await readState();
     const client = state.clients.find((item) => normalizeDocument(item.documentNumber) === documentNumber);
-    const matchesReservation = [
-      ...(state.bookings || []),
-      ...(state.reservations || []),
-      ...(state.events || [])
-    ].some((item) => Number(item.clientId) === Number(client?.id) && String(item.code || "").toUpperCase() === reservationCode);
-    if (!client || !matchesReservation) {
-      return res.status(404).json({ message: "No encontramos una reserva que coincida con esos datos. Revisa el código o consulta en Recepción." });
+    if (!client || !verifyCustomerPassword(password, client.passwordHash)) {
+      return res.status(401).json({ message: client && !client.passwordHash ? "Esta cuenta fue creada con Google. Ingresa con Google para ver tus reservas." : "Documento o contraseña incorrectos." });
     }
     if (["BLOQUEADO", "INACTIVO"].includes(client.status)) return res.status(403).json({ message: "Esta cuenta está deshabilitada. Acércate a Recepción para reactivarla." });
-    res.json({ client, token: publicToken(client.id) });
+    res.json({ client: publicClient(client), token: publicToken(client.id) });
   } catch (error) { next(error); }
 });
 
@@ -379,7 +416,7 @@ app.get("/api/public/my-experience", clientAuth, async (req, res, next) => {
   try {
     const state = await readState();
     const passes = state.passes.filter((item) => item.clientId === req.client.id && item.status !== "REVOCADO").map((item) => hydratePass(state, item));
-    res.json({ client: req.client, passes, pass: passes[0] || null, bookings: state.bookings.filter((item) => item.clientId === req.client.id), events: state.events.filter((item) => item.clientId === req.client.id), orders: state.orders.filter((item) => item.clientId === req.client.id), requests: state.requests.filter((item) => item.clientId === req.client.id) });
+    res.json({ client: publicClient(req.client), passes, pass: passes[0] || null, bookings: state.bookings.filter((item) => item.clientId === req.client.id), events: state.events.filter((item) => item.clientId === req.client.id), orders: state.orders.filter((item) => item.clientId === req.client.id), requests: state.requests.filter((item) => item.clientId === req.client.id) });
   } catch (error) { next(error); }
 });
 
@@ -1511,7 +1548,7 @@ app.all("/api/*", (req, res) => res.status(404).json({ message: `La operacion ${
 
 app.use((error, _req, res, _next) => { console.error(error); res.status(error.status || 500).json({ message: error.status ? error.message : "Error interno del servidor", fieldErrors: error.fieldErrors, details: process.env.NODE_ENV === "production" ? undefined : error.stack }); });
 
-async function clientAuth(req, res, next) { try { const payload = jwt.verify(req.headers.authorization?.replace(/^Bearer\s+/i, "") || "", jwtSecret); if (payload.kind !== "CLIENT") throw new Error(); const state = await readState(); req.client = state.clients.find((item) => item.id === Number(payload.sub)); if (!req.client || ["BLOQUEADO", "INACTIVO"].includes(req.client.status)) throw new Error(); next(); } catch { res.status(401).json({ message: "Identificación del cliente no válida o cuenta deshabilitada" }); } }
+async function clientAuth(req, res, next) { try { const payload = jwt.verify(req.headers.authorization?.replace(/^Bearer\s+/i, "") || "", jwtSecret); if (payload.kind !== "CLIENT") throw new Error(); const state = await readState(); const storedClient = state.clients.find((item) => item.id === Number(payload.sub)); if (!storedClient || ["BLOQUEADO", "INACTIVO"].includes(storedClient.status)) throw new Error(); req.client = publicClient(storedClient); next(); } catch { res.status(401).json({ message: "Identificación del cliente no válida o cuenta deshabilitada" }); } }
 async function biometricBridgeAuth(req, res, next) {
   try {
     const state = await readState();
@@ -1709,7 +1746,7 @@ function hydrateClient(state, client) {
       : entitlements.some((item) => item.status === "PENDIENTE")
         ? "PENDIENTE"
         : "SIN_SERVICIOS";
-  return { ...client, reservations, serviceBookings, stays, events, passes, activeServices, accessStatus };
+  return { ...publicClient(client), reservations, serviceBookings, stays, events, passes, activeServices, accessStatus };
 }
 
 function hydrateStay(state, stay, includeReservation = true) {

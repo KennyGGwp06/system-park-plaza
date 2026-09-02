@@ -1,79 +1,61 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { ArrowRight, BedDouble, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, LogIn, LogOut, MapPin, QrCode, ShieldCheck, Sparkles, SunMedium, Waves } from "lucide-react";
+import { ArrowRight, BedDouble, Car, ChevronRight, ClipboardList, LogIn, LogOut, MessageCircle, QrCode, Sparkles, SunMedium, UtensilsCrossed, Waves, Wine } from "lucide-react";
 
 const images = { HOSPEDAJE: "/images/experiences/hospedaje.webp", PISCINA: "/images/experiences/piscina.webp", MIRADOR: "/images/experiences/mirador.webp", EVENTOS: "/images/experiences/eventos.webp" };
 const icons = { HOSPEDAJE: BedDouble, PISCINA: Waves, MIRADOR: SunMedium, EVENTOS: Sparkles };
 const welcomeExperiences = [
-  { code: "HOSPEDAJE", eyebrow: "DESCANSA EN PUCALLPA", title: "Hospedaje", headline: "Una habitación para bajar el ritmo", body: "Elige fechas, tipo de habitación, beneficios y cochera con disponibilidad conectada a Recepción." },
-  { code: "PISCINA", eyebrow: "DÍAS BAJO EL SOL", title: "Piscina", headline: "Tu pausa más fresca", body: "Reserva accesos para adultos, niños y familias, revisa horarios y conserva todo en tu pase QR." },
-  { code: "MIRADOR", eyebrow: "LA CIUDAD DESDE ARRIBA", title: "Mirador", headline: "Atardeceres para recordar", body: "Organiza tu visita, selecciona el horario y disfruta pedidos de restaurante y bar durante tu experiencia." },
-  { code: "EVENTOS", eyebrow: "CELEBRA A TU MANERA", title: "Eventos", headline: "Una experiencia creada contigo", body: "Consulta fechas libres y personaliza ambiente, invitados, platos, bebidas, equipamiento y cochera." }
+  { code: "HOSPEDAJE", eyebrow: "DESCANSA EN PUCALLPA", title: "Hospedaje", headline: "Una habitación para bajar el ritmo", body: "Elige fechas, tipo de habitación, beneficios y cochera con disponibilidad conectada a Recepción.", cta: "Descubrir habitaciones" },
+  { code: "PISCINA", eyebrow: "DÍAS BAJO EL SOL", title: "Piscina", headline: "Tu pausa más fresca", body: "Reserva accesos para adultos, niños y familias, revisa horarios y conserva todo en tu pase QR.", cta: "Reservar piscina" },
+  { code: "MIRADOR", eyebrow: "LA CIUDAD DESDE ARRIBA", title: "Mirador", headline: "Atardeceres para recordar", body: "Organiza tu visita, selecciona el horario y disfruta pedidos de restaurante y bar durante tu experiencia.", cta: "Reservar mirador" },
+  { code: "EVENTOS", eyebrow: "CELEBRA A TU MANERA", title: "Eventos", headline: "Una experiencia creada contigo", body: "Consulta fechas libres y personaliza ambiente, invitados, platos, bebidas, equipamiento y cochera.", cta: "Diseñar mi evento" },
+  { code: "RESTAURANTE", eyebrow: "SABORES DE LA SELVA", title: "Restaurante", headline: "La Amazonía servida en tu mesa", body: "Descubre platos regionales y cocina de la casa. Durante tu estadía podrás pedir directamente desde tu experiencia digital.", image: "/images/landing/park-plaza-terraza-v1.png", action: "VERIFY", cta: "Verificar para ordenar" },
+  { code: "BARTENDER", eyebrow: "COCTELERÍA DE AUTOR", title: "Bar", headline: "La noche empieza con un buen brindis", body: "Cócteles clásicos, bebidas amazónicas y atención conectada con tu habitación o experiencia activa.", image: "/images/landing/park-plaza-bar-v1.png", action: "VERIFY", cta: "Acceder a la carta" },
+  { code: "COCHERA", eyebrow: "LLEGA SIN PREOCUPACIONES", title: "Cochera", headline: "Tu vehículo también tiene su lugar", body: "Consulta espacios disponibles y agrega moto, auto, camioneta o miniván al reservar hospedaje, piscina, mirador o eventos.", image: "/images/landing/park-plaza-hero-mobile-v1.png", targetCode: "HOSPEDAJE", cta: "Reservar con cochera" }
 ];
 
-export function ModernWelcome({ catalog, onRegister, onLogin, onService }) {
+export function ModernWelcome({ catalog, onRegister, onLogin, onVerify, onService }) {
   const services = catalog.services || [];
   const media = Object.fromEntries((catalog.experienceMedia || []).map((item) => [item.code, item]));
-  const byCode = (code) => services.find((service) => service.code === code) || welcomeExperiences.find((service) => service.code === code) || { code, name: code, price: 0 };
-  const slideDefaults = [
-    { code: "HOTEL", targetCode: "HOSPEDAJE", place: "Hotel Park Plaza", title: "HOTEL", title2: "PARK PLAZA", description: "Hospedaje pensado para descansar: fechas, habitaciones, beneficios y cochera conectados con Recepción.", image: images.HOSPEDAJE },
-    { code: "BAR", place: "Bar Park Plaza", title: "BAR", title2: "NOCTURNO", description: "Cócteles, bebidas y una atmósfera especial para acompañar tu experiencia en el hotel.", image: "/images/landing/park-plaza-bar-v1.png" },
-    { code: "PISCINA", targetCode: "PISCINA", place: "Días bajo el sol", title: "PISCINA", title2: "PARK PLAZA", description: "Reserva tu acceso, elige a tus acompañantes y conserva todo en un único pase QR.", image: images.PISCINA },
-    { code: "EVENTOS", targetCode: "EVENTOS", place: "Celebra a tu manera", title: "ZONA DE", title2: "EVENTOS", description: "Diseña tu celebración con ambiente, invitados, comida, bebidas, equipo y cochera.", image: images.EVENTOS },
-    { code: "TERRAZA", place: "Terraza · Cocina", title: "SABORES", title2: "EN TERRAZA", description: "Una zona para compartir platos, atención de cocina y momentos que se quedan en la memoria.", image: "/images/landing/park-plaza-terraza-v1.png" },
-    { code: "MIRADOR", targetCode: "MIRADOR", place: "La ciudad desde arriba", title: "MIRADOR", title2: "PARK PLAZA", description: "Elige horario, conoce la disponibilidad y vive Pucallpa desde una vista diferente.", image: images.MIRADOR }
-  ];
-  const slides = slideDefaults.map((slide) => { const saved = media[slide.targetCode || slide.code]; return saved ? { ...slide, ...saved, code: slide.code, targetCode: slide.targetCode, image: saved.imageUrl || slide.image } : slide; });
-  const rootRef = useRef(null); const cardsRef = useRef([]); const orderRef = useRef(slides.map((_, index) => index)); const [activeIndex, setActiveIndex] = useState(0);
-
+  const service = (code) => services.find((item) => item.code === code);
+  const explore = (code) => { const selected = service(code); if (selected) onService(selected); else onRegister(); };
+  const slides = welcomeExperiences.map((item) => ({ ...item, ...(service(item.code) || {}), body: service(item.code)?.description || item.body, image: media[item.code]?.imageUrl || item.image || (item.code === "HOSPEDAJE" ? "/images/landing/park-plaza-hero-desktop-v1.png" : images[item.code]) }));
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isHoveringCards, setIsHoveringCards] = useState(false);
+  const rootRef = useRef(null); const copyRef = useRef(null); const visualRef = useRef(null); const transitioningRef = useRef(false);
+  const active = slides[activeIndex] || slides[0];
+  const launchActive = () => active.action === "VERIFY" ? onVerify() : explore(active.targetCode || active.code);
+  const moveTo = (nextIndex) => {
+    const normalized = (nextIndex + slides.length) % slides.length;
+    if (normalized === activeIndex || transitioningRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setActiveIndex(normalized); return; }
+    transitioningRef.current = true;
+    gsap.timeline({ defaults: { ease: "power3.inOut" }, onComplete: () => setActiveIndex(normalized) })
+      .to(visualRef.current, { xPercent: -38, rotate: -2.5, scale: .92, opacity: 0, filter: "blur(16px)", duration: .78 })
+      .to(copyRef.current, { y: 110, opacity: 0, filter: "blur(10px)", duration: .62 }, "<.08");
+  };
   useEffect(() => {
-    const root = rootRef.current; if (!root) return undefined;
-    let disposed = false; let timer; let transitioning = false; let cycleId = 0;
-    const card = (index) => cardsRef.current[index];
-    const placeCards = (animate = false) => {
-      const width = window.innerWidth; const height = window.innerHeight; const compact = width < 760;
-      const cardWidth = compact ? 92 : Math.min(176, Math.max(128, width * .135)); const cardHeight = compact ? 126 : Math.min(240, Math.max(176, height * .29)); const gap = compact ? 9 : 14;
-      const active = orderRef.current[0]; const upcoming = orderRef.current.slice(1); const visible = 3;
-      gsap.set(card(active), { x: 0, y: 0, width: "100vw", height: "100vh", borderRadius: 0, zIndex: 1, scale: 1 });
-      upcoming.forEach((index, position) => {
-        const x = width - 24 - ((Math.min(position, visible - 1) + 1) * cardWidth) - (Math.min(position, visible - 1) * gap);
-        const target = { x, y: height - cardHeight - (compact ? 25 : 48), width: cardWidth, height: cardHeight, borderRadius: compact ? 12 : 16, zIndex: position < visible ? 8 : 0, opacity: position < visible ? 1 : 0 };
-        if (animate) gsap.to(card(index), { ...target, duration: .55, ease: "sine.inOut", delay: position * .07 }); else gsap.set(card(index), target);
-      });
-    };
-    const advance = () => {
-      if (disposed || transitioning) return; transitioning = true;
-      const oldActive = orderRef.current[0]; const incoming = orderRef.current[1]; const transitionId = cycleId;
-      if (incoming === undefined) return;
-      const incomingCard = card(incoming); const oldCard = card(oldActive);
-      gsap.killTweensOf([incomingCard, oldCard]); gsap.set(incomingCard, { zIndex: 6, opacity: 1 }); gsap.set(oldCard, { zIndex: 5 });
-      gsap.to(oldCard, { scale: 1.12, duration: 1.05, ease: "sine.inOut" });
-      gsap.to(incomingCard, { x: 0, y: 0, width: "100vw", height: "100vh", borderRadius: 0, duration: 1.05, ease: "sine.inOut", onComplete: () => {
-        if (disposed || transitionId !== cycleId) return;
-        orderRef.current = [...orderRef.current.slice(1), oldActive]; setActiveIndex(incoming); placeCards(true); transitioning = false; timer = window.setTimeout(runCycle, 5300);
-      }});
-    };
-    const runCycle = () => {
-      if (disposed) return; const currentCycle = ++cycleId;
-      const indicator = root.querySelector(".ppx-carousel-indicator");
-      gsap.set(indicator, { x: -window.innerWidth });
-      gsap.to(indicator, { x: 0, duration: 4.2, ease: "none", onComplete: () => { if (disposed || currentCycle !== cycleId) return; gsap.to(indicator, { x: window.innerWidth, duration: .45, ease: "none", onComplete: () => { if (!disposed && currentCycle === cycleId) advance(); } }); } });
-    };
-    placeCards(false); timer = window.setTimeout(runCycle, 700);
-    const resize = () => placeCards(false); window.addEventListener("resize", resize);
-    return () => { disposed = true; cycleId += 1; window.clearTimeout(timer); window.removeEventListener("resize", resize); gsap.killTweensOf(root.querySelectorAll(".ppx-carousel-card, .ppx-carousel-indicator")); };
-  }, []);
-
-  const active = slides[activeIndex]; const activeService = services.find((service) => service.code === active.targetCode);
-  const explore = (slide) => { const service = services.find((item) => item.code === slide.targetCode); if (service) onService(service); else onRegister(); };
-  return <main className="ppx-carousel" ref={rootRef}>
-    <div className="ppx-carousel-indicator" aria-hidden="true"/>
-    <div className="ppx-carousel-cards" aria-hidden="true">{slides.map((slide, index) => <div key={`${slide.code}-${index}`} ref={(node) => { cardsRef.current[index] = node; }} className="ppx-carousel-card" style={{ backgroundImage: `url(${slide.image})` }}/>)}</div>
-    <div className="ppx-carousel-overlay" aria-hidden="true"/>
-    <header className="ppx-carousel-nav"><Brand/><nav aria-label="Navegación principal"><a href="#inicio">Inicio</a><a href="#servicios">Servicios</a><a href="#experiencias">Experiencias</a></nav><button type="button" className="ppx-carousel-login" onClick={onLogin}><LogIn/> Iniciar sesión</button></header>
-    <section className="ppx-carousel-details" id="inicio" aria-live="polite"><div className="ppx-place"><span/>{active.place}</div><div className="ppx-title-mask"><h1>{active.title}</h1></div><div className="ppx-title-mask"><h1>{active.title2}</h1></div><p>{active.description}</p><div className="ppx-carousel-actions"><button type="button" aria-label="Guardar esta experiencia"><ShieldCheck/></button><button type="button" onClick={() => explore(active)}>{activeService ? "Descubrir servicio" : "Crear mi experiencia"} <ArrowRight/></button></div></section>
-    <section className="ppx-carousel-thumbs" id="servicios" aria-label="Próximas experiencias">{orderRef.current.slice(1, 4).map((index) => { const slide = slides[index]; return <button key={`${slide.code}-${index}`} type="button" onClick={() => explore(slide)}><small>{slide.place}</small><strong>{slide.title}<br/>{slide.title2}</strong></button>; })}</section>
-    <section className="ppx-carousel-hud" id="experiencias"><span>{String(activeIndex + 1).padStart(2, "0")}</span><i/><b>{String(slides.length).padStart(2, "0")}</b><div><ChevronLeft/><ChevronRight/></div><button type="button" onClick={onRegister}>Crear mi experiencia</button></section>
+    if (!visualRef.current || !copyRef.current) return;
+    gsap.killTweensOf([visualRef.current, copyRef.current]);
+    gsap.fromTo(visualRef.current, { xPercent: 30, rotate: 3, scale: 1.08, opacity: 0, filter: "blur(18px)" }, { xPercent: 0, rotate: 0, scale: 1, opacity: 1, filter: "blur(0px)", duration: 1.05, ease: "expo.out" });
+    gsap.fromTo(copyRef.current, { y: -95, opacity: 0, filter: "blur(10px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: .92, delay: .12, ease: "power4.out", onComplete: () => { transitioningRef.current = false; } });
+  }, [activeIndex]);
+  useEffect(() => { const timer = window.setInterval(() => { if (!transitioningRef.current && document.visibilityState === "visible") moveTo(activeIndex + 1); }, 6500); return () => window.clearInterval(timer); }, [activeIndex, slides.length]);
+  const quickLinks = [
+    { code: "HOSPEDAJE", label: "Habitaciones", icon: BedDouble },
+    { code: "PISCINA", label: "Piscina", icon: Waves },
+    { code: "MIRADOR", label: "Mirador", icon: SunMedium },
+    { code: "EVENTOS", label: "Eventos", icon: Sparkles },
+    { code: "RESTAURANTE", label: "Restaurante", icon: UtensilsCrossed },
+    { code: "BARTENDER", label: "Bar", icon: Wine },
+    { code: "COCHERA", label: "Cochera", icon: Car },
+    { code: "CONTACTO", label: "Contacto", icon: MessageCircle }
+  ];
+  return <main className="pp-lumora pp-lumora-cinematic" id="inicio" ref={rootRef}>
+    <header className="pp-lumora-nav"><Brand/><button type="button" className="pp-lumora-session" aria-label="Iniciar sesión" title="Iniciar sesión" onClick={onLogin}><LogIn/> Iniciar sesión</button><button type="button" className="pp-lumora-book" aria-label="Verificar mi reserva" title="Verificar mi reserva" onClick={onVerify}><QrCode/> Verificar mi reserva</button></header>
+    <section className="pp-lumora-copy" ref={copyRef}><p>{active.eyebrow}</p><h1>{active.title.toUpperCase()}<br/><span>PARK PLAZA</span></h1><h2>{active.headline}</h2><div className="pp-lumora-rule"/><p className="pp-lumora-description">{active.body}</p><div className="pp-lumora-actions"><button type="button" onClick={launchActive}>{active.cta || `Descubrir ${active.title.toLowerCase()}`} <ArrowRight/></button><button type="button" onClick={onRegister}>Crear mi experiencia</button></div></section>
+    <section className="pp-lumora-visual" aria-label={active.title} ref={visualRef}><div className="pp-lumora-orbit orbit-one"/><div className="pp-lumora-orbit orbit-two"/><div className="pp-lumora-image"><img src={active.image} alt={active.title}/></div><div className="pp-lumora-stamp"><Sparkles/><span>{active.title}<br/>a tu ritmo</span></div></section>
+    <aside className="pp-lumora-rail" aria-label="Accesos rápidos">{quickLinks.map(({ code, label, icon: Icon }) => code === "CONTACTO" ? <a key={code} href="tel:+51961000120"><Icon/><span>{label}</span></a> : <button key={code} type="button" className={active.code===code?"active":""} onClick={() => moveTo(Math.max(0,slides.findIndex((item)=>item.code===code)))}><Icon/><span>{label}</span></button>)}</aside>
   </main>;
 }
 
@@ -81,10 +63,80 @@ function Brand() { return <div className="ppx-brand"><img src="/brand/park-plaza
 function Entry({ icon: Icon, title, text, onClick, primary=false }) { return <button className={`ppx-entry ${primary ? "primary" : ""}`} type="button" onClick={onClick}><span><Icon/></span><div><strong>{title}</strong><small>{text}</small></div><ChevronRight/></button>; }
 
 export function ModernHome({ client, catalog, experience, onService, onExperience, onReservations, onExit }) {
-  const bookings=experience?.bookings||[]; const next=bookings.find(item=>!["FINALIZADA","CANCELADA"].includes(item.status));
-  const media=Object.fromEntries((catalog.experienceMedia||[]).map((item)=>[item.code,item]));
-  const fullName=[client?.firstName,client?.lastName].filter(Boolean).join(" ")||"Visitante Park Plaza";
-  const initials=fullName.split(/\s+/).slice(0,2).map((item)=>item[0]).join("").toUpperCase();
-  return <main className="ppx-home"><header className="ppx-home-head"><Brand/><div className="ppx-home-actions"><button type="button" className="ppx-verify-button" onClick={onReservations}><ClipboardList/> Verificación de reserva</button><button type="button" aria-label="Abrir mi pase" title="Mi pase" onClick={onExperience}><QrCode/></button>{client ? <button type="button" className="ppx-exit" aria-label="Cerrar sesión" title="Cerrar sesión" onClick={onExit}><LogOut/></button> : null}</div></header>{client?<section className="ppx-profile-card" aria-label="Mi perfil"><div className="ppx-avatar">{client.avatarUrl?<img src={client.avatarUrl} alt={`Foto de ${fullName}`}/>:<span>{initials}</span>}</div><div><small>MI PERFIL</small><strong>{fullName}</strong><span>{client.email||"Acceso personal Park Plaza"}</span></div><b>{client.authProvider==="GOOGLE"?"Conectado con Google":"Sesión activa"}</b></section>:null}<section className="ppx-hero-card"><p>HOLA, {client?.firstName?.toUpperCase()||"VISITANTE"}</p><h1>{next?"Tu próxima experiencia está lista":"¿Qué te gustaría vivir hoy?"}</h1><span>{next?"Consulta horarios, pagos y accesos desde tu pase personal.":"Elige una experiencia y te guiaremos paso a paso."}</span><div>{experience?.pass?<button onClick={onExperience}><QrCode/> Abrir mi pase QR</button>:null}{bookings.length?<button onClick={onReservations}><CalendarDays/> Mis reservas</button>:null}</div></section>{next?<section className="ppx-next"><div><small>PRÓXIMO PASO</small><h2>{serviceName(next.serviceCode)}</h2><p>{next.date||next.checkIn} {next.slot?`· ${next.slot}`:""}</p></div><span className={`ppx-status ${next.paymentStatus==="PAGADO"?"ready":"pending"}`}>{next.paymentStatus==="PAGADO"?"Acceso listo":`Saldo S/ ${Number(next.balance||0).toFixed(2)}`}</span></section>:null}<section className="ppx-section-head"><div><small>DESCUBRE PARK PLAZA</small><h2>Experiencias disponibles</h2></div><p>Precios y disponibilidad conectados con Recepción.</p></section><section className="ppx-service-grid">{(catalog.services||[]).map(service=>{const Icon=icons[service.code]||Sparkles;return <button type="button" className="ppx-service" onClick={()=>onService(service)} key={service.code}><img src={media[service.code]?.imageUrl||images[service.code]} alt={service.name} loading="lazy" decoding="async"/><div><span><Icon/></span><small>{service.code==="EVENTOS"?"COTIZACIÓN PERSONALIZADA":`DESDE S/ ${service.price}`}</small><h3>{service.name}</h3><p>{service.description}</p><strong>Explorar <ChevronRight/></strong></div></button>})}</section></main>;
+  const services = catalog.services || [];
+  const media = Object.fromEntries((catalog.experienceMedia || []).map((item) => [item.code, item]));
+  const slides = services.map((service) => {
+    const narrative = welcomeExperiences.find((item) => item.code === service.code) || {};
+    return { ...narrative, ...service, headline: narrative.headline || service.name, body: service.description || narrative.body, cta: narrative.cta || `Explorar ${service.name.toLowerCase()}`, image: media[service.code]?.imageUrl || narrative.image || images[service.code] || "/images/landing/park-plaza-hero-desktop-v1.png" };
+  });
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isHoveringCards, setIsHoveringCards] = useState(false);
+  const imageRef = useRef(null);
+  const copyRef = useRef(null);
+  const orbitRef = useRef(null);
+  const transitioningRef = useRef(false);
+  const active = slides[activeIndex] || slides[0];
+  const cardServices = services.slice(0, 4);
+  const moveTo = (index) => {
+    if (!slides.length || index === activeIndex || transitioningRef.current) return;
+    const normalized = (index + slides.length) % slides.length;
+    const image = imageRef.current;
+    const copy = copyRef.current;
+    const orbit = orbitRef.current;
+    if (!image || !copy || !orbit || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setActiveIndex(normalized); return; }
+    transitioningRef.current = true;
+    try {
+      gsap.timeline({ defaults: { ease: "power3.inOut" }, onComplete: () => setActiveIndex(normalized) })
+        .to(image, { scale: .76, rotate: -18, opacity: 0, filter: "blur(18px)", duration: .62 })
+        .to(copy, { y: 46, opacity: 0, filter: "blur(8px)", duration: .42 }, "<.05")
+        .to(orbit, { rotate: "+=150", duration: .72 }, "<");
+    } catch {
+      transitioningRef.current = false;
+      setActiveIndex(normalized);
+    }
+  };
+  useEffect(() => {
+    if (!orbitRef.current || !imageRef.current || !copyRef.current) return undefined;
+    const spin = gsap.to(orbitRef.current, { rotate: 360, duration: 22, repeat: -1, ease: "none" });
+    return () => spin.kill();
+  }, []);
+  useEffect(() => {
+    if (!imageRef.current || !copyRef.current) return;
+    gsap.killTweensOf([imageRef.current, copyRef.current]);
+    gsap.fromTo(imageRef.current, { scale: .76, rotate: 18, opacity: 0, filter: "blur(18px)" }, { scale: 1, rotate: 0, opacity: 1, filter: "blur(0px)", duration: .95, ease: "expo.out" });
+    gsap.fromTo(copyRef.current, { y: -45, opacity: 0, filter: "blur(8px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: .68, delay: .1, ease: "power4.out", onComplete: () => { transitioningRef.current = false; } });
+  }, [activeIndex]);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!isHoveringCards && !transitioningRef.current && document.visibilityState === "visible") moveTo(activeIndex + 1);
+    }, 6500);
+    return () => window.clearInterval(timer);
+  }, [activeIndex, isHoveringCards, slides.length]);
+
+  return <main className="service-hub">
+    <header className="service-hub-nav">
+      <Brand/>
+      <div className="service-hub-actions">
+        <button type="button" className="service-hub-reservations" onClick={onReservations}><ClipboardList/> Mis reservas</button>
+      </div>
+      <button type="button" className="service-hub-qr" aria-label="Abrir mi QR" onClick={onExperience}><QrCode/></button>
+      <button type="button" className="service-hub-exit" aria-label="Cerrar sesión" onClick={onExit}><LogOut/></button>
+    </header>
+
+    <section className="service-hub-stage">
+    <section className="service-hub-discover">
+      <div className="service-hub-intro"><small>EXPERIENCIAS PARK PLAZA</small><h2>Elige tu<br/><em>experiencia</em></h2><p>Selecciona la forma en que quieres vivir Park Plaza.</p></div>
+      <div className="service-hub-cards" onMouseEnter={() => setIsHoveringCards(true)} onMouseLeave={() => setIsHoveringCards(false)}>{cardServices.map((service) => { const Icon = icons[service.code] || Sparkles; const index = slides.findIndex((slide) => slide.code === service.code); return <button type="button" key={service.code} className={index === activeIndex ? "active" : ""} onMouseEnter={() => moveTo(index)} onFocus={() => moveTo(index)} onClick={() => onService(service)}><img src={media[service.code]?.imageUrl || images[service.code]} alt={service.name}/><i/><span><Icon/></span><div><h3>{service.name}</h3><p>{service.description}</p><b>{service.code === "EVENTOS" ? "Cotizar" : `Desde S/ ${service.price}`} <ChevronRight/></b></div></button>; })}</div>
+    </section>
+
+    <section className="service-hub-hero">
+      <div className="service-hub-orbit" ref={orbitRef}/>
+      <img ref={imageRef} src={active?.image} alt={active?.name || "Experiencia Park Plaza"}/>
+      <div className="service-hub-hero-shade"/>
+      <div className="service-hub-copy" ref={copyRef}><small>{active?.eyebrow || "EXPERIENCIAS PARK PLAZA"}</small><h1>{active?.headline || "Descubre Park Plaza"}</h1><p>{active?.body}</p><div><button type="button" onClick={() => active && onService(active)}>{active?.cta || "Explorar experiencia"} <ArrowRight/></button></div></div>
+      <div className="service-hub-carousel" aria-label="Cambiar experiencia"><button type="button" aria-label="Experiencia anterior" onClick={() => moveTo(activeIndex - 1)}>←</button><div>{slides.map((slide, index) => <button type="button" aria-label={`Ver ${slide.name}`} key={slide.code} className={index === activeIndex ? "active" : ""} onClick={() => moveTo(index)}/>)}</div><button type="button" aria-label="Siguiente experiencia" onClick={() => moveTo(activeIndex + 1)}>→</button></div>
+    </section>
+    </section>
+
+  </main>;
 }
-function serviceName(code){return({HOSPEDAJE:"Hospedaje",PISCINA:"Piscina",MIRADOR:"Mirador",EVENTOS:"Evento"})[code]||code;}
