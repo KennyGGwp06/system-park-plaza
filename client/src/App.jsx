@@ -5,6 +5,8 @@ import { useAuth } from "./context/AuthContext";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { useFetch } from "./hooks/useFetch";
 import { defaultRouteByRole, menuByRole, permissionForHref } from "./constants/menu";
+import { clearToken, getToken } from "./services/api";
+import { operationsBaseUrl } from "./config/operations";
 
 const lazyPage = (loader, exportName) => lazy(() => loader().then((module) => ({ default: module[exportName] })));
 const Login = lazyPage(() => import("./pages/Login"), "Login");
@@ -20,8 +22,6 @@ const RestaurantDashboard = lazyPage(() => import("./modules/employees/Restauran
 const RestaurantOrdersPage = lazyPage(() => import("./modules/employees/RestaurantOrdersPage"), "RestaurantOrdersPage");
 const RestaurantRecipesPage = lazyPage(() => import("./modules/employees/RestaurantRecipesPage"), "RestaurantRecipesPage");
 const RestaurantInventoryPage = lazyPage(() => import("./modules/employees/RestaurantInventoryPage"), "RestaurantInventoryPage");
-const CleaningPage = lazyPage(() => import("./modules/employees/CleaningPage"), "CleaningPage");
-const MaintenancePage = lazyPage(() => import("./modules/employees/MaintenancePage"), "MaintenancePage");
 const RestaurantReceiptsPage = lazyPage(() => import("./modules/employees/RestaurantReceiptsPage"), "RestaurantReceiptsPage");
 const BarDashboard = lazyPage(() => import("./modules/employees/BarPages"), "BarDashboard");
 const BarOrdersPage = lazyPage(() => import("./modules/employees/BarPages"), "BarOrdersPage");
@@ -81,16 +81,16 @@ const preloadersByRole = {
   BARTENDER: [
     () => import("./modules/employees/BarPages")
   ],
-  LIMPIEZA: [() => import("./modules/employees/CleaningPage")],
-  MANTENIMIENTO: [() => import("./modules/employees/MaintenancePage")]
+  LIMPIEZA: [],
+  MANTENIMIENTO: []
 };
 
 const protectedRoutes = [
   ["/dashboard", "DASHBOARD:VER", <Dashboard />],
-  ["/superadmin", "ADMINISTRADOR:VER", <SuperAdminPage />, ["SUPERADMIN"]],
-  ["/admin-panel", "ADMINISTRADOR:VER", <AdminReceptionPage />, ["ADMINISTRADOR"]],
-  ["/admin-panel/mi-caja", "ADMINISTRADOR:VER", <AdminMiCajaPage />, ["ADMINISTRADOR"]],
-  ["/admin-panel/caja-central", "ADMINISTRADOR:VER", <CentralCashRegister />, ["SUPERADMIN"]],
+  ["/superadmin", "DASHBOARD:VER", <SuperAdminPage />, ["SUPERADMIN"]],
+  ["/admin-panel", "DASHBOARD:VER", <AdminReceptionPage />, ["ADMINISTRADOR"]],
+  ["/admin-panel/mi-caja", "CAJA:VER", <AdminMiCajaPage />, ["ADMINISTRADOR"]],
+  ["/admin-panel/caja-central", "CAJA:VER", <CentralCashRegister />, ["SUPERADMIN"]],
   ["/admin/comercial", "INVENTARIO:VER", <CommercialSettingsPage />, ["SUPERADMIN"]],
   ["/admin/alimentos-bebidas", "INVENTARIO:VER", <FoodBeverageControlPage />, ["SUPERADMIN"]],
   ["/admin/contenido", "INVENTARIO:VER", <CatalogContentPage />, ["SUPERADMIN"]],
@@ -120,7 +120,7 @@ const protectedRoutes = [
   ["/restaurante/inventario/mermas", "RESTAURANTE:VER", <RestaurantInventoryPage />],
   ["/restaurante/inventario/cierre", "RESTAURANTE:VER", <RestaurantInventoryPage />],
   ["/cocina/estacion", "RESTAURANTE:VER", <RestaurantOrdersPage />],
-  ["/control-gastronomico/restaurante", "ADMINISTRADOR:VER", <GastronomyMonitorPage area="RESTAURANTE" />, ["SUPERADMIN", "ADMINISTRADOR"]],
+  ["/control-gastronomico/restaurante", "RESTAURANTE:VER", <GastronomyMonitorPage area="RESTAURANTE" />, ["SUPERADMIN", "ADMINISTRADOR"]],
   ["/bartender", "BARTENDER:VER", <BarDashboard />, ["BARTENDER"]],
   ["/bartender/dashboard", "BARTENDER:VER", <BarDashboard />],
   ["/bartender/pedidos", "BARTENDER:VER", <BarOrdersPage />],
@@ -131,18 +131,18 @@ const protectedRoutes = [
   ["/bartender/inventario/cierre", "BARTENDER:VER", <BarInventoryPage />],
   ["/bartender/botellas", "BARTENDER:VER", <BarBottlePage />, ["SUPERADMIN", "BARTENDER"]],
   ["/bar/estacion", "BARTENDER:VER", <BarOrdersPage />],
-  ["/limpieza", "LIMPIEZA:VER", <CleaningPage view="ALERTAS" />, ["LIMPIEZA"]],
-  ["/limpieza/en-atencion", "LIMPIEZA:VER", <CleaningPage view="EN_ATENCION" />, ["LIMPIEZA"]],
-  ["/limpieza/historial", "LIMPIEZA:VER", <CleaningPage view="HISTORIAL" />, ["LIMPIEZA"]],
-  ["/limpieza/pendientes", "LIMPIEZA:VER", <Navigate replace to="/limpieza/en-atencion" />, ["LIMPIEZA"]],
-  ["/limpieza/finalizadas", "LIMPIEZA:VER", <Navigate replace to="/limpieza/historial" />, ["LIMPIEZA"]],
-  ["/limpieza/evidencias", "LIMPIEZA:VER", <Navigate replace to="/limpieza" />, ["LIMPIEZA"]],
-  ["/limpieza/incidencias", "LIMPIEZA:VER", <Navigate replace to="/limpieza" />, ["LIMPIEZA"]],
-  ["/mantenimiento", "MANTENIMIENTO:VER", <MaintenancePage view="pendientes" />, ["MANTENIMIENTO"]],
-  ["/mantenimiento/reparacion", "MANTENIMIENTO:VER", <MaintenancePage view="reparacion" />, ["MANTENIMIENTO"]],
-  ["/mantenimiento/finalizados", "MANTENIMIENTO:VER", <MaintenancePage view="finalizados" />, ["MANTENIMIENTO"]],
-  ["/mantenimiento/evidencias", "MANTENIMIENTO:VER", <MaintenancePage view="evidencias" />, ["MANTENIMIENTO"]],
-  ["/control-gastronomico/bar", "ADMINISTRADOR:VER", <GastronomyMonitorPage area="BARTENDER" />, ["SUPERADMIN", "ADMINISTRADOR"]],
+  ["/limpieza", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/en-atencion", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/historial", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/pendientes", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/finalizadas", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/evidencias", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/incidencias", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/mantenimiento", "MANTENIMIENTO:VER", <OperationsRedirect />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/reparacion", "MANTENIMIENTO:VER", <OperationsRedirect />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/finalizados", "MANTENIMIENTO:VER", <OperationsRedirect />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/evidencias", "MANTENIMIENTO:VER", <OperationsRedirect />, ["MANTENIMIENTO"]],
+  ["/control-gastronomico/bar", "BARTENDER:VER", <GastronomyMonitorPage area="BARTENDER" />, ["SUPERADMIN", "ADMINISTRADOR"]],
   ["/piscina/ingresos", "RECEPCION:VER", <PoolPage />],
   ["/piscina/validar-qr", "RECEPCION:VER", <PoolPage />],
   ["/piscina/clientes-activos", "RECEPCION:VER", <PoolPage />],
@@ -234,6 +234,19 @@ function RequirePermission({ permission, roles, children }) {
   const { hasPermission, user } = useAuth();
   const roleAllowed = !roles?.length || roles.includes(user?.role);
   return roleAllowed && hasPermission(permission) ? children : <Forbidden />;
+}
+
+function OperationsRedirect() {
+  useEffect(() => {
+    const token = getToken();
+    const target = new URL(operationsBaseUrl, window.location.origin);
+    if (token) {
+      target.hash = new URLSearchParams({ session: token }).toString();
+      clearToken();
+    }
+    window.location.replace(target.toString());
+  }, []);
+  return <main className="p-8"><LoadingSpinner label="Abriendo estación oficial de Operaciones..." /></main>;
 }
 
 function RequireGastronomyShift({ children }) {

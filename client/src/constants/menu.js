@@ -59,12 +59,14 @@ export const routeTitles = Object.fromEntries(Object.values(menuSectionsByRole).
 export const defaultRouteByRole = { ADMINISTRADOR: "/admin-panel", SUPERADMIN: "/superadmin", RESTAURANTE: "/restaurante/dashboard", BARTENDER: "/bartender/dashboard", LIMPIEZA: "/limpieza", MANTENIMIENTO: "/mantenimiento", OPERATIVO: "/403" };
 
 export function permissionForHref(href = "") {
-  if (href.startsWith("/superadmin") || href.startsWith("/admin-panel")) return "ADMINISTRADOR:VER";
+  if (href.startsWith("/admin-panel/mi-caja") || href.startsWith("/admin-panel/caja-central")) return "CAJA:VER";
+  if (href.startsWith("/superadmin") || href.startsWith("/admin-panel")) return "DASHBOARD:VER";
   if (href.startsWith("/transferencias")) return "INVENTARIO:VER";
   if (href.startsWith("/admin/alimentos-bebidas")) return "INVENTARIO:VER";
   if (href.startsWith("/admin/contenido")) return "INVENTARIO:VER";
   if (href.startsWith("/admin/solicitudes-stock")) return "INVENTARIO:VER";
-  if (href.startsWith("/control-gastronomico")) return "ADMINISTRADOR:VER";
+  if (href.startsWith("/control-gastronomico/restaurante")) return "RESTAURANTE:VER";
+  if (href.startsWith("/control-gastronomico/bar")) return "BARTENDER:VER";
   if (href.startsWith("/restaurante")) return "RESTAURANTE:VER";
   if (href.startsWith("/bartender") || href.startsWith("/bar")) return "BARTENDER:VER";
   if (href.startsWith("/limpieza")) return "LIMPIEZA:VER";

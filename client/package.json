@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 5173"
+    "preview": "vite preview --host 0.0.0.0 --port 5173",
+    "test:access-contract": "node scripts/access-contract-test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

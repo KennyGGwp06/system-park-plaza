@@ -71,6 +71,7 @@ services:
       dockerfile: client/Dockerfile
       args:
         VITE_API_URL: /api
+        VITE_OPERATIONS_URL: https://${OPERATIONS_DOMAIN:?OPERATIONS_DOMAIN is required}
     restart: unless-stopped
     expose:
       - "80"

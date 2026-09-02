@@ -7,6 +7,15 @@ const apiOrigin = apiBase.replace(/\/api\/?$/, "");
 const tokenKey = "park_plaza_operations_token";
 const realtime = io(apiOrigin, { transports: ["websocket", "polling"], autoConnect: true });
 
+function initialToken() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const transferredToken = params.get("session");
+  if (!transferredToken) return localStorage.getItem(tokenKey) || "";
+  localStorage.setItem(tokenKey, transferredToken);
+  window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+  return transferredToken;
+}
+
 async function request(path, options = {}, token) {
   const response = await fetch(`${apiBase}${path}`, {
     ...options,
@@ -49,7 +58,7 @@ function useData(path, token, fallback) {
 }
 
 export function App() {
-  const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || "");
+  const [token, setToken] = useState(initialToken);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(Boolean(token));
 
