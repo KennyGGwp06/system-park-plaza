@@ -20,7 +20,7 @@ export function ReceptionPage() {
   const { data: reservations } = useFetch("/reservations", { initialData: [] });
   const { data: serviceBookings, reload: reloadServices } = useFetch("/service-bookings", { initialData: [] });
   const { data: serviceRequests, reload: reloadRequests } = useFetch("/reports", { initialData: { reports: [] } });
-  const receptionRequests = (serviceRequests?.reports || []).filter((item) => item.status !== "RESUELTO" && ["RECEPCION", "MANTENIMIENTO"].includes(item.area));
+  const receptionRequests = (serviceRequests?.reports || []).filter((item) => !["RESUELTO", "SOLUCIONADO"].includes(item.status) && ["RECEPCION", "MANTENIMIENTO"].includes(item.area));
 
   async function collectServiceBalance(item) { await api(`/service-bookings/${item.id}/pay`, { method: "POST", body: { amount: item.balance, method: "EFECTIVO" } }); reloadServices(); }
   async function resolveRequest(item) { await api(`/reports/${item.id}/status`, { method: "PATCH", body: { status: "RESUELTO" } }); reloadRequests(); }

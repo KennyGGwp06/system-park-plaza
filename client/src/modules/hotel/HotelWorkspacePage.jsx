@@ -18,7 +18,7 @@ export function HotelWorkspacePage() {
   const { data: tasks, loading: c } = useFetch("/reception/tasks", { initialData: [] });
   const { data: reports, loading: d } = useFetch("/reports", { initialData: { reports: [] } });
   if (a || b || c || d) return <LoadingSpinner label="Cargando estación Hotel..."/>;
-  const rows = reservations || []; const rooms = roomData?.rooms || []; const cleaning = tasks || []; const incidents = (reports?.reports || []).filter((item) => item.requiresMaintenance);
+  const rows = reservations || []; const rooms = roomData?.rooms || []; const cleaning = tasks || []; const incidents = (reports?.reports || []).filter((item) => item.requiresMaintenance).map((item) => item.status === "SOLUCIONADO" ? { ...item, status: "RESUELTO" } : item);
   const today = currentHotelDateKey();
   const arrivals = rows.filter((item) => !stayOpen(item) && hotelDateKey(item.checkInDate) <= today && hotelDateKey(item.checkOutDate) > today && !["CANCELADA", "COMPLETADA", "NO_SHOW"].includes(item.status));
   const departures = rows.filter((item) => stayOpen(item) && isHotelToday(item.checkOutDate));

@@ -22,7 +22,7 @@ export function HotelHomePage() {
   const staying = rows.filter((item) => item.stay && item.status === "CHECKED_IN");
   const pendingBalance = arrivals.filter((item) => Number(item.balance || 0) > 0);
   const cleaning = (cleaningTasks || []).filter((item) => !["FINALIZADA", "CANCELADA"].includes(item.status));
-  const maintenance = (reportData?.reports || []).filter((item) => item.requiresMaintenance && !["RESUELTO", "CANCELADO"].includes(item.status));
+  const maintenance = (reportData?.reports || []).filter((item) => item.requiresMaintenance && !["RESUELTO", "SOLUCIONADO", "CANCELADO"].includes(item.status));
   const kpis = [
     [LogIn, "Llegadas por atender", arrivals.length, "bg-park-gold-soft text-park-dark", "/hotel/movimientos"],
     [LogOut, "Salidas hoy", departures.length, "bg-park-green-soft text-park-green", "/hotel/movimientos"],

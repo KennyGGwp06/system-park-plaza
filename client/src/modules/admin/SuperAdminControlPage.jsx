@@ -32,7 +32,7 @@ export function SuperAdminControlPage() {
   const stockIssues = (area) => inventory.filter((item) => item.area === area && Number(item.stock || 0) - Number(item.reserved || 0) <= Number(item.minStock || 0));
   const restaurantOrders = activeOrders("RESTAURANTE");
   const barOrders = activeOrders("BARTENDER");
-  const openRequests = requests.filter((item) => !["RESUELTO", "CERRADO"].includes(item.status));
+  const openRequests = requests.filter((item) => !["RESUELTO", "SOLUCIONADO", "CERRADO"].includes(item.status));
   const maintenanceOpen = openRequests.filter((item) => item.requiresMaintenance);
   const receptionOpen = openRequests.filter((item) => item.area === "RECEPCION");
   const cleaningOpen = cleaningTasks.filter((item) => item.status !== "FINALIZADA");

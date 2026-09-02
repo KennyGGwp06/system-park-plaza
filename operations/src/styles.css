@@ -34,4 +34,6 @@ input:focus, select:focus, textarea:focus { border-color: #0c6042; box-shadow: 0
 .workflow-guide ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
 .workflow-guide li { display: flex; min-width: 0; align-items: center; gap: 7px; color: #476056; font-size: 12px; font-weight: 800; }
 .workflow-guide li span { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #0c5039; color: white; font-size: 11px; }
+.area-evidence { display: grid; gap: 8px; margin-top: 14px; }.area-evidence section { border: 1px solid #d9e4de; border-radius: 12px; background: #f8faf9; padding: 10px; }.area-evidence section > strong { display: block; margin-bottom: 7px; color: #28483a; font-size: 12px; text-transform: capitalize; }.area-evidence section > div { display: flex; flex-wrap: wrap; gap: 7px; }.area-evidence .done { display: inline-flex; min-height: 38px; align-items: center; border-radius: 10px; background: #e7f7ed; padding: 8px 10px; color: #23754a; font-size: 12px; font-weight: 800; }.upload.disabled { cursor: not-allowed; opacity: .48; }
 @media (min-width: 760px) { .workflow-guide ol { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 760px) { .area-evidence { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

@@ -105,7 +105,7 @@ function DashboardTab({ pending, finished, incidents, maintenanceReports }) {
   const criticas = pending.filter(t => t.priority === "CRITICA" || t.priority === "ALTA");
   const enLimpieza = pending.filter(t => t.status === "EN_LIMPIEZA");
   const nextTask = enLimpieza[0] || pending[0];
-  const openMaintenance = maintenanceReports.filter((report) => report.status !== "RESUELTO");
+  const openMaintenance = maintenanceReports.filter((report) => !["RESUELTO", "SOLUCIONADO"].includes(report.status));
   const total = pending.length + finished.length;
   const progress = total === 0 ? 0 : Math.round((finished.length / total) * 100);
 
