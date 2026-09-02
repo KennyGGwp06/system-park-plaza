@@ -101,9 +101,9 @@ export function App() {
   return (
     <div className={`customer-app ${screen === "welcome" ? "welcome-active" : ""}`}>
       {notice ? <div className="toast" onClick={() => setNotice("")}>{notice}</div> : null}
-      {screen === "welcome" ? <ModernWelcome catalog={catalog} onRegister={() => { setIdentityDraft(initialIdentity); setIdentityNext("home"); go("identify"); }} onLogin={() => { setIdentityDraft(initialIdentity); setIdentityNext("home"); go("identify"); }} onService={(service) => { setSelection({ service }); go("experience-flow"); }} /> : null}
-      {screen === "identify" ? <Identify form={identityDraft} setForm={setIdentityDraft} onBack={() => go(identityNext === "checkout" || identityNext === "event-confirmation" ? "experience-flow" : "welcome")} onDone={completeIdentity} reservationFlow={identityNext === "checkout" || identityNext === "event-confirmation"} /> : null}
-      {screen === "recover" ? <RecoverReservation documentNumber={recoveryDocument} setDocumentNumber={setRecoveryDocument} reservationCode={recoveryCode} setReservationCode={setRecoveryCode} onBack={() => go("home")} onDone={(value) => { activateClient(value); go("reservations"); }} /> : null}
+      {screen === "welcome" ? <ModernWelcome catalog={catalog} onRegister={() => { setIdentityDraft(initialIdentity); setIdentityNext("home"); go("identify"); }} onLogin={() => go("recover")} onService={(service) => { setSelection({ service }); go("experience-flow"); }} /> : null}
+      {screen === "identify" ? <Identify form={identityDraft} setForm={setIdentityDraft} onBack={() => go(identityNext === "checkout" || identityNext === "event-confirmation" ? "experience-flow" : "welcome")} onDone={completeIdentity} onRecover={() => go("recover")} reservationFlow={identityNext === "checkout" || identityNext === "event-confirmation"} /> : null}
+      {screen === "recover" ? <RecoverReservation documentNumber={recoveryDocument} setDocumentNumber={setRecoveryDocument} reservationCode={recoveryCode} setReservationCode={setRecoveryCode} onBack={() => go(["checkout", "event-confirmation"].includes(identityNext) ? "experience-flow" : "home")} onDone={(value) => { activateClient(value); go(["checkout", "event-confirmation"].includes(identityNext) ? identityNext : "reservations"); }} /> : null}
       {screen === "home" ? <ModernHome client={client} catalog={catalog} experience={experience} onService={(service) => { setSelection({ service }); go("experience-flow"); }} onExperience={() => go("experience")} onReservations={() => go("reservations")} onExit={() => resetExperience("welcome")} /> : null}
       {screen === "experience-flow" ? <ExperienceFlow service={selection?.service} catalog={catalog} hasExistingParking={Boolean((experience?.bookings || []).some((item) => (item.vehicles || []).length || item.parkingSpace || item.parkingSpaces?.length))} onBack={() => go("home")} onCheckout={(value) => { setSelection(value); continueWithCustomer("checkout"); }} onEventCheckout={(eventDraft) => { setSelection({ eventDraft }); continueWithCustomer("event-confirmation"); }} /> : null}
       {screen === "event-quote" ? <EventQuote catalog={catalog} onBack={() => go("home")} onDone={async (result) => { setPaymentResult({ event: result }); await refreshExperience(); go("event-success"); }} /> : null}
@@ -128,13 +128,13 @@ function RecoverReservation({ onBack, onDone, documentNumber, setDocumentNumber,
   return <Page title="Verificación de reserva" subtitle="Confirma tu documento y el código de una reserva para proteger tus saldos, accesos y comprobantes." onBack={onBack}><form className="card form" onSubmit={submit}><Info icon={QrCode} title="Acceso protegido" text="Verificaremos los datos asociados a tu reserva antes de mostrar tu experiencia."/><Field label="DNI o carnet de extranjería" value={documentNumber} onChange={setDocumentNumber}/><Field label="Código de reserva" value={reservationCode} onChange={setReservationCode} placeholder="Ejemplo: RES-0001"/>{error ? <p className="error">{error}</p> : null}<button className="primary wide" disabled={busy}>{busy ? "Verificando…" : "Verificar mis reservas"}</button><small className="center">El código figura en tu confirmación. ¿Aún no reservaste? Elige el servicio que deseas vivir.</small></form></Page>;
 }
 
-function Identify({ onBack, onDone, form, setForm, reservationFlow }) {
+function Identify({ onBack, onDone, onRecover, form, setForm, reservationFlow }) {
   const [busy, setBusy] = useState(false); const [googleBusy, setGoogleBusy] = useState(false); const [error, setError] = useState("");
   async function useGoogle() { setGoogleBusy(true); setError(""); try { const user = await signInWithGoogle(); const names = (user.displayName || "").trim().split(/\s+/).filter(Boolean); const firstName = names.slice(0, 1).join("") || "Huésped"; const lastName = names.slice(1).join(" ") || "Google"; const googleDocument = `GOOGLE-${user.uid}`; let result; try { result = await request("/public/identify", { method: "POST", body: { documentType: "GOOGLE", documentNumber: googleDocument, firstName, lastName, phone: "", email: user.email || "" } }); } catch (cause) { if (cause?.status !== 409) throw cause; throw new Error("Esta cuenta Google ya está registrada. Por seguridad, verifica tu reserva con su código o solicita apoyo a Recepción."); } const googleClient = { ...result.client, avatarUrl: user.photoURL || "", authProvider: "GOOGLE" }; localStorage.setItem("pp_customer_token", result.token); localStorage.setItem("pp_customer_client", JSON.stringify(googleClient)); setForm({ ...form, documentType: "GOOGLE", documentNumber: googleDocument, firstName, lastName, email: user.email || "" }); onDone(googleClient); } catch (cause) { if (cause?.code !== "auth/popup-closed-by-user") setError(cause?.message || "No pudimos iniciar con Google. Verifica que esta dirección esté autorizada en Firebase e inténtalo nuevamente."); } finally { setGoogleBusy(false); } }
   async function submit(event) { event.preventDefault(); const documentNumber = form.documentNumber.trim(); const firstName = form.firstName.trim(); const lastName = form.lastName.trim(); const phone = form.phone.trim(); const email = form.email.trim(); if (form.documentType === "DNI" && !/^\d{8}$/.test(documentNumber)) { setError("El DNI debe tener 8 dígitos."); return; } if (form.documentType !== "DNI" && documentNumber.length < 6) { setError("Ingresa un documento válido."); return; } if (!firstName || !lastName || phone.replace(/\D/g, "").length < 7) { setError("Completa nombres, apellidos y un celular válido."); return; } setBusy(true); setError(""); try { const result = await request("/public/identify", { method: "POST", body: { ...form, documentNumber, firstName, lastName, phone, email } }); localStorage.setItem("pp_customer_token", result.token); localStorage.setItem("pp_customer_client", JSON.stringify(result.client)); onDone(result.client); } catch (e) { setError(e.message); } finally { setBusy(false); } }
   const title = reservationFlow ? "Datos para confirmar tu reserva" : "Regístrate para continuar";
   const subtitle = reservationFlow ? "Solo los pedimos una vez, antes de registrar el pago y preparar tus accesos." : "Registra tus datos una sola vez. Luego verás tu perfil, tus experiencias y la verificación de reserva sin repetir el formulario.";
-  return <Page title={title} subtitle={subtitle} onBack={onBack}><form className="card form" onSubmit={submit}><button type="button" className="google-signin" onClick={useGoogle} disabled={googleBusy || busy}><span aria-hidden="true">G</span>{googleBusy ? "Ingresando con Google…" : "Continuar con Google"}</button><small className="center google-helper">Google crea tu acceso y te lleva directo a elegir servicios. No tendrás que llenar este formulario.</small><div className="form-divider"><span>o regístrate con tus datos</span></div><div className="segments"><button type="button" className={form.documentType === "DNI" ? "active" : ""} onClick={() => setForm({ ...form, documentType: "DNI", documentNumber: "" })}>Nacional · DNI</button><button type="button" className={form.documentType !== "DNI" ? "active" : ""} onClick={() => setForm({ ...form, documentType: "CE", documentNumber: "" })}>Extranjero</button></div><Info icon={QrCode} title="Identificación única" text="Tus datos quedan registrados para tu reserva, pago y atención en Recepción."/><Field label={form.documentType === "DNI" ? "Número de DNI" : "Número de documento"} value={form.documentNumber} onChange={(documentNumber) => setForm({ ...form, documentNumber })}/><div className="two"><Field label="Nombres" value={form.firstName} onChange={(firstName) => setForm({ ...form, firstName })}/><Field label="Apellidos" value={form.lastName} onChange={(lastName) => setForm({ ...form, lastName })}/></div><Field label="Celular" value={form.phone} onChange={(phone) => setForm({ ...form, phone })}/><Field label="Correo para comprobantes" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })}/>{error ? <p className="error">{error}</p> : null}<button className="primary" disabled={busy || googleBusy}>{busy ? "Validando y registrando…" : "Continuar a experiencias"}</button><small className="center">Al terminar podrás usar la Verificación de reserva desde tu perfil.</small></form></Page>;
+  return <Page title={title} subtitle={subtitle} onBack={onBack}><form className="card form" onSubmit={submit}><button type="button" className="google-signin" onClick={useGoogle} disabled={googleBusy || busy}><span aria-hidden="true">G</span>{googleBusy ? "Ingresando con Google…" : "Continuar con Google"}</button><small className="center google-helper">Google crea tu acceso y te lleva directo a elegir servicios. No tendrás que llenar este formulario.</small><div className="form-divider"><span>o regístrate con tus datos</span></div><div className="segments"><button type="button" className={form.documentType === "DNI" ? "active" : ""} onClick={() => setForm({ ...form, documentType: "DNI", documentNumber: "" })}>Nacional · DNI</button><button type="button" className={form.documentType !== "DNI" ? "active" : ""} onClick={() => setForm({ ...form, documentType: "CE", documentNumber: "" })}>Extranjero</button></div><Info icon={QrCode} title="Identificación única" text="Tus datos quedan registrados para tu reserva, pago y atención en Recepción."/><Field label={form.documentType === "DNI" ? "Número de DNI" : "Número de documento"} value={form.documentNumber} onChange={(documentNumber) => setForm({ ...form, documentNumber })}/><div className="two"><Field label="Nombres" value={form.firstName} onChange={(firstName) => setForm({ ...form, firstName })}/><Field label="Apellidos" value={form.lastName} onChange={(lastName) => setForm({ ...form, lastName })}/></div><Field label="Celular" value={form.phone} onChange={(phone) => setForm({ ...form, phone })}/><Field label="Correo para comprobantes" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })}/>{error ? <><p className="error">{error}</p>{error.includes("ya tiene una cuenta") ? <button className="link-button" onClick={onRecover} type="button">Recuperar mi reserva</button> : null}</> : null}<button className="primary" disabled={busy || googleBusy}>{busy ? "Validando y registrando…" : "Continuar a experiencias"}</button><small className="center">Al terminar podrás usar la Verificación de reserva desde tu perfil.</small></form></Page>;
 }
 
 function JourneySteps({ current }) {
@@ -308,8 +308,9 @@ function OrderGroup({ group }) {
 
 function RequestGroup({ req }) {
   const delivered = ["ATENDIDO", "RESUELTO"].includes(req.status);
+  const accepted = Boolean(req.receptionAcceptedAt);
   return <article className={`order-card ${delivered ? "delivered" : ""}`}>
-    <div className="order-card-head"><div><small>SOLICITUD</small><h3>{req.code}</h3><p>{req.type}</p></div><span className="font-bold text-xs">{delivered ? "Atendido" : "En curso"}</span></div>
+    <div className="order-card-head"><div><small>SOLICITUD</small><h3>{req.code}</h3><p>{req.type}</p></div><span className="font-bold text-xs">{delivered ? "Atendido" : accepted ? "Personal asignado" : "En espera de Recepción"}</span></div>
     <ProgressTracker type="request" order={req} />
   </article>;
 }
@@ -431,39 +432,43 @@ function Orders({ catalog, experience, onBack, onPlaced }) {
 }
 
 function Requests({ onBack, onDone }) { 
-  const [type, setType] = useState("LIMPIEZA"); 
+  const [type, setType] = useState(""); 
   const [description, setDescription] = useState(""); 
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   async function send() { 
     setBusy(true);
+    setError("");
     try {
       await request("/public/requests", { method: "POST", body: { type, description } }, true); 
       onDone(); 
-    } catch(e) {} finally { setBusy(false); }
+    } catch(e) {
+      setError(e.message || "No se pudo conectar. Intenta nuevamente.");
+    } finally { setBusy(false); }
   } 
 
   const categories = [
-    { value: "LIMPIEZA", label: "Limpieza Extra", desc: "Aseo a la habitación", icon: Sparkles },
-    { value: "TOALLAS", label: "Toallas Nuevas", desc: "Solicitar recambio", icon: Waves },
-    { value: "MANTENIMIENTO", label: "Falla/Avería", desc: "Foco fundido, AC", icon: Home },
-    { value: "CONSERJERIA", label: "Conserjería", desc: "Otras solicitudes", icon: ConciergeBell }
+    { value: "LIMPIEZA", label: "Limpieza", icon: Sparkles },
+    { value: "MANTENIMIENTO", label: "Mantenimiento", icon: Home }
   ];
 
   return <Page title="Conserjería Digital" subtitle="Tu solicitud llegará al momento al equipo responsable (Housekeeping o Mantenimiento)." onBack={onBack}>
-    <div className="support-grid">
-      {categories.map(({ value, label, desc, icon: Icon }) => (
+    <div className="support-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+      {categories.map(({ value, label, icon: Icon }) => (
         <button className={type === value ? "selected" : ""} key={value} onClick={() => setType(value)}>
           <Icon size={28} />
-          <b>{label}</b>
-          <small>{desc}</small>
+          <span style={{ fontSize: "14px", fontWeight: "800", color: "var(--text)" }}>{label}</span>
         </button>
       ))}
     </div>
-    <div className="card mt-4">
-      <Field label="Detalle u observación (Opcional)" value={description} onChange={setDescription} />
-      <button className="primary" onClick={send} disabled={busy}>{busy ? "Enviando..." : "Enviar solicitud"}</button>
-    </div>
+    {type ? (
+      <div className="card mt-4">
+        <Field type="textarea" label="Escribe el detalle del problema u observación" value={description} onChange={setDescription} />
+        {error && <p className="error">{error}</p>}
+        <button className="primary" onClick={send} disabled={busy || !description.trim()}>{busy ? "Enviando..." : "Enviar solicitud"}</button>
+      </div>
+    ) : null}
   </Page>; 
 }
 
@@ -471,7 +476,7 @@ function Extras({ selected, setSelected }) { const extras = [{ id: "TOALLA", nam
 function Parking({ value, setValue }) { return <div className="card"><h2>Cochera y vehículos</h2><p>Vehículos menores no pagan. Autos y camionetas usan un espacio reservado.</p><div className="parking"><button className={value?.type === "MOTO" ? "selected" : ""} onClick={() => setValue({ type: "MOTO", plate: "", price: 0 })}>Moto · cortesía</button><button className={value?.type === "AUTO" ? "selected" : ""} onClick={() => setValue({ type: "AUTO", plate: "DEMO-01", price: 15 })}>Auto · S/ 15</button><button className={value?.type === "CAMIONETA" ? "selected" : ""} onClick={() => setValue({ type: "CAMIONETA", plate: "DEMO-02", price: 20 })}>Camioneta · S/ 20</button><button onClick={() => setValue(null)}>Sin cochera</button></div>{value ? <Field label="Placa" value={value.plate} onChange={(plate) => setValue({ ...value, plate })}/> : null}</div>; }
 function Counter({ label, value, setValue }) { return <div className="counter"><span>{label}</span><div><button onClick={() => setValue(Math.max(1, value - 1))}><Minus/></button><b>{value}</b><button onClick={() => setValue(value + 1)}><Plus/></button></div></div>; }
 function Page({ title, subtitle, onBack, children }) { return <main className="page-shell"><header><div className="top-row">{onBack ? <button className="back" type="button" aria-label="Volver" onClick={onBack}><ArrowLeft/></button> : <span/>}<img src="/brand/park-plaza-mark.svg" alt="Park Plaza"/><span className="avatar" aria-label="Perfil Park Plaza">PP</span></div><small>EXPERIENCIA PARK PLAZA</small><h1>{title}</h1><p>{subtitle}</p></header><section className="page-content">{children}</section></main>; }
-function Field({ label, value, onChange, type = "text", options = [], placeholder = "" }) { return <label className="field"><span>{label}</span>{type === "select" ? <select value={value} onChange={(e) => onChange(e.target.value)}>{options.map((item) => { const option = typeof item === "object" ? item : { value: item, label: item }; return <option value={option.value} key={option.value}>{option.label}</option>; })}</select> : <input required type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}/>}</label>; }
+function Field({ label, value, onChange, type = "text", options = [], placeholder = "" }) { return <label className="field"><span>{label}</span>{type === "select" ? <select value={value} onChange={(e) => onChange(e.target.value)}>{options.map((item) => { const option = typeof item === "object" ? item : { value: item, label: item }; return <option value={option.value} key={option.value}>{option.label}</option>; })}</select> : type === "textarea" ? <textarea required value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} rows={4} style={{ resize: "vertical", width: "100%", padding: "12px", border: "2px solid var(--border)", borderRadius: "12px", outline: "none", fontFamily: "inherit" }} /> : <input required type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}/>}</label>; }
 function Info({ icon: Icon, title, text }) { return <div className="notice-card"><Icon/><div><b>{title}</b><small>{text}</small></div></div>; }
 function Row({ label, value, total }) { return <div className={`row ${total ? "total" : ""}`}><span>{label}</span><b>{value}</b></div>; }
 function BottomNav({ screen, go, ordersEnabled, hasClient }) { return <nav><button className={screen === "home" ? "active" : ""} onClick={() => go("home")}><Home/>Inicio</button>{hasClient ? <button className={screen === "reservations" ? "active" : ""} onClick={() => go("reservations")}><CalendarDays/>Reservas</button> : null}<button className={screen === "directory" ? "active" : ""} onClick={() => go("directory")}><Map/>Directorio</button>{hasClient ? <><button className={screen === "experience" ? "active" : ""} onClick={() => go("experience")}><QrCode/>Mi QR</button><button disabled={!ordersEnabled} className={screen === "orders" ? "active" : ""} onClick={() => go("orders")}><ShoppingBag/>Pedidos</button></> : null}</nav>; }

@@ -32,7 +32,7 @@ const guides = {
   LIMPIEZA: {
     title: "Turno de limpieza",
     focus: "Registra tu ingreso, atiende la prioridad más alta y finaliza con evidencia.",
-    actions: [["Ver habitaciones", "/limpieza/pendientes"], ["Consultar finalizadas", "/limpieza/finalizadas"], ["Revisar evidencias", "/limpieza/evidencias"]],
+    actions: [["Ver alertas", "/limpieza"], ["En atención", "/limpieza/en-atencion"], ["Consultar historial", "/limpieza/historial"]],
     steps: ["Confirma ingreso al turno", "Inicia la habitación asignada", "Adjunta evidencia y marca la salida"]
   }
 };
@@ -43,7 +43,7 @@ export function TrainingAssistant() {
   const [open, setOpen] = useState(false); const [showWelcome, setShowWelcome] = useState(false);
   useEffect(() => { setShowWelcome(localStorage.getItem(storageKey) !== "done"); }, [storageKey]);
   
-  if (user?.role === "RESTAURANTE" || user?.role === "BARTENDER") return null;
+  if (user?.role === "RESTAURANTE" || user?.role === "BARTENDER" || user?.role === "LIMPIEZA" || user?.role === "MANTENIMIENTO") return null;
   const isStart = location.pathname === defaultRouteByRole[user?.role];
   function dismiss() { localStorage.setItem(storageKey, "done"); setShowWelcome(false); }
 
