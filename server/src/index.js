@@ -1087,8 +1087,8 @@ app.patch("/api/orders/:id/status", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 app.get("/api/orders/:id/inventory", async (req, res, next) => { try { const state=await readState();const order=state.orders.find((item)=>Number(item.id)===Number(req.params.id));if(!order)throw httpError(404,"Pedido no encontrado");if(isReceptionAdmin(req.user) || (req.user.role!=="ADMINISTRADOR"&&req.user.role!==order.area))throw httpError(403,"No puedes consultar el detalle de inventario de esta área");res.json(await getOrderInventoryDetail(req.params.id)); } catch (error) { next(error); } });
-app.patch("/api/restaurante/:id/status", updateOrderStatus);
-app.patch("/api/bartender/:id/status", updateOrderStatus);
+app.patch("/api/restaurante/:id/status", requireActiveStaffShift, updateOrderStatus);
+app.patch("/api/bartender/:id/status", requireActiveStaffShift, updateOrderStatus);
 
 app.get("/api/employees", requireFullAdministration("consultar personal"), async (_req, res, next) => { try { const state = await readState(); const today = hotelToday(state); res.json(state.employees.map((employee) => { const shift = state.shifts.find((item) => item.employeeId === employee.id && item.date === today); return { ...safeEmployee(employee), currentAssignment: shift?.area || employee.currentAssignment || null, currentShift: shift || null }; })); } catch (error) { next(error); } });
 
@@ -1462,20 +1462,20 @@ app.post("/api/transfers/:id/cancel", requireTransferUser, async (req, res, next
 app.get("/api/operational-inventory/references", requireOperationalInventoryUser, async (_req, res, next) => { try { res.json(await operationalInventoryReferences()); } catch (error) { next(error); } });
 app.get("/api/operational-inventory/sessions", requireOperationalInventoryUser, async (req, res, next) => { try { res.json(await listOperationalInventories(req.query, req.user)); } catch (error) { next(error); } });
 app.get("/api/operational-inventory/sessions/:id", requireOperationalInventoryUser, async (req, res, next) => { try { res.json(await getOperationalInventory(req.params.id, req.user)); } catch (error) { next(error); } });
-app.post("/api/operational-inventory/sessions", requireOperationalInventoryUser, async (req, res, next) => { try { res.status(201).json(await createOperationalInventory(req.body, req.user.id)); } catch (error) { next(error); } });
-app.post("/api/operational-inventory/sessions/:id/open", requireOperationalInventoryUser, async (req, res, next) => { try { res.json(await openOperationalInventory(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
-app.post("/api/operational-inventory/sessions/:id/start-count", requireOperationalInventoryUser, async (req, res, next) => { try { res.json(await startOperationalCount(req.params.id, req.user.id)); } catch (error) { next(error); } });
-app.post("/api/operational-inventory/sessions/:id/waste", requireOperationalInventoryUser, async (req, res, next) => { try { res.status(201).json(await registerOperationalWaste(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
-app.post("/api/operational-inventory/sessions/:id/submit", requireOperationalInventoryUser, async (req, res, next) => { try { res.json(await submitOperationalCount(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/operational-inventory/sessions", requireOperationalInventoryUser, requireActiveStaffShift, async (req, res, next) => { try { res.status(201).json(await createOperationalInventory(req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/operational-inventory/sessions/:id/open", requireOperationalInventoryUser, requireActiveStaffShift, async (req, res, next) => { try { res.json(await openOperationalInventory(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/operational-inventory/sessions/:id/start-count", requireOperationalInventoryUser, requireActiveStaffShift, async (req, res, next) => { try { res.json(await startOperationalCount(req.params.id, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/operational-inventory/sessions/:id/waste", requireOperationalInventoryUser, requireActiveStaffShift, async (req, res, next) => { try { res.status(201).json(await registerOperationalWaste(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/operational-inventory/sessions/:id/submit", requireOperationalInventoryUser, requireActiveStaffShift, async (req, res, next) => { try { res.json(await submitOperationalCount(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
 app.post("/api/operational-inventory/sessions/:id/observe", requireInventoryAdmin, async (req, res, next) => { try { res.json(await observeOperationalInventory(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
 app.post("/api/operational-inventory/sessions/:id/close", requireInventoryAdmin, async (req, res, next) => { try { res.json(await closeOperationalInventory(req.params.id, req.user.id)); } catch (error) { next(error); } });
 app.post("/api/operational-inventory/sessions/:id/reopen", requireInventoryAdmin, async (req, res, next) => { try { res.json(await reopenOperationalInventory(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
 app.get("/api/bar/bottles/references", requireBarBottleUser, async (req,res,next)=>{try{res.json(await barBottleReferences(req.user));}catch(error){next(error);}});
 app.get("/api/bar/bottles", requireBarBottleUser, async (req,res,next)=>{try{res.json(await listBarBottles(req.user));}catch(error){next(error);}});
-app.post("/api/bar/bottles", requireBarBottleUser, async (req,res,next)=>{try{res.status(201).json(await openBarBottle(req.body,req.user.id));}catch(error){next(error);}});
-app.post("/api/bar/bottles/:id/serve", requireBarBottleUser, async (req,res,next)=>{try{res.json(await serveBarBottle(req.params.id,req.body,req.user.id));}catch(error){next(error);}});
-app.post("/api/bar/bottles/:id/measure", requireBarBottleUser, async (req,res,next)=>{try{res.json(await measureBarBottle(req.params.id,req.body,req.user.id));}catch(error){next(error);}});
-app.post("/api/bar/bottles/:id/close", requireBarBottleUser, async (req,res,next)=>{try{res.json(await closeBarBottle(req.params.id,req.body,req.user.id));}catch(error){next(error);}});
+app.post("/api/bar/bottles", requireBarBottleUser, requireActiveStaffShift, async (req,res,next)=>{try{res.status(201).json(await openBarBottle(req.body,req.user.id));}catch(error){next(error);}});
+app.post("/api/bar/bottles/:id/serve", requireBarBottleUser, requireActiveStaffShift, async (req,res,next)=>{try{res.json(await serveBarBottle(req.params.id,req.body,req.user.id));}catch(error){next(error);}});
+app.post("/api/bar/bottles/:id/measure", requireBarBottleUser, requireActiveStaffShift, async (req,res,next)=>{try{res.json(await measureBarBottle(req.params.id,req.body,req.user.id));}catch(error){next(error);}});
+app.post("/api/bar/bottles/:id/close", requireBarBottleUser, requireActiveStaffShift, async (req,res,next)=>{try{res.json(await closeBarBottle(req.params.id,req.body,req.user.id));}catch(error){next(error);}});
 app.get("/api/inventory-admin/references", requireInventoryAdmin, async (_req,res,next)=>{try{res.json(await inventoryAdminReferences());}catch(error){next(error);}});
 app.get("/api/inventory-admin/dashboard", requireInventoryAdmin, async (req,res,next)=>{try{res.json(await inventoryAdminDashboard(req.query));}catch(error){next(error);}});
 app.get("/api/stock-requests/references", requireStockRequestUser, async (_req,res,next)=>{try{res.json(await stockRequestReferences());}catch(error){next(error);}});

@@ -6,7 +6,9 @@ import { api } from "../../services/api";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { AttendanceClockModal } from "../../components/AttendanceClockModal";
 import { statusLabel } from "../../components/StatusBadge";
+import { useAuth } from "../../context/AuthContext";
 
 const ACTIVE = ["PENDING", "OPEN", "OPERATING", "COUNTING", "REOPENED"];
 const keyOf = (line) => `${line.productId}|${line.lotId ?? ""}`;
@@ -20,17 +22,22 @@ function useBarSession() {
 }
 
 export function BarDashboard() {
+  const { user } = useAuth();
   const { session, sessionsRequest } = useBarSession();
   const { data: orderData = [] } = useFetch("/bartender", { ...requestOptions, initialData: [] });
+  const { data: attendance, reload: reloadAttendance } = useFetch("/attendance/current", { initialData: { active: false }, realtime: true, pollInterval: 5000 });
+  const [clockOpen, setClockOpen] = useState(false);
+  const shiftActive = Boolean(attendance?.active);
   if (sessionsRequest.loading) return <Loading text="Cargando turno de Bar..." />;
   if (sessionsRequest.error) return <Failure error={sessionsRequest.error} />;
-  if (!session) return <NoTurn />;
+  if (!shiftActive) return <NoTurn user={user} active={false} onClock={() => setClockOpen(true)} clockOpen={clockOpen} onCloseClock={() => setClockOpen(false)} onRegistered={async () => { await Promise.all([reloadAttendance(), sessionsRequest.reload()]); }} />;
+  if (!session) return <NoTurn user={user} active={shiftActive} onClock={() => setClockOpen(true)} clockOpen={clockOpen} onCloseClock={() => setClockOpen(false)} onRegistered={async () => { await Promise.all([reloadAttendance(), sessionsRequest.reload()]); }} />;
   const isCounting = ["COUNTING", "REOPENED"].includes(session.status);
   const pending = orderData.filter((item) => item.status === "PENDIENTE").length;
   const preparing = orderData.filter((item) => item.status === "PREPARANDO").length;
   const ready = orderData.filter((item) => item.status === "LISTO").length;
   return <main className="space-y-6 py-5">
-    <Header icon={Wine} eyebrow="Bar · operación de turno" title="Mi turno" description="Prepara bebidas, controla tu inventario asignado y rinde al finalizar." />
+    <Header icon={Wine} eyebrow="Bar · operación de turno" title="Mi turno" description="Prepara bebidas, controla tu inventario asignado y rinde al finalizar." action={<Button icon={Clock} variant={shiftActive ? "secondary" : "gold"} onClick={() => setClockOpen(true)}>{shiftActive ? "Cerrar turno" : "Iniciar turno"}</Button>} />
     <div className="grid gap-4 md:grid-cols-3">
       <Metric label="Turno" value={session.shift || `#${session.id}`} help={session.date} />
       <Metric label="Estado" value={statusLabel(session.status)} help={session.areaName || "Bar"} />
@@ -43,6 +50,7 @@ export function BarDashboard() {
       <QuickAction to="/bartender/inventario/solicitudes" label="Solicitar insumos" value={<PackagePlus size={22} />} help="Pedir reposición" />
     </div>
     {isCounting ? <Alert tone="warning" title="Conteo físico en curso">No entregues nuevas bebidas. Finaliza la rendición desde “Cerrar y cuadrar”.</Alert> : <Alert tone="info" title="Turno operativo">Los pedidos autorizados aparecerán en tiempo real en tu cola.</Alert>}
+    {clockOpen ? <AttendanceClockModal active={shiftActive} user={user} onClose={() => setClockOpen(false)} onRegistered={async () => { await Promise.all([reloadAttendance(), sessionsRequest.reload()]); }} /> : null}
   </main>;
 }
 
@@ -120,6 +128,6 @@ function Metric({ label, value, help }) { return <article className="rounded-car
 function QuickAction({ to, label, value, help }) { return <Link className="rounded-card border border-park-border bg-white p-4 shadow-sm transition-shadow hover:shadow-card" to={to}><p className="text-xs font-black uppercase text-park-muted">{label}</p><strong className="mt-2 block text-2xl text-park-dark">{value}</strong><small className="text-park-green">{help} →</small></Link>; }
 function Status({ value }) { return <span className="rounded-full bg-park-bg px-3 py-1 text-xs font-black text-park-dark">{value}</span>; }
 function Empty({ title, text }) { return <div className="rounded-card border border-dashed border-park-border bg-white p-10 text-center"><Wine className="mx-auto h-8 w-8 text-park-gold" /><h2 className="mt-3 font-black text-park-dark">{title}</h2><p className="mt-1 text-sm text-park-muted">{text}</p></div>; }
-function NoTurn() { return <main className="reception-command space-y-6 py-5"><section className="reception-hero"><div><p>BAR · OPERACIÓN INDEPENDIENTE</p><h1>Centro de Bar</h1><span>Pedidos, preparación, recetas y control de botellas en una sola estación.</span></div></section><section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["Turno","Sin apertura"],["Bebidas pendientes","0"],["En preparación","0"],["Stock asignado","Pendiente"]].map(([label,value])=><article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={label}><p className="text-xs font-black uppercase text-park-muted">{label}</p><strong className="mt-3 block text-2xl text-park-dark">{value}</strong></article>)}</section><Alert tone="warning" title="Turno pendiente de apertura">El Superadmin debe abrir el turno y asignar el inventario de Bar. La estación permanecerá en solo lectura hasta entonces.</Alert></main>; }
+function NoTurn({ user, active, onClock, clockOpen, onCloseClock, onRegistered }) { return <main className="reception-command space-y-6 py-5"><section className="reception-hero"><div><p>BAR · OPERACIÓN INDEPENDIENTE</p><h1>Centro de Bar</h1><span>Pedidos, preparación, recetas y control de botellas en una sola estación.</span></div><Button icon={Clock} variant="gold" onClick={onClock}>{active ? "Cerrar turno con DNI y PIN" : "Iniciar turno con DNI y PIN"}</Button></section><section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["Asistencia",active ? "Registrada" : "Pendiente"],["Bebidas pendientes","0"],["En preparación","0"],["Stock asignado","Pendiente"]].map(([label,value])=><article className="rounded-card border border-park-border bg-white p-5 shadow-card" key={label}><p className="text-xs font-black uppercase text-park-muted">{label}</p><strong className="mt-3 block text-2xl text-park-dark">{value}</strong></article>)}</section><Alert tone="warning" title={active ? "Inventario pendiente de apertura" : "Asistencia pendiente"}>{active ? "Tu asistencia ya está registrada. El Superadmin debe abrir y asignar el inventario de Bar." : "Primero marca tu ingreso con DNI y PIN. Luego el Superadmin abre y asigna el inventario del área."}</Alert>{clockOpen ? <AttendanceClockModal active={active} user={user} onClose={onCloseClock} onRegistered={onRegistered} /> : null}</main>; }
 function Loading({ text }) { return <div className="p-10 text-center text-park-muted">{text}</div>; }
 function Failure({ error }) { return <Alert tone="danger" title="No se pudo conectar al ERP">{error?.message || String(error)}</Alert>; }

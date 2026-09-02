@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppLayout } from "./layouts/AppLayout";
 import { useAuth } from "./context/AuthContext";
 import { LoadingSpinner } from "./components/LoadingSpinner";
+import { useFetch } from "./hooks/useFetch";
 import { defaultRouteByRole, menuByRole, permissionForHref } from "./constants/menu";
 
 const lazyPage = (loader, exportName) => lazy(() => loader().then((module) => ({ default: module[exportName] })));
@@ -207,7 +208,7 @@ export function App() {
       <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route index element={<RoleRedirect />} />
         {protectedRoutes.map(([path, permission, element, roles]) => (
-          <Route key={path} path={path} element={<RequirePermission permission={permission} roles={roles}>{element}</RequirePermission>} />
+          <Route key={path} path={path} element={<RequirePermission permission={permission} roles={roles}><RequireGastronomyShift>{element}</RequireGastronomyShift></RequirePermission>} />
         ))}
       </Route>
       <Route path="*" element={<RoleRedirect />} />
@@ -233,5 +234,23 @@ function RequirePermission({ permission, roles, children }) {
   const { hasPermission, user } = useAuth();
   const roleAllowed = !roles?.length || roles.includes(user?.role);
   return roleAllowed && hasPermission(permission) ? children : <Forbidden />;
+}
+
+function RequireGastronomyShift({ children }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  const requiresShift = ["RESTAURANTE", "BARTENDER"].includes(user?.role);
+  const { data: attendance, loading } = useFetch("/attendance/current", {
+    initialData: { active: false },
+    enabled: requiresShift,
+    realtime: requiresShift,
+    pollInterval: 5000
+  });
+  if (!requiresShift) return children;
+  if (loading) return <main className="p-8"><LoadingSpinner label="Validando turno personal..." /></main>;
+  const home = user.role === "BARTENDER" ? "/bartender" : "/restaurante";
+  const homePaths = [home, `${home}/dashboard`];
+  if (!attendance?.active && !homePaths.includes(location.pathname)) return <Navigate to={home} replace />;
+  return children;
 }
 
