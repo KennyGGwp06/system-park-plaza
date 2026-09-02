@@ -23,6 +23,7 @@
     ,"test:stock-requests": "node scripts/stock-requests-test.js"
     ,"test:electronic-billing": "node scripts/electronic-billing-test.js"
     ,"clean:operational-demo": "node scripts/clean-operational-demo.js"
+    ,"verify:operational-day-zero": "node scripts/verify-operational-day-zero.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

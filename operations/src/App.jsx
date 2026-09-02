@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Camera, CheckCircle2, ChevronRight, ClipboardList, Clock3, History, LogOut, Play, RefreshCw, ShieldCheck, Sparkles, Wrench, X } from "lucide-react";
+import { io } from "socket.io-client";
 
 const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const apiOrigin = apiBase.replace(/\/api\/?$/, "");
 const tokenKey = "park_plaza_operations_token";
+const realtime = io(apiOrigin, { transports: ["websocket", "polling"], autoConnect: true });
 
 async function request(path, options = {}, token) {
   const response = await fetch(`${apiBase}${path}`, {
@@ -26,7 +28,23 @@ function useData(path, token, fallback) {
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
-  useEffect(() => { reload(); const interval = window.setInterval(reload, 15000); return () => window.clearInterval(interval); }, [path, token]);
+  useEffect(() => {
+    reload();
+    let debounce;
+    const refresh = () => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(reload, 100);
+    };
+    realtime.on("state:changed", refresh);
+    realtime.on("connect", refresh);
+    const interval = window.setInterval(reload, 15000);
+    return () => {
+      window.clearTimeout(debounce);
+      window.clearInterval(interval);
+      realtime.off("state:changed", refresh);
+      realtime.off("connect", refresh);
+    };
+  }, [path, token]);
   return { data, loading, error, reload };
 }
 

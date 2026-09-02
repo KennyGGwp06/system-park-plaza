@@ -358,7 +358,11 @@ function upgradeState(state) {
 
   const client = state.clients[0];
   const usableRooms = state.rooms.filter((room) => !["MANTENIMIENTO", "FUERA_SERVICIO"].includes(room.status));
-  if (!state.reservations.length && client && usableRooms.length >= 2) {
+  // Los ejemplos operativos solo se crean antes del primer reinicio a "día cero".
+  // Sin esta marca, cada arranque del servidor volvía a inventar reservas, tareas,
+  // incidencias, pedidos y eventos después de limpiar la demostración.
+  const allowOperationalDemoSeed = !state.settings?.operationalResetAt;
+  if (allowOperationalDemoSeed && !state.reservations.length && client && usableRooms.length >= 2) {
     const first = usableRooms[0];
     const second = usableRooms[1];
     const reservation = { id: 1, code: "RES-0001", clientId: client.id, roomId: first.id, client, room: first, checkInDate: `${today}T15:00:00`, checkOutDate: `${tomorrow}T12:00:00`, adults: 2, children: 0, totalPrice: 360, advance: 180, balance: 180, paymentStatus: "PARCIAL", status: "CONFIRMADA", notes: "Reserva demostrativa para check-in", createdAt: isoNow };
@@ -372,16 +376,16 @@ function upgradeState(state) {
     state.stays.push({ id: 1, reservationId: checkedIn.id, clientId: client.id, roomId: second.id, checkInAt: `${today}T09:05:00`, status: "ACTIVA", createdAt: isoNow });
     checkedIn.stayId = 1;
   }
-  if (!state.tasks.length && state.rooms.length) {
+  if (allowOperationalDemoSeed && !state.tasks.length && state.rooms.length) {
     const room = state.rooms.find((item) => item.status === "EN_LIMPIEZA") || state.rooms[4];
     state.tasks.push({ id: 1, code: "LIM-0001", roomId: room.id, room, assignedEmployeeId: state.employees.find((item) => item.baseRole === "LIMPIEZA")?.id || null, assignedTo: "Ana Operaciones", priority: "ALTA", status: "PENDIENTE", evidences: [], operationalReports: [], createdAt: isoNow });
   }
-  if (!state.requests.length) state.requests.push({ id: 1, code: "SOL-0001", clientId: client?.id, type: "MANTENIMIENTO", area: "MANTENIMIENTO", location: "Habitacion 204", description: "Revisar aire acondicionado con ruido", priority: "ALTA", status: "PENDIENTE", requiresMaintenance: true, evidences: [], createdAt: isoNow });
-  if (!state.orders.length && state.menuItems.length) {
+  if (allowOperationalDemoSeed && !state.requests.length) state.requests.push({ id: 1, code: "SOL-0001", clientId: client?.id, type: "MANTENIMIENTO", area: "MANTENIMIENTO", location: "Habitacion 204", description: "Revisar aire acondicionado con ruido", priority: "ALTA", status: "PENDIENTE", requiresMaintenance: true, evidences: [], createdAt: isoNow });
+  if (allowOperationalDemoSeed && !state.orders.length && state.menuItems.length) {
     const menu = state.menuItems[0];
     state.orders.push({ id: 1, code: "PED-0001", clientId: client?.id, area: menu.area, roomId: state.stays[0]?.roomId || null, items: [{ id: 1, menuItemId: menu.id, name: menu.name, quantity: 2, price: menu.price, recipe: menu.recipe }], total: menu.price * 2, status: "PENDIENTE", estimatedMinutes: menu.prepMinutes, notes: "Sin picante", createdAt: isoNow, updatedAt: isoNow });
   }
-  if (!state.events.length && client) state.events.push({ id: 1, code: "EVT-0001", clientId: client.id, client, name: "Aniversario familiar", type: "CELEBRACION", spaceId: 1, space: { id: 1, name: "Terraza", capacity: 80 }, startsAt: `${tomorrow}T18:00:00`, endsAt: `${tomorrow}T23:00:00`, guests: 45, price: 2400, advance: 1200, balance: 1200, status: "RESERVADO", notes: "Menu regional", createdAt: isoNow });
+  if (allowOperationalDemoSeed && !state.events.length && client) state.events.push({ id: 1, code: "EVT-0001", clientId: client.id, client, name: "Aniversario familiar", type: "CELEBRACION", spaceId: 1, space: { id: 1, name: "Terraza", capacity: 80 }, startsAt: `${tomorrow}T18:00:00`, endsAt: `${tomorrow}T23:00:00`, guests: 45, price: 2400, advance: 1200, balance: 1200, status: "RESERVADO", notes: "Menu regional", createdAt: isoNow });
   state.orders.forEach((order) => { if (order.status === "RECIBIDO") order.status = "PENDIENTE"; order.items ||= []; });
   state.tasks.forEach((task) => {
     if (task.requestId && !task.workflowType) task.workflowType = "SOLICITUD_HUESPED";

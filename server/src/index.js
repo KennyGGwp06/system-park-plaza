@@ -1454,11 +1454,11 @@ app.get("/api/transfers/references", requireTransferUser, async (req, res, next)
 app.get("/api/transfers/stock", requireTransferUser, async (req, res, next) => { try { res.json(await transferStockOverview(req.user)); } catch (error) { next(error); } });
 app.get("/api/transfers", requireTransferUser, async (req, res, next) => { try { res.json(await listTransfers(req.user)); } catch (error) { next(error); } });
 app.get("/api/transfers/:id", requireTransferUser, async (req, res, next) => { try { res.json(await getTransfer(req.params.id,req.user)); } catch (error) { next(error); } });
-app.post("/api/transfers", requireTransferUser, async (req, res, next) => { try { res.status(201).json(await createTransfer(req.body, req.user.id)); } catch (error) { next(error); } });
-app.post("/api/transfers/:id/send", requireTransferUser, async (req, res, next) => { try { res.json(await sendTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
-app.post("/api/transfers/:id/receive", requireTransferUser, async (req, res, next) => { try { res.json(await receiveTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
-app.post("/api/transfers/:id/reject", requireTransferUser, async (req, res, next) => { try { res.json(await rejectTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
-app.post("/api/transfers/:id/cancel", requireTransferUser, async (req, res, next) => { try { res.json(await cancelTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/transfers", requireTransferUser, requireActiveStaffShift, async (req, res, next) => { try { res.status(201).json(await createTransfer(req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/transfers/:id/send", requireTransferUser, requireActiveStaffShift, async (req, res, next) => { try { res.json(await sendTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/transfers/:id/receive", requireTransferUser, requireActiveStaffShift, async (req, res, next) => { try { res.json(await receiveTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/transfers/:id/reject", requireTransferUser, requireActiveStaffShift, async (req, res, next) => { try { res.json(await rejectTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
+app.post("/api/transfers/:id/cancel", requireTransferUser, requireActiveStaffShift, async (req, res, next) => { try { res.json(await cancelTransfer(req.params.id, req.body, req.user.id)); } catch (error) { next(error); } });
 app.get("/api/operational-inventory/references", requireOperationalInventoryUser, async (_req, res, next) => { try { res.json(await operationalInventoryReferences()); } catch (error) { next(error); } });
 app.get("/api/operational-inventory/sessions", requireOperationalInventoryUser, async (req, res, next) => { try { res.json(await listOperationalInventories(req.query, req.user)); } catch (error) { next(error); } });
 app.get("/api/operational-inventory/sessions/:id", requireOperationalInventoryUser, async (req, res, next) => { try { res.json(await getOperationalInventory(req.params.id, req.user)); } catch (error) { next(error); } });
@@ -1480,7 +1480,7 @@ app.get("/api/inventory-admin/references", requireInventoryAdmin, async (_req,re
 app.get("/api/inventory-admin/dashboard", requireInventoryAdmin, async (req,res,next)=>{try{res.json(await inventoryAdminDashboard(req.query));}catch(error){next(error);}});
 app.get("/api/stock-requests/references", requireStockRequestUser, async (_req,res,next)=>{try{res.json(await stockRequestReferences());}catch(error){next(error);}});
 app.get("/api/stock-requests", requireStockRequestUser, async (req,res,next)=>{try{res.json(await listStockRequests(req.query,req.user));}catch(error){next(error);}});
-app.post("/api/stock-requests", requireStockRequestUser, async (req,res,next)=>{try{res.status(201).json(await createStockRequest(req.body,req.user));}catch(error){next(error);}});
+app.post("/api/stock-requests", requireStockRequestUser, requireActiveStaffShift, async (req,res,next)=>{try{res.status(201).json(await createStockRequest(req.body,req.user));}catch(error){next(error);}});
 app.post("/api/stock-requests/:id/review", requireInventoryAdmin, async (req,res,next)=>{try{res.json(await reviewStockRequest(req.params.id,req.body,req.user));}catch(error){next(error);}});
 app.get("/api/data-integrity", requireInventoryAdmin, async (_req,res,next)=>{try{res.json(await dataIntegrityReport());}catch(error){next(error);}});
 app.post("/api/data-integrity/sanitize", requireInventoryAdmin, async (req,res,next)=>{try{res.json(await sanitizeDataIntegrity(req.user.id));}catch(error){next(error);}});
@@ -1512,10 +1512,10 @@ app.get("/api/inventory/production-dashboard", async (req, res, next) => {
     res.json({ area, date, products, recipes, productions, waste, closing, metrics: { producedPortions: round(productions.reduce((sum, item) => sum + Number(item.portions || 0), 0)), wasteCost: round(waste.reduce((sum, item) => sum + Number(item.cost || 0), 0)), lowStock: products.filter((item) => item.stockStatus !== "OK").length, pendingCount: closing ? 0 : products.length } });
   } catch (error) { next(error); }
 });
-app.post("/api/inventory/productions", async (req, res, next) => {
+app.post("/api/inventory/productions", requireFoodOperationsUser, requireActiveStaffShift, async (req, res, next) => {
   try { const result = await mutateState((state) => { const menu = state.menuItems.find((item) => item.id === Number(req.body.menuItemId) && item.area === req.body.area); if (!menu) throw httpError(404, "Receta no encontrada"); const portions = Math.max(1, Number(req.body.portions || 1)); const ingredients = (menu.recipe || []).map((line) => { const product = state.inventory.find((item) => item.id === line.inventoryId && isOperationalProduct(item)); const quantity = round(Number(line.quantity) * portions); if (!product || Number(product.stock) < quantity) throw httpError(409, `Stock insuficiente de ${product?.name || "ingrediente"}`); return { product, quantity }; }); ingredients.forEach(({ product, quantity }) => { const beforeQty = Number(product.stock); product.stock = round(beforeQty - quantity); state.inventoryMovements.unshift({ id: nextId(state, "movement"), productId: product.id, product: { ...product }, type: "PRODUCCION", quantity, beforeQty, afterQty: product.stock, reason: `${portions} porciones de ${menu.name}`, createdById: req.user.id, createdAt: now() }); }); const item = { id: nextId(state, "production"), area: menu.area, menuItemId: menu.id, menuItemName: menu.name, portions, batch: req.body.batch || `LOT-${Date.now().toString().slice(-6)}`, responsibleId: req.user.id, createdAt: now() }; state.productions.unshift(item); audit(state, "INVENTARIO", "PRODUCCION", `${menu.name}: ${portions} porciones`, req.user.id); return item; }); res.status(201).json(result); } catch (error) { next(error); }
 });
-app.post("/api/inventory/waste", async (req, res, next) => {
+app.post("/api/inventory/waste", requireFoodOperationsUser, requireActiveStaffShift, async (req, res, next) => {
   try { const result = await mutateState((state) => { const product = state.inventory.find((item) => item.id === Number(req.body.productId) && item.area === req.body.area && isOperationalProduct(item)); if (!product) throw httpError(404, "Insumo no encontrado o archivado"); const quantity = Number(req.body.quantity || 0); if (quantity <= 0 || quantity > Number(product.stock)) throw httpError(409, "Cantidad de merma no válida"); const beforeQty = Number(product.stock); product.stock = round(beforeQty - quantity); const item = { id: nextId(state, "waste"), area: product.area, productId: product.id, productName: product.name, quantity, unit: product.unit, reason: req.body.reason || "DERRAME", detail: req.body.detail || "", cost: round(quantity * Number(product.cost || 0)), responsibleId: req.user.id, createdAt: now() }; state.wasteRecords.unshift(item); state.inventoryMovements.unshift({ id: nextId(state, "movement"), productId: product.id, product: { ...product }, type: "MERMA", quantity, beforeQty, afterQty: product.stock, reason: item.reason, createdById: req.user.id, createdAt: item.createdAt }); audit(state, "INVENTARIO", "MERMA", `${product.name}: ${quantity} ${product.unit}`, req.user.id); return item; }); res.status(201).json(result); } catch (error) { next(error); }
 });
 app.post("/api/inventory/daily-close", async (req, res, next) => {
@@ -1988,6 +1988,9 @@ async function recordAttendance(state, client, employeeId, action, actorId) {
     employee.attendanceStatus = "EN_TURNO";
   } else {
     if (!record) throw httpError(409, "No existe un turno abierto");
+    if ((employee.position === "ADMIN_RECEPCION" || employee.operationalArea === "RECEPCION") && (state.cashSessions || []).some((item) => Number(item.userId) === Number(employeeId) && item.status === "ABIERTA")) {
+      throw httpError(409, "Antes de marcar salida debes contar el efectivo y enviar tu caja a revisión");
+    }
     if (record.operationalSessionId) {
       const session = (await client.query("SELECT status FROM inventory_shift_sessions WHERE id=$1", [record.operationalSessionId])).rows[0];
       if (["OPEN", "OPERATING", "COUNTING", "REOPENED"].includes(session?.status)) throw httpError(409, "Antes de marcar salida debes enviar o cerrar el inventario del turno operativo");
