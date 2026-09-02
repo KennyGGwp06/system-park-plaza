@@ -1822,7 +1822,12 @@ app.post("/api/attendance/clock", attendanceClockRateLimit, async (req, res, nex
       const open = [...state.attendance].reverse().find((row) => Number(row.employeeId || row.userId) === Number(employee.id) && attendanceDateOf(row) === today && (row.checkIn || row.clockIn) && !(row.checkOut || row.clockOut));
       const action = open ? "SALIDA" : "INGRESO";
       const record = await recordAttendance(state, client, employee.id, action, employee.id);
-      return { success: true, user: `${employee.firstName} ${employee.lastName}`.trim(), worker: { firstName: employee.firstName, lastName: employee.lastName, position: employee.position || employee.operationalArea || employee.baseRole || employee.role, photoUrl: employee.photoUrl || null }, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null };
+      const sessionUser = safeStaffUser(state, employee);
+      const session = action === "INGRESO" ? {
+        token: jwt.sign({ sub: employee.id, kind: "STAFF" }, jwtSecret, { expiresIn: "12h" }),
+        user: sessionUser
+      } : null;
+      return { success: true, user: `${employee.firstName} ${employee.lastName}`.trim(), worker: { firstName: employee.firstName, lastName: employee.lastName, position: employee.position || employee.operationalArea || employee.baseRole || employee.role, photoUrl: employee.photoUrl || null }, action: action === "INGRESO" ? "CHECK_IN" : "CHECK_OUT", record, operationalSessionId: record.operationalSessionId || null, session };
     });
     attendanceAttempts.delete(attendanceAttemptKey(req));
     res.json(result);

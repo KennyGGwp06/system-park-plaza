@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, XCircle, TreePine, Clock } from "lucide-react";
-import { api } from "../../services/api";
+import { api, clearToken, setToken } from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import { defaultRouteByRole } from "../../constants/menu";
+import { operationsBaseUrl } from "../../config/operations";
 
 export function AttendanceClockPage() {
   const [documentNumber, setDocumentNumber] = useState("");
@@ -69,13 +71,21 @@ export function AttendanceClockPage() {
       const res = await api("/attendance/clock", { method: "POST", body: { documentNumber, pin } });
       setStatus({ 
         type: 'success', 
-        message: `Hola ${res.user}. Has registrado tu ${res.action === 'CHECK_IN' ? 'ingreso' : 'salida'} con éxito.`,
+        message: res.action === 'CHECK_IN'
+          ? `Hola ${res.user}. Ingreso registrado. Abriendo tu panel de trabajo…`
+          : `Hola ${res.user}. Has registrado tu salida con éxito.`,
         record: res.record
       });
-      setDocumentNumber("");
-      setPin("");
-      setWorkerInfo(null);
-      resultTimeout.current = window.setTimeout(() => setStatus(null), 7000);
+      if (res.action === 'CHECK_IN' && res.session?.token) {
+        const role = res.session.user?.displayRole || res.session.user?.role;
+        resultTimeout.current = window.setTimeout(() => openWorkerPanel(role, res.session.token), 650);
+      } else {
+        clearToken();
+        setDocumentNumber("");
+        setPin("");
+        setWorkerInfo(null);
+        resultTimeout.current = window.setTimeout(() => setStatus(null), 7000);
+      }
     } catch (err) {
       setStatus({ type: 'error', message: err.message || "DNI o PIN incorrecto" });
       setDocumentNumber("");
@@ -190,6 +200,18 @@ export function AttendanceClockPage() {
       </div>
     </div>
   );
+}
+
+function openWorkerPanel(role, token) {
+  if (["LIMPIEZA", "MANTENIMIENTO"].includes(role)) {
+    clearToken();
+    const target = new URL(operationsBaseUrl, window.location.origin);
+    target.hash = new URLSearchParams({ session: token }).toString();
+    window.location.replace(target.toString());
+    return;
+  }
+  setToken(token);
+  window.location.replace(defaultRouteByRole[role] || "/login");
 }
 
 function AttendanceSummary({ record, currentTime }) {
