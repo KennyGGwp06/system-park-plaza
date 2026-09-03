@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { io } from "socket.io-client";
 
 const baseUrl=process.env.TEST_API_URL||"http://localhost:3000";
-const login=await fetch(`${baseUrl}/api/auth/login`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:"admin@parkplaza.com",password:"ParkPlaza123*"})});
+const login=await fetch(`${baseUrl}/api/auth/login`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:"superadmin@parkplaza.com",password:"ParkPlaza123*"})});
 assert.equal(login.status,200,"El backend debe estar levantado para probar tiempo real");const {token}=await login.json();
 const socket=io(baseUrl,{transports:["websocket"],timeout:5000});
 try{

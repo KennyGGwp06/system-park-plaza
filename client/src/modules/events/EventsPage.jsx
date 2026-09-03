@@ -377,7 +377,7 @@ function EventPanel({ event, onClose, onEdit, onPayment }) {
         {event.notes ? <p><strong>Indicaciones:</strong> {event.notes}</p> : null}
       </div>
     </section> : null}
-    <div className="mt-5 flex gap-2"><Button variant="secondary" type="button">Ver reserva</Button><Button type="button" onClick={onEdit}>Editar</Button><Button variant="gold" type="button" onClick={onPayment}>Registrar pago</Button></div>
+    <div className="mt-5 flex gap-2"><Button type="button" onClick={onEdit}>Editar reserva</Button><Button variant="gold" type="button" onClick={onPayment}>Registrar pago</Button></div>
   </aside></div>;
 }
 

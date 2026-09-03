@@ -5,6 +5,7 @@ import { db } from "../src/db.js";
 // habitaciones, servicios, productos, recetas, precios y stock base.
 // Elimina únicamente la operación histórica y devuelve el hotel a día cero.
 const transactionalTables = [
+  "inventory_stock_request_lines", "inventory_stock_requests",
   "bar_bottle_measurements", "bar_bottle_services", "bar_bottles",
   "inventory_order_cancellation_losses", "inventory_consolidated_sales", "inventory_order_events", "inventory_order_reservations", "inventory_order_lines", "inventory_recipe_sales",
   "inventory_shift_variance_explanations", "inventory_shift_summary_lines", "inventory_shift_opening_lines", "inventory_closings", "inventory_physical_count_lines", "inventory_physical_counts", "inventory_shift_sessions",
@@ -13,7 +14,13 @@ const transactionalTables = [
 ];
 
 const transactionalStateKeys = [
-  "clients", "bookings", "payments", "passes", "entitlements", "accessLogs", "orders", "requests", "attendance", "tasks", "audit", "reservations", "events", "compras", "facturacion", "cleaning", "reports", "pool", "poolEntries", "poolReports", "parking", "stays", "inventoryMovements", "cashMovements", "productions", "wasteRecords", "inventoryClosings", "dailyInventoryBoxes", "externalProviders"
+  "clients", "bookings", "payments", "passes", "entitlements", "accessLogs", "orders", "requests", "attendance", "tasks", "audit", "reservations", "events", "compras", "facturacion", "cleaning", "reports", "pool", "poolEntries", "poolReports", "parking", "stays", "inventoryMovements", "cashMovements", "cashSessions", "cashClosings", "productions", "wasteRecords", "inventoryClosings", "dailyInventoryBoxes", "externalProviders"
+];
+
+const resetCounters = [
+  "client", "booking", "payment", "pass", "entitlement", "access", "order", "request",
+  "shift", "attendance", "task", "audit", "stay", "movement", "event", "invoice",
+  "purchase", "production", "waste", "closing", "dailyBox", "cashSession", "cashClosing"
 ];
 
 async function cleanOperationalDemo() {
@@ -31,16 +38,18 @@ async function cleanOperationalDemo() {
 
     // Proveedores, productos, recetas y saldos base se mantienen como configuración.
     state.shifts = [];
-    state.rooms = (state.rooms || []).map((room) => ({ ...room, status: "LIBRE", currentStayId: null, guestId: null }));
+    state.rooms = (state.rooms || []).map((room) => ({ ...room, status: "LIBRE", cleaningStatus: "LIMPIA", currentStayId: null, guestId: null, statusNote: "" }));
     state.cochera = (state.cochera || []).map((space) => ({ ...space, status: "LIBRE", entries: [] }));
     state.inventory = (state.inventory || []).map((item) => ({ ...item, reserved: 0 }));
     state.employees = (state.employees || []).map((employee) => ({ ...employee, attendanceStatus: "FUERA_DE_TURNO", currentAssignment: null }));
-    state.counters = { ...(state.counters || {}), client: 0, booking: 0, payment: 0, pass: 0, entitlement: 0, access: 0, order: 0, request: 0, shift: 0, attendance: 0, task: 0, audit: 0 };
+    state.counters = { ...(state.counters || {}) };
+    for (const counter of resetCounters) state.counters[counter] = 0;
+    state.settings = { ...(state.settings || {}), operationalResetAt: new Date().toISOString() };
 
     await client.query("UPDATE inventory_stock_balances SET reserved=0,updated_at=NOW()");
     await client.query("UPDATE app_state SET data=$1::jsonb,updated_at=NOW() WHERE id=1", [JSON.stringify(state)]);
     await client.query("COMMIT");
-    console.log(JSON.stringify({ status: "OK", message: "Sistema limpio para una nueva demostración", preserved: ["usuarios", "roles", "habitaciones", "servicios", "menú", "recetas", "productos", "almacenes", "stock base"] }));
+    console.log(JSON.stringify({ status: "OK", message: "Sistema limpio para una nueva demostración", operationalResetAt: state.settings.operationalResetAt, preserved: ["usuarios", "roles", "habitaciones", "servicios", "menú", "recetas", "productos", "almacenes", "stock base"] }));
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

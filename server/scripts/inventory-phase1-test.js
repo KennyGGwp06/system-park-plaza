@@ -10,8 +10,16 @@ const { Pool } = pg;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 6 });
 const schema = `inventory_phase1_test_${process.pid}_${Date.now()}`;
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
-const upSql = await readFile(join(root, "001_inventory_intelligent.up.sql"), "utf8");
-const downSql = await readFile(join(root, "001_inventory_intelligent.down.sql"), "utf8");
+const migrationNames = [
+  "001_inventory_intelligent",
+  "002_product_master_catalog",
+  "003_purchasing_receiving",
+  "004_warehouses_transfers",
+  "005_operational_shift_inventories",
+  "006_versioned_technical_recipes"
+];
+const upSql = await Promise.all(migrationNames.map((name) => readFile(join(root, `${name}.up.sql`), "utf8")));
+const downSql = await Promise.all([...migrationNames].reverse().map((name) => readFile(join(root, `${name}.down.sql`), "utf8")));
 const results = [];
 const ok = (name, detail = "") => results.push({ name, ok: true, detail });
 
@@ -29,8 +37,8 @@ try {
 
   await admin.query(`CREATE SCHEMA ${schema}`);
   await setSchema(admin);
-  await admin.query(upSql);
-  ok("Migración UP ejecutable", schema);
+  for (const sql of upSql) await admin.query(sql);
+  ok("Migraciones base ejecutables", `${migrationNames.length} migraciones en ${schema}`);
 
   await admin.query("BEGIN");
   await migrateLegacyInventory(admin, state);
@@ -104,7 +112,7 @@ try {
   await assert.rejects(admin.query("UPDATE inventory_movements SET reason = 'alterado' WHERE id = $1", [movementId]), /inmutables/);
   ok("Movimientos históricos inmutables");
 
-  await admin.query(downSql);
+  for (const sql of downSql) await admin.query(sql);
   const removed = await admin.query("SELECT to_regclass('inventory_products') AS table_name");
   assert.equal(removed.rows[0].table_name, null);
   ok("Rollback controlado ejecutable", "esquema aislado revertido");

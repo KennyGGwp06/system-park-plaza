@@ -42,10 +42,15 @@ try {
   testUrl.searchParams.set("options", `-c search_path=${schema}`);
   process.env.DATABASE_URL = testUrl.toString();
   const requests = await import(`../src/stock-requests.js?test=${Date.now()}`);
+  const transfers = await import("../src/transfers.js");
   serviceDb = (await import("../src/db.js")).db;
   const admin = { id: 1, role: "ADMINISTRADOR" };
   const kitchen = { id: 3, role: "RESTAURANTE" };
   const bar = { id: 4, role: "BARTENDER" };
+
+  const references = await requests.stockRequestReferences();
+  const referencedProduct = references.products.find((item) => Number(item.id) === Number(ids.product));
+  assert.equal(Number(referencedProduct.generalAvailable), 100);
 
   let request = await requests.createStockRequest({ area: "BARTENDER", observation: "Turno de prueba", lines: [{ productId: ids.product, quantity: 10 }] }, kitchen);
   assert.equal(request.area, "RESTAURANTE");
@@ -53,7 +58,15 @@ try {
   request = await requests.reviewStockRequest(request.id, { decision: "APPROVE", note: "Cantidad validada" }, admin);
   assert.equal(request.status, "APPROVED");
   assert.ok(request.transferId);
+  assert.equal(Number(request.lines[0].generalAvailable), 90);
   assert.equal(Number((await serviceDb.query("SELECT reserved FROM inventory_stock_balances WHERE warehouse_id=$1 AND product_id=$2", [ids.general, ids.product])).rows[0].reserved), 10);
+  let transfer = await transfers.sendTransfer(request.transferId, {}, admin.id);
+  assert.equal(transfer.status, "SENT");
+  transfer = await transfers.receiveTransfer(transfer.id, { observation: "Recepción física conforme", lines: transfer.lines.map((line) => ({ lineId: line.id, receivedQuantity: Number(line.sentQuantity) })) }, kitchen.id);
+  assert.equal(transfer.status, "RECEIVED");
+  request = (await requests.listStockRequests({}, kitchen)).find((item) => Number(item.id) === Number(request.id));
+  assert.equal(request.transferStatus, "RECEIVED");
+  assert.equal(Number((await serviceDb.query("SELECT COALESCE(SUM(on_hand),0) stock FROM inventory_stock_balances WHERE warehouse_id=(SELECT id FROM inventory_warehouses WHERE code='RESTAURANTE') AND product_id=$1", [ids.product])).rows[0].stock), 10);
   await assert.rejects(requests.reviewStockRequest(request.id, { decision: "APPROVE" }, admin), /ya fue revisada/i);
 
   let rejected = await requests.createStockRequest({ lines: [{ productId: ids.product, quantity: 2 }] }, bar);
@@ -61,7 +74,7 @@ try {
   assert.equal(rejected.status, "REJECTED");
   assert.equal((await requests.listStockRequests({}, kitchen)).length, 1);
   assert.equal((await requests.listStockRequests({}, bar)).length, 1);
-  console.log(JSON.stringify({ status: "PASSED", tests: 5, detail: "Solicitud, separación por área, aprobación con reserva, rechazo e idempotencia verificados" }, null, 2));
+  console.log(JSON.stringify({ status: "PASSED", tests: 10, detail: "Solicitud, disponibilidad preventiva, separación por área, aprobación, envío, recepción, rechazo e idempotencia verificados" }, null, 2));
 } catch (error) {
   console.error(JSON.stringify({ status: "FAILED", message: error.message, stack: error.stack }, null, 2));
   process.exitCode = 1;

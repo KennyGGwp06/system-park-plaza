@@ -1,5 +1,5 @@
 import { AlertTriangle, BedDouble, Camera, CheckCircle2, Clock, Eye, FileWarning, UserRound, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -19,6 +19,7 @@ export function AdminCleaningPage({ view = "resumen" }) {
   const employees = Array.isArray(employeesData) ? employeesData : [];
   const reports = useMemo(() => tasks.flatMap((task) => (task.operationalReports || []).map((report) => ({ ...report, task }))), [tasks]);
   const visibleTasks = useMemo(() => filterTasks(view, tasks), [view, tasks]);
+  const pendingCustomerTasks = useMemo(() => tasks.filter((task) => task.requestId && task.requiresReceptionAcceptance && !task.receptionAcceptedAt && task.status !== "FINALIZADA"), [tasks]);
 
   if (loading) return <LoadingSpinner />;
 
@@ -29,6 +30,8 @@ export function AdminCleaningPage({ view = "resumen" }) {
         title={pageTitle(view)}
         description="Asigna cada habitación a una cuenta de Limpieza, revisa sus fotos reales y valida el resultado. El trabajador ejecuta la tarea desde su estación móvil."
       />
+
+      {pendingCustomerTasks.length ? <section className="flex flex-col gap-3 border border-amber-300 bg-amber-50 p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-button bg-amber-500 text-white"><AlertTriangle size={20} /></span><div><p className="text-xs font-black uppercase tracking-wide text-amber-800">Solicitud de huésped</p><h2 className="font-black text-park-dark">{pendingCustomerTasks.length} {pendingCustomerTasks.length === 1 ? "solicitud espera" : "solicitudes esperan"} aceptación de Recepción</h2><p className="text-sm text-park-muted">El personal de Limpieza ya recibió la alerta. Confirma el responsable para habilitar el inicio.</p></div></div><Button onClick={() => setSelected(pendingCustomerTasks[0])} type="button">Revisar y aceptar</Button></section> : null}
 
       {view === "resumen" ? <CleaningWorkspace reports={reports} tasks={tasks} inspected={inspected} onInspect={setInspected} onManage={setSelected} /> : null}
       {["pendientes", "finalizadas"].includes(view) ? <TaskGrid tasks={visibleTasks} onSelect={setSelected} /> : null}
@@ -43,12 +46,12 @@ export function AdminCleaningPage({ view = "resumen" }) {
 function CleaningWorkspace({ tasks, reports, inspected, onInspect, onManage }) {
   const [tab, setTab] = useState("FINALIZADA");
   const pending = tasks.filter((task) => task.status === "PENDIENTE");
-  const inProgress = tasks.filter((task) => task.status === "EN_LIMPIEZA");
+  const inProgress = tasks.filter((task) => ["EN_LIMPIEZA", "EN_ATENCION"].includes(task.status));
   const finished = tasks.filter((task) => task.status === "FINALIZADA");
   const withIncidents = tasks.filter((task) => task.operationalReports?.length);
   const tabs = [
     ["PENDIENTE", "Por atender", pending],
-    ["EN_LIMPIEZA", "En limpieza", inProgress],
+    ["EN_LIMPIEZA", "En atención", inProgress],
     ["FINALIZADA", "Limpiadas", finished],
     ["INCIDENCIAS", "Incidencias", withIncidents]
   ];
@@ -74,7 +77,9 @@ function CleaningWorkspace({ tasks, reports, inspected, onInspect, onManage }) {
           </div>
           <div className="p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-xl font-semibold text-park-dark">{tabs.find(([key]) => key === tab)?.[1]} de habitaciones</h2><p className="text-sm text-park-muted">Control operativo y evidencias recibidas desde la estación de limpieza.</p></div><input className="h-10 w-full max-w-56 rounded-input border border-park-border px-3 text-sm outline-none focus:border-park-green" placeholder="Buscar habitación..." /></div>
-            {rows.length ? <div className="overflow-x-auto border border-park-border"><table className="min-w-[760px] w-full text-left text-sm"><thead className="bg-park-bg text-xs uppercase text-park-muted"><tr><th className="px-4 py-3">Habitación</th><th>Tipo</th><th>Trabajador</th><th>Estado</th><th>Fotos</th><th>Incidencia</th><th>Resultado</th><th></th></tr></thead><tbody className="divide-y divide-park-border">{rows.map((task) => <tr className="cursor-pointer hover:bg-park-green-soft/30" key={task.id} onClick={() => onInspect(task)}><td className="px-4 py-4 font-black text-park-green">{task.room?.number || "-"}</td><td>{task.requestId ? "Solicitada" : "Check-out"}</td><td><WorkerLabel name={task.assignedTo} /></td><td><StatusBadge value={task.status} /></td><td>{task.evidences?.length || 0}</td><td>{task.operationalReports?.length ? <span className="font-semibold text-park-danger">{task.operationalReports.length} reporte(s)</span> : <span className="text-park-green">-</span>}</td><td><StatusBadge value={task.status === "FINALIZADA" ? "FINALIZADA" : task.status} /></td><td className="pr-4"><Button icon={Eye} onClick={(event) => { event.stopPropagation(); onManage(task); }} size="sm" type="button" variant="secondary">Ver detalle</Button></td></tr>)}</tbody></table></div> : <EmptyState title="Sin habitaciones en este estado" description="Las nuevas tareas aparecerán aquí automáticamente." />}
+            {tab === "INCIDENCIAS" ? (
+              <IncidentList reports={reports} onSelect={onInspect} />
+            ) : rows.length ? <div className="overflow-x-auto border border-park-border"><table className="min-w-[760px] w-full text-left text-sm"><thead className="bg-park-bg text-xs uppercase text-park-muted"><tr><th className="px-4 py-3">Habitación</th><th>Tipo</th><th>Trabajador</th><th>Estado</th><th>Fotos</th><th>Incidencia</th><th>Resultado</th><th></th></tr></thead><tbody className="divide-y divide-park-border">{rows.map((task) => <tr className="cursor-pointer hover:bg-park-green-soft/30" key={task.id} onClick={() => onInspect(task)}><td className="px-4 py-4 font-black text-park-green">{task.room?.number || "-"}</td><td>{task.requestId ? "Solicitada" : "Check-out"}</td><td><WorkerLabel name={task.assignedTo} /></td><td><StatusBadge value={task.status} /></td><td>{task.evidences?.length || 0}</td><td>{task.operationalReports?.length ? <span className="font-semibold text-park-danger">{task.operationalReports.length} reporte(s)</span> : <span className="text-park-green">-</span>}</td><td><StatusBadge value={task.status === "FINALIZADA" ? "FINALIZADA" : task.status} /></td><td className="pr-4"><Button icon={Eye} onClick={(event) => { event.stopPropagation(); onManage(task); }} size="sm" type="button" variant="secondary">Ver detalle</Button></td></tr>)}</tbody></table></div> : <EmptyState title="Sin habitaciones en este estado" description="Las nuevas tareas aparecerán aquí automáticamente." />}
           </div>
         </section>
       </div>
@@ -94,7 +99,7 @@ function DetailLine({ label, value }) { return <div className="flex items-center
 
 function CleaningSummary({ tasks, reports, onSelect }) {
   const pending = tasks.filter((task) => task.status === "PENDIENTE");
-  const inProgress = tasks.filter((task) => task.status === "EN_LIMPIEZA");
+  const inProgress = tasks.filter((task) => ["EN_LIMPIEZA", "EN_ATENCION"].includes(task.status));
   const finishedToday = tasks.filter((task) => task.status === "FINALIZADA" && isToday(task.finishedAt));
   const priorityCounts = countBy(tasks, "priority");
   const statusCounts = countBy(tasks, "status");
@@ -122,7 +127,7 @@ function CleaningSummary({ tasks, reports, onSelect }) {
         </Panel>
         <Panel title="Estado general">
           <div className="space-y-3">
-            {["PENDIENTE", "EN_LIMPIEZA", "FINALIZADA"].map((status) => (
+            {["PENDIENTE", "EN_LIMPIEZA", "EN_ATENCION", "FINALIZADA"].map((status) => (
               <ProgressLine key={status} label={status.replaceAll("_", " ")} total={tasks.length} value={statusCounts[status] || 0} />
             ))}
             <ProgressLine label="Con incidencias" total={tasks.length} value={tasks.filter((task) => task.operationalReports?.length).length} />
@@ -155,7 +160,7 @@ function CleaningSummary({ tasks, reports, onSelect }) {
               <tbody className="divide-y divide-park-border">
                 {recentActivity.map((task) => (
                   <tr key={task.id}>
-                    <td className="py-3 font-semibold text-park-black">{task.status === "FINALIZADA" ? "Finalizo revision" : task.status === "EN_LIMPIEZA" ? "Inicio revision" : "Adjunto evidencia"}</td>
+                    <td className="py-3 font-semibold text-park-black">{task.status === "FINALIZADA" ? "Finalizó la tarea" : ["EN_LIMPIEZA", "EN_ATENCION"].includes(task.status) ? "Inició la atención" : "Adjuntó evidencia"}</td>
                     <td>Habitacion {task.room?.number}</td>
                     <td>{task.assignedTo || "Sin asignar"}</td>
                     <td>{formatDateTime(task.finishedAt || task.startedAt || task.evidences?.[0]?.createdAt || task.createdAt)}</td>
@@ -256,15 +261,24 @@ function IncidentList({ reports, onSelect }) {
 }
 
 function CleaningDetail({ task, employees, onClose, onSaved }) {
-  const groups = splitEvidence(task.evidences);
   const [assignedEmployeeId, setAssignedEmployeeId] = useState(task.assignedEmployeeId ? String(task.assignedEmployeeId) : "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedEvidence, setSelectedEvidence] = useState(null);
+  const guestRequest = Boolean(task.requestId) && task.workflowType !== "POST_CHECKOUT";
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      if (selectedEvidence) setSelectedEvidence(null);
+      else onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, selectedEvidence]);
   async function assign() { setBusy(true); try { await api(`/reception/tasks/${task.id}/assign`, { method: "PATCH", body: { employeeId: Number(assignedEmployeeId) } }); await onSaved(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm">
-      <aside className="max-h-[94vh] w-full max-w-[1080px] overflow-auto rounded-card bg-white p-5 shadow-drawer">
+    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <aside aria-modal="true" className="max-h-[88vh] w-[min(1100px,90vw)] max-w-none overflow-auto rounded-card bg-white p-5 shadow-drawer" role="dialog">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-3"><h3 className="font-sans text-2xl font-black text-park-black">Habitacion {task.room?.number}</h3><StatusBadge value={task.status} /></div>
@@ -272,39 +286,41 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
           </div>
           <button aria-label="Cerrar detalle" className="grid h-10 w-10 place-items-center rounded-button border border-park-border text-park-muted hover:text-park-dark" onClick={onClose} type="button"><X size={19} /></button>
         </div>
-        <div className="mt-5 grid gap-4 xl:grid-cols-[200px_minmax(250px,0.9fr)_minmax(380px,1.35fr)]">
-          <Panel title="Informacion general">
-            <div className="grid gap-3">
-              <InfoTile label="Tipo" value={task.room?.type?.name || "No registrado"} />
-              <InfoTile label="Prioridad" value={<StatusBadge value={task.priority} />} />
-              <InfoTile label="Estado" value={<StatusBadge value={task.status} />} />
-              <InfoTile label="Empleado" value={task.assignedTo || "Sin asignar"} />
-              <InfoTile label="Inicio" value={formatDateTime(task.startedAt)} />
-              <InfoTile label="Finalizacion" value={formatDateTime(task.finishedAt)} />
-            </div>
-          </Panel>
-          <Panel title="Asignación y revisión">
-            <p className="mb-3 text-sm text-park-muted">Asigna la habitación a una cuenta activa. El trabajador inicia, toma fotos y finaliza desde su estación; Recepción revisa el resultado.</p>
-            {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
-            <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-2 h-11 w-full rounded-input border border-park-border px-3 font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
-            {task.status !== "FINALIZADA" ? <Button className="mt-3 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">Asignar a esta cuenta</Button> : <p className="mt-4 rounded-card bg-park-green-soft p-3 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
-          </Panel>
-          <Panel title="Evidencias">
-            <p className="mb-4 text-sm text-park-muted">Revisa las fotos antes y después registradas desde la estación móvil.</p>
-            <EvidenceComparison entry={groups.entry} exit={groups.exit} interactive={task.status === "FINALIZADA"} onSelect={setSelectedEvidence} />
-          </Panel>
-          <Panel className="xl:col-span-3" title="Novedades / Danos">
-            {task.operationalReports?.length ? (
-              <div className="space-y-3">
-                {task.operationalReports.map((report) => (
-                  <div className="rounded-card border border-amber-200 bg-amber-50 p-3" key={report.id}>
-                    <div className="flex items-start justify-between gap-2"><p className="font-black text-park-black">{report.description}</p><StatusBadge value={report.priority} /></div>
-                    <p className="mt-2 text-xs text-park-muted">{formatDateTime(report.createdAt)}</p>
-                  </div>
-                ))}
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="space-y-3">
+            <section className="rounded-card border border-park-border bg-white p-3.5">
+              <h2 className="mb-2 font-sans text-base font-black text-park-black">Informacion general</h2>
+              <div className="divide-y divide-park-border border-y border-park-border">
+                <CompactDetailRow label="Tipo" value={task.room?.type?.name || "No registrado"} />
+                <CompactDetailRow label="Prioridad" value={<StatusBadge value={task.priority} />} />
+                <CompactDetailRow label="Estado" value={<StatusBadge value={task.status} />} />
+                <CompactDetailRow label="Empleado" value={task.assignedTo || "Sin asignar"} />
+                <CompactDetailRow label="Inicio" value={formatDateTime(task.startedAt)} />
+                <CompactDetailRow label="Finalización" value={formatDateTime(task.finishedAt)} />
+                <CompactDetailRow label="Duración" value={task.startedAt && task.finishedAt ? formatDuration(task.startedAt, task.finishedAt) : "No registrado"} />
               </div>
-            ) : <EmptyState title="Sin novedades" description="No se registraron danos para esta revision." />}
-          </Panel>
+              {task.description && (
+                <div className="mt-4 rounded-card bg-amber-50 p-3 text-sm">
+                  <p className="text-xs font-black uppercase text-amber-700">Detalle de la solicitud</p>
+                  <p className="mt-1 font-semibold text-park-dark">{task.description}</p>
+                </div>
+              )}
+            </section>
+            {task.status === "PENDIENTE" && (
+              <section className="rounded-card border border-park-border bg-white p-3.5">
+                <h2 className="mb-2 font-sans text-base font-black text-park-black">Asignación y revisión</h2>
+                {message ? <p className="mb-3 rounded-card bg-red-50 p-3 text-sm font-semibold text-park-danger">{message}</p> : null}
+                <label className="block text-sm font-black text-park-black">Cuenta de Limpieza<select className="mt-1 h-9 w-full rounded-input border border-park-border px-3 text-sm font-normal" value={assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)} disabled={task.status === "FINALIZADA"}><option value="">Selecciona al responsable</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
+                <div className="mt-2 divide-y divide-park-border border-y border-park-border"><CompactDetailRow label="Trabajador" value={task.assignedTo || "Sin asignar"} /><CompactDetailRow label="Estado tarea" value={<StatusBadge value={task.status} />} /></div>
+                {task.status !== "FINALIZADA" ? <Button className="mt-2 w-full" disabled={busy || !assignedEmployeeId} onClick={assign} type="button" variant="secondary">{task.requiresReceptionAcceptance && !task.receptionAcceptedAt ? "Aceptar y enviar a Limpieza" : "Actualizar responsable"}</Button> : <p className="mt-2 rounded-card bg-park-green-soft p-2 text-sm font-black text-park-green">Tarea terminada por {task.assignedTo || "el trabajador asignado"}.</p>}
+              </section>
+            )}
+          </div>
+          <section className="min-w-0 rounded-card border border-park-border bg-white p-4">
+            <h2 className="font-sans text-lg font-black text-park-black">{guestRequest ? "Evidencia del trabajo realizado" : "Evidencias"}</h2>
+            <p className="mb-4 mt-1 text-sm text-park-muted">{guestRequest ? "Fotografía y comentario registrados al finalizar la solicitud del huésped." : "Fotografías de entrada y salida registradas desde la operación de Limpieza."}</p>
+            <div className="max-h-[510px] overflow-y-auto pr-1"><EvidenceComparison evidences={task.evidences || []} guestRequest={guestRequest} onSelect={setSelectedEvidence} selectedId={selectedEvidence?.id} /></div>
+          </section>
         </div>
       </aside>
       {selectedEvidence ? <EvidencePreview evidence={selectedEvidence} task={task} onClose={() => setSelectedEvidence(null)} /> : null}
@@ -312,21 +328,58 @@ function CleaningDetail({ task, employees, onClose, onSaved }) {
   );
 }
 
-function EvidenceComparison({ entry, exit, interactive, onSelect }) {
-  const rows = Array.from({ length: Math.max(entry.length, exit.length) });
-  if (!rows.length) return <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Aún no se registraron evidencias.</p>;
-  return <div className="space-y-4">{rows.map((_, index) => <section className="border-b border-park-border pb-4 last:border-0 last:pb-0" key={index}><p className="mb-2 text-sm font-black text-park-green">Registro {index + 1}</p><div className="grid grid-cols-2 gap-3"><EvidenceTile evidence={entry[index]} interactive={interactive} label="Entrada" onSelect={onSelect} /><EvidenceTile evidence={exit[index]} interactive={interactive} label="Salida" onSelect={onSelect} /></div></section>)}</div>;
+function EvidenceComparison({ evidences, guestRequest = false, onSelect, selectedId }) {
+  if (guestRequest) return evidences.length ? <EvidenceColumn evidences={evidences} label="Trabajo realizado" onSelect={onSelect} selectedId={selectedId} /> : <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Aún no se registró la evidencia del trabajo.</p>;
+  const groups = groupEvidenceByArea(evidences);
+  if (!groups.length) return <p className="rounded-card bg-park-bg p-3 text-sm text-park-muted">Aún no se registraron evidencias.</p>;
+  return <div className="space-y-5">{groups.map((group) => <section className="border-b border-park-border pb-5 last:border-0 last:pb-0" key={group.area}><p className="mb-3 text-sm font-black text-park-green">{group.area}</p><div className="grid grid-cols-2 gap-4"><EvidenceColumn evidences={group.entry} label="Entrada" onSelect={onSelect} selectedId={selectedId} /><EvidenceColumn evidences={group.exit} label="Salida" onSelect={onSelect} selectedId={selectedId} /></div></section>)}</div>;
 }
 
-function EvidenceTile({ evidence, interactive, label, onSelect }) {
-  if (!evidence) return <div><p className="mb-1 text-xs font-black text-park-dark">{label}</p><div className="grid h-28 place-items-center border border-dashed border-park-border bg-park-bg text-xs text-park-muted">Sin foto</div></div>;
-  const content = <><img alt={`Evidencia de ${label}`} className="h-28 w-full border border-park-border object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><span className="mt-1 block text-xs font-semibold text-park-muted"><Clock size={12} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</span></>;
-  return <div><p className="mb-1 text-xs font-black text-park-dark">{label}</p>{interactive ? <button className="group block w-full text-left" onClick={() => onSelect(evidence)} type="button">{content}</button> : content}</div>;
+function EvidenceColumn({ evidences, label, onSelect, selectedId }) {
+  return <div><p className="mb-2 text-sm font-black text-park-dark">{label}</p>{evidences.length ? <div className="space-y-4">{evidences.map((evidence) => <EvidenceTile evidence={evidence} key={evidence.id} onSelect={onSelect} selected={evidence.id === selectedId} />)}</div> : <div className="grid aspect-video place-items-center rounded-card border border-dashed border-park-border bg-park-bg px-3 text-center text-sm text-park-muted">Sin evidencia registrada</div>}</div>;
+}
+
+function EvidenceTile({ evidence, onSelect, selected }) {
+  return <button className="group block w-full text-left" onClick={() => onSelect(evidence)} type="button"><img alt={`Evidencia de ${evidenceStage(evidence)}`} className={`aspect-video w-full rounded-card border object-cover transition group-hover:border-park-green ${selected ? "border-park-green ring-2 ring-park-green/20" : "border-park-border"}`} src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><span className="mt-2 block text-xs font-semibold text-park-muted"><Clock size={12} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</span></button>;
 }
 
 function EvidencePreview({ evidence, task, onClose }) {
-  const stage = /salida/i.test(evidence.description || evidence.notes || "") ? "Salida" : "Entrada";
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4"><section className="w-full max-w-md overflow-hidden rounded-card bg-white shadow-drawer"><div className="flex items-start justify-between p-5"><div><p className="text-xs font-black uppercase text-park-gold">Habitación {task.room?.number} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div><button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button></div><img alt={`Evidencia de ${stage}`} className="max-h-[48vh] w-full object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} /><div className="space-y-3 p-5"><WorkerLabel name={task.assignedTo} /><div className="border border-park-border bg-park-bg p-3 text-sm"><p className="text-xs font-black uppercase text-park-muted">Comentario</p><p className="mt-1 text-park-dark">{evidence.description?.replace(/^(ENTRADA|SALIDA):\s*/i, "") || "Evidencia registrada por el personal de limpieza."}</p></div><div className="grid grid-cols-2 gap-3 border-t border-park-border pt-3 text-sm"><DetailLine label="Área" value="Habitación" /><DetailLine label="Evidencia" value={stage} /></div><Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button></div></section></div>;
+  const [expanded, setExpanded] = useState(false);
+  const stage = task.requestId && task.workflowType !== "POST_CHECKOUT" ? "Trabajo realizado" : evidenceStage(evidence);
+  const comment = String(evidence.description || evidence.notes || "").replace(/^(ENTRADA|SALIDA):\s*/i, "").trim();
+  return (
+    <>
+      <section aria-modal="true" className="fixed inset-x-4 bottom-4 z-50 max-h-[calc(100vh-2rem)] overflow-auto rounded-card bg-white shadow-drawer md:inset-x-auto md:right-8 md:top-1/2 md:w-[420px] md:-translate-y-1/2" role="dialog">
+          <div className="flex items-start justify-between p-5">
+            <div><p className="font-sans text-lg font-black text-park-black">{evidenceArea(evidence)} · {stage}</p><p className="mt-1 text-sm text-park-muted"><Clock size={14} className="mr-1 inline" />{formatDateTime(evidence.createdAt)}</p></div>
+            <button aria-label="Cerrar foto" className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button>
+          </div>
+          <button className="block w-full cursor-zoom-in relative group" onClick={() => setExpanded(true)} type="button">
+            <img alt={`Evidencia de ${stage}`} className="max-h-[46vh] w-full object-cover" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} />
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-white bg-black/60 px-3 py-1.5 rounded-full text-sm font-semibold">Ampliar foto</span></div>
+          </button>
+          <div className="space-y-3 p-5">
+            <WorkerLabel name={task.assignedTo} />
+            <p className="-mt-2 text-xs text-park-muted">Trabajador asignado a la tarea</p>
+            <div className="border border-park-border bg-park-bg p-3 text-sm">
+              <p className="text-xs font-black uppercase text-park-muted">Comentario de {stage.toLowerCase()}</p>
+              <p className="mt-1 leading-6 text-park-dark">{comment || "Sin comentario registrado"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 border-t border-park-border pt-3 text-sm">
+              <DetailLine label="Área" value={evidenceArea(evidence)} />
+              <DetailLine label="Evidencia" value={stage} />
+            </div>
+            <Button className="w-full" onClick={onClose} type="button" variant="secondary">Cerrar</Button>
+          </div>
+      </section>
+      {expanded && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4" onClick={() => setExpanded(false)}>
+          <img alt="Evidencia ampliada" className="max-h-full max-w-full object-contain" src={`${API_ROOT}${evidence.imageUrl || evidence.fileUrl}`} />
+          <button aria-label="Cerrar vista ampliada" className="absolute right-4 top-4 md:right-6 md:top-6 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" onClick={() => setExpanded(false)} type="button"><X size={24} /></button>
+        </div>
+      )}
+    </>
+  );
 }
 
 function EvidenceMini({ task }) {
@@ -387,6 +440,36 @@ function splitEvidence(evidences = []) {
   return { entry, exit };
 }
 
+function evidenceArea(evidence) {
+  return String(evidence?.area || "").trim().toUpperCase() || "EVIDENCIAS GENERALES";
+}
+
+function evidenceStage(evidence) {
+  if (String(evidence?.stage || "").toUpperCase() === "SALIDA") return "Salida";
+  if (String(evidence?.stage || "").toUpperCase() === "ENTRADA") return "Entrada";
+  return /salida/i.test(evidence?.description || evidence?.notes || "") ? "Salida" : "Entrada";
+}
+
+function groupEvidenceByArea(evidences = []) {
+  const groups = new Map(["BAÑO", "CUARTO", "REFRI / DESPENSA"].map((area) => [area, { area, entry: [], exit: [] }]));
+  evidences.forEach((evidence) => {
+    const area = evidenceArea(evidence);
+    if (!groups.has(area)) groups.set(area, { area, entry: [], exit: [] });
+    const stage = evidenceStage(evidence) === "Salida" ? "exit" : "entry";
+    groups.get(area)[stage].push(evidence);
+  });
+  const order = ["BAÑO", "CUARTO", "REFRI / DESPENSA", "EVIDENCIAS GENERALES"];
+  return Array.from(groups.values()).sort((first, second) => {
+    const firstIndex = order.indexOf(first.area);
+    const secondIndex = order.indexOf(second.area);
+    return (firstIndex < 0 ? order.length : firstIndex) - (secondIndex < 0 ? order.length : secondIndex);
+  });
+}
+
+function CompactDetailRow({ label, value }) {
+  return <div className="grid grid-cols-[90px_minmax(0,1fr)] gap-3 py-1 text-sm"><span className="text-park-muted">{label}</span><strong className="break-words text-right text-park-dark">{value || "No registrado"}</strong></div>;
+}
+
 function countBy(items, key) {
   return items.reduce((acc, item) => ({ ...acc, [item[key]]: (acc[item[key]] || 0) + 1 }), {});
 }
@@ -418,6 +501,13 @@ async function uploadWhatsappEvidence(file) {
 function formatDateTime(value) {
   if (!value) return "No registrado";
   return new Date(value).toLocaleString("es-PE");
+}
+
+function formatDuration(startedAt, finishedAt) {
+  const milliseconds = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return "No registrado";
+  const minutes = Math.round(milliseconds / 60000);
+  return `${minutes} min`;
 }
 
 function isToday(value) {

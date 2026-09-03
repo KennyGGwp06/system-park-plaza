@@ -2,6 +2,9 @@ const BASE = process.env.DEMO_API || "http://localhost:3000/api";
 const PASSWORD = process.env.DEMO_STAFF_PASSWORD || "ParkPlaza123*";
 const runId = String(Date.now()).slice(-8);
 let adminToken = "";
+let cleaningToken = "";
+let cleaningUser = null;
+let openedCleaningAttendance = false;
 let testClient = null;
 
 function hotelDate(offsetDays = 0) {
@@ -33,12 +36,22 @@ async function api(path, { method = "GET", token, body, raw, headers = {} } = {}
 function ok(label, detail) { console.log(`OK  ${label}: ${detail}`); }
 
 async function main() {
-  const login = await api("/auth/login", { method: "POST", body: { email: "admin@parkplaza.com", password: PASSWORD } });
+  const [login, cleaningLogin] = await Promise.all([
+    api("/auth/login", { method: "POST", body: { email: "superadmin@parkplaza.com", password: PASSWORD } }),
+    api("/auth/login", { method: "POST", body: { email: "limpieza@parkplaza.com", password: PASSWORD } })
+  ]);
   adminToken = login.token;
+  cleaningToken = cleaningLogin.token;
+  cleaningUser = cleaningLogin.user;
+  const attendance = await api("/attendance/current", { token: cleaningToken });
+  if (!attendance.active) {
+    await api("/attendance/self/clock", { method: "POST", token: cleaningToken, body: { documentNumber: cleaningUser.documentNumber, pin: "5555" } });
+    openedCleaningAttendance = true;
+  }
   const today = hotelDate();
   const lateArrival = hotelDate(-2);
   const tomorrow = hotelDate(1);
-  const documentNumber = `98${runId}`;
+  const documentNumber = `98${runId.slice(-6)}`;
   const phone = `9${runId}`;
 
   const identity = await api("/public/identify", { method: "POST", body: { documentType: "DNI", documentNumber, firstName: "Prueba", lastName: "Flujo Operativo", phone, email: `flujo-${runId}@example.test` } });
@@ -60,22 +73,27 @@ async function main() {
   const stay = await api("/checkin", { method: "POST", token: adminToken, body: { reservationId: first.booking.id } });
   ok("Check-in pagado y atrasado", `${first.booking.code} ingresó en habitación ${room.number}`);
 
+  await api("/checkout/inspect", { method: "POST", token: adminToken, body: { stayId: stay.id } });
   await api("/checkout", { method: "POST", token: adminToken, body: { stayId: stay.id, paymentAmount: 0, paymentMethod: "YAPE" } });
-  const tasks = await api("/cleaning/tasks", { token: adminToken });
+  const tasks = await api("/reception/tasks", { token: adminToken });
   const task = tasks.find((item) => Number(item.clientId) === Number(testClient.id) && Number(item.roomId) === Number(room.id) && item.status === "PENDIENTE");
   if (!task || task.room?.status !== "EN_LIMPIEZA") throw new Error("El check-out no creó la tarea de limpieza conectada");
-  await api(`/cleaning/tasks/${task.id}/start`, { method: "PATCH", token: adminToken, body: {} });
+  await api(`/reception/tasks/${task.id}/assign`, { method: "PATCH", token: adminToken, body: { employeeId: cleaningUser.id } });
+  await api(`/cleaning/tasks/${task.id}/start`, { method: "PATCH", token: cleaningToken, body: {} });
 
   const pixel = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nWQAAAAASUVORK5CYII=", "base64");
-  const upload = await api("/cleaning/evidence/upload", { method: "POST", token: adminToken, raw: pixel, headers: { "Content-Type": "image/png", "X-File-Name": "evidencia-prueba.png" } });
+  const upload = await api("/cleaning/evidence/upload", { method: "POST", token: cleaningToken, raw: pixel, headers: { "Content-Type": "image/png", "X-File-Name": "evidencia-prueba.png" } });
   const stored = upload.files?.[0];
   if (!stored?.fileUrl?.startsWith("/uploads/cleaning/") || Number(stored.size) !== pixel.length) throw new Error("La fotografía no se almacenó como archivo real");
   const evidenceResponse = await fetch(`${new URL(BASE).origin}${stored.fileUrl}`);
   const evidenceBytes = Buffer.from(await evidenceResponse.arrayBuffer());
   if (!evidenceResponse.ok || evidenceResponse.headers.get("content-type") !== "image/png" || !evidenceBytes.equals(pixel)) throw new Error("La fotografía almacenada no se puede recuperar intacta");
-  await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", token: adminToken, body: { description: "ENTRADA: prueba automática", files: [stored] } });
-  await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", token: adminToken, body: { description: "SALIDA: prueba automática", files: [stored] } });
-  await api(`/cleaning/tasks/${task.id}/finish`, { method: "PATCH", token: adminToken, body: {} });
+  for (const area of ["BAÑO", "CUARTO", "REFRI / DESPENSA"]) {
+    for (const stage of ["ENTRADA", "SALIDA"]) {
+      await api(`/cleaning/tasks/${task.id}/evidence`, { method: "POST", token: cleaningToken, body: { area, stage, description: `${stage}: ${area} verificado`, files: [stored] } });
+    }
+  }
+  await api(`/cleaning/tasks/${task.id}/finish`, { method: "PATCH", token: cleaningToken, body: {} });
   const roomPayload = await api("/rooms", { token: adminToken });
   const roomRows = Array.isArray(roomPayload) ? roomPayload : (roomPayload.rooms || []);
   const cleaned = roomRows.find((item) => Number(item.id) === Number(room.id));
@@ -94,6 +112,7 @@ try {
   await main();
   console.log("\nFlujo operativo de check-in y limpieza: APROBADO");
 } finally {
+  if (openedCleaningAttendance && cleaningToken) await api("/attendance/self/clock", { method: "POST", token: cleaningToken, body: { documentNumber: cleaningUser.documentNumber, pin: "5555" } }).catch(() => {});
   if (testClient && adminToken) {
     await api(`/clients/${testClient.id}`, { method: "DELETE", token: adminToken, body: { confirmDocument: testClient.documentNumber } }).catch((error) => console.error(`No se pudo limpiar el cliente de prueba: ${error.message}`));
   }

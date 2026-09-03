@@ -1,9 +1,12 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppLayout } from "./layouts/AppLayout";
 import { useAuth } from "./context/AuthContext";
 import { LoadingSpinner } from "./components/LoadingSpinner";
+import { useFetch } from "./hooks/useFetch";
 import { defaultRouteByRole, menuByRole, permissionForHref } from "./constants/menu";
+import { clearToken, getToken } from "./services/api";
+import { operationsBaseUrl } from "./config/operations";
 
 const lazyPage = (loader, exportName) => lazy(() => loader().then((module) => ({ default: module[exportName] })));
 const Login = lazyPage(() => import("./pages/Login"), "Login");
@@ -19,6 +22,7 @@ const RestaurantDashboard = lazyPage(() => import("./modules/employees/Restauran
 const RestaurantOrdersPage = lazyPage(() => import("./modules/employees/RestaurantOrdersPage"), "RestaurantOrdersPage");
 const RestaurantRecipesPage = lazyPage(() => import("./modules/employees/RestaurantRecipesPage"), "RestaurantRecipesPage");
 const RestaurantInventoryPage = lazyPage(() => import("./modules/employees/RestaurantInventoryPage"), "RestaurantInventoryPage");
+const RestaurantReceiptsPage = lazyPage(() => import("./modules/employees/RestaurantReceiptsPage"), "RestaurantReceiptsPage");
 const BarDashboard = lazyPage(() => import("./modules/employees/BarPages"), "BarDashboard");
 const BarOrdersPage = lazyPage(() => import("./modules/employees/BarPages"), "BarOrdersPage");
 const BarRecipesPage = lazyPage(() => import("./modules/employees/BarPages"), "BarRecipesPage");
@@ -29,6 +33,7 @@ const InventoryPage = lazyPage(() => import("./modules/inventory/InventoryPage")
 const ProductCatalogPage = lazyPage(() => import("./modules/inventory/ProductCatalogPage"), "ProductCatalogPage");
 const PurchasesPage = lazyPage(() => import("./modules/inventory/PurchasesPage"), "PurchasesPage");
 const TransfersPage = lazyPage(() => import("./modules/inventory/TransfersPage"), "TransfersPage");
+const StockRequestsPage = lazyPage(() => import("./modules/inventory/StockRequestsPage"), "StockRequestsPage");
 const OperationalInventoryPage = lazyPage(() => import("./modules/inventory/OperationalInventoryPage"), "OperationalInventoryPage");
 const TechnicalRecipesPage = lazyPage(() => import("./modules/inventory/TechnicalRecipesPage"), "TechnicalRecipesPage");
 const TransformationsPage = lazyPage(() => import("./modules/inventory/TransformationsPage"), "TransformationsPage");
@@ -47,11 +52,16 @@ const InventoryAdminDashboardPage = lazyPage(() => import("./modules/admin/Inven
 const AdminMasterDashboard = lazyPage(() => import("./modules/admin/AdminCommandCenter"), "AdminCommandCenter");
 const CentralCashRegister = lazyPage(() => import("./modules/finance/CentralCashRegister"), "CentralCashRegister");
 const AdminMiCajaPage = lazyPage(() => import("./modules/finance/AdminMiCajaPage"), "AdminMiCajaPage");
+const ElectronicBillingPage = lazyPage(() => import("./modules/finance/ElectronicBillingPage"), "ElectronicBillingPage");
 const AccessControlPage = lazyPage(() => import("./modules/admin/AccessControlPage"), "AccessControlPage");
 const AttendanceClockPage = lazyPage(() => import("./modules/employees/AttendanceClockPage"), "AttendanceClockPage");
 const WorkforcePage = lazyPage(() => import("./modules/admin/WorkforcePage"), "WorkforcePage");
 const DataIntegrityPage = lazyPage(() => import("./modules/admin/DataIntegrityPage"), "DataIntegrityPage");
 const CommercialSettingsPage = lazyPage(() => import("./modules/admin/CommercialSettingsPage"), "CommercialSettingsPage");
+const CatalogContentPage = lazyPage(() => import("./modules/admin/CatalogContentPage"), "CatalogContentPage");
+const HotelHomePage = lazyPage(() => import("./modules/hotel/HotelHomePage"), "HotelHomePage");
+const HotelWorkspacePage = lazyPage(() => import("./modules/hotel/HotelWorkspacePage"), "HotelWorkspacePage");
+const HotelMovementsPage = lazyPage(() => import("./modules/hotel/HotelMovementsPage"), "HotelMovementsPage");
 
 const preloadersByRole = {
   ADMINISTRADOR: [
@@ -65,22 +75,33 @@ const preloadersByRole = {
     () => import("./modules/employees/RestaurantDashboard"),
     () => import("./modules/employees/RestaurantOrdersPage"),
     () => import("./modules/employees/RestaurantRecipesPage"),
-    () => import("./modules/employees/RestaurantInventoryPage")
+    () => import("./modules/employees/RestaurantInventoryPage"),
+    () => import("./modules/employees/RestaurantReceiptsPage")
   ],
   BARTENDER: [
     () => import("./modules/employees/BarPages")
-  ]
+  ],
+  LIMPIEZA: [],
+  MANTENIMIENTO: []
 };
 
 const protectedRoutes = [
   ["/dashboard", "DASHBOARD:VER", <Dashboard />],
-  ["/superadmin", "ADMINISTRADOR:VER", <SuperAdminPage />, ["SUPERADMIN"]],
-  ["/admin-panel", "ADMINISTRADOR:VER", <AdminReceptionPage />, ["ADMINISTRADOR"]],
-  ["/admin-panel/mi-caja", "ADMINISTRADOR:VER", <AdminMiCajaPage />, ["ADMINISTRADOR"]],
-  ["/admin-panel/caja-central", "ADMINISTRADOR:VER", <CentralCashRegister />, ["SUPERADMIN"]],
+  ["/superadmin", "DASHBOARD:VER", <SuperAdminPage />, ["SUPERADMIN"]],
+  ["/admin-panel", "DASHBOARD:VER", <AdminReceptionPage />, ["ADMINISTRADOR"]],
+  ["/admin-panel/mi-caja", "CAJA:VER", <AdminMiCajaPage />, ["ADMINISTRADOR"]],
+  ["/admin-panel/caja-central", "CAJA:VER", <CentralCashRegister />, ["SUPERADMIN"]],
   ["/admin/comercial", "INVENTARIO:VER", <CommercialSettingsPage />, ["SUPERADMIN"]],
   ["/admin/alimentos-bebidas", "INVENTARIO:VER", <FoodBeverageControlPage />, ["SUPERADMIN"]],
+  ["/admin/contenido", "INVENTARIO:VER", <CatalogContentPage />, ["SUPERADMIN"]],
+  ["/admin/solicitudes-stock", "INVENTARIO:VER", <StockRequestsPage />, ["SUPERADMIN"]],
   ["/clientes", "CLIENTES:VER", <ClientsPage />],
+  ["/hotel", "HABITACIONES:VER", <HotelHomePage />],
+  ["/hotel/reservas", "RESERVAS:VER", <ReservationsPage />],
+  ["/hotel/movimientos", "CHECK_IN:VER", <HotelMovementsPage />],
+  ["/hotel/habitaciones", "HABITACIONES:VER", <RoomsPage />],
+  ["/hotel/limpieza", "LIMPIEZA:VER", <AdminCleaningPage view="resumen" />, ["SUPERADMIN", "ADMINISTRADOR"]],
+  ["/hotel/mantenimiento", "REPORTES:VER", <AdminMaintenancePage view="resumen" />, ["SUPERADMIN", "ADMINISTRADOR", "RECEPCION"]],
   ["/habitaciones", "HABITACIONES:VER", <RoomsPage />],
   ["/reservas", "RESERVAS:VER", <ReservationsPage />],
   ["/checkin", "CHECK_IN:VER", <CheckInPage />],
@@ -92,21 +113,36 @@ const protectedRoutes = [
   ["/restaurante/dashboard", "RESTAURANTE:VER", <RestaurantDashboard />],
   ["/restaurante/pedidos", "RESTAURANTE:VER", <RestaurantOrdersPage />],
   ["/restaurante/inventario/insumos", "RESTAURANTE:VER", <RestaurantInventoryPage />],
+  ["/restaurante/inventario/solicitudes", "RESTAURANTE:VER", <StockRequestsPage />],
+  ["/restaurante/inventario/recepciones", "RESTAURANTE:VER", <RestaurantReceiptsPage />],
+  ["/bartender/inventario/recepciones", "BARTENDER:VER", <RestaurantReceiptsPage />],
   ["/restaurante/inventario/recetas", "RESTAURANTE:VER", <RestaurantRecipesPage />],
   ["/restaurante/inventario/mermas", "RESTAURANTE:VER", <RestaurantInventoryPage />],
   ["/restaurante/inventario/cierre", "RESTAURANTE:VER", <RestaurantInventoryPage />],
   ["/cocina/estacion", "RESTAURANTE:VER", <RestaurantOrdersPage />],
-  ["/control-gastronomico/restaurante", "ADMINISTRADOR:VER", <GastronomyMonitorPage area="RESTAURANTE" />, ["SUPERADMIN", "ADMINISTRADOR"]],
+  ["/control-gastronomico/restaurante", "RESTAURANTE:VER", <GastronomyMonitorPage area="RESTAURANTE" />, ["SUPERADMIN", "ADMINISTRADOR"]],
   ["/bartender", "BARTENDER:VER", <BarDashboard />, ["BARTENDER"]],
   ["/bartender/dashboard", "BARTENDER:VER", <BarDashboard />],
   ["/bartender/pedidos", "BARTENDER:VER", <BarOrdersPage />],
   ["/bartender/inventario/insumos", "BARTENDER:VER", <BarInventoryPage />],
+  ["/bartender/inventario/solicitudes", "BARTENDER:VER", <StockRequestsPage />],
   ["/bartender/inventario/recetas", "BARTENDER:VER", <BarRecipesPage />],
   ["/bartender/inventario/mermas", "BARTENDER:VER", <BarInventoryPage />],
   ["/bartender/inventario/cierre", "BARTENDER:VER", <BarInventoryPage />],
-  ["/bartender/botellas", "BARTENDER:VER", <BarBottlePage />, ["SUPERADMIN"]],
+  ["/bartender/botellas", "BARTENDER:VER", <BarBottlePage />, ["SUPERADMIN", "BARTENDER"]],
   ["/bar/estacion", "BARTENDER:VER", <BarOrdersPage />],
-  ["/control-gastronomico/bar", "ADMINISTRADOR:VER", <GastronomyMonitorPage area="BARTENDER" />, ["SUPERADMIN", "ADMINISTRADOR"]],
+  ["/limpieza", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/en-atencion", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/historial", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/pendientes", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/finalizadas", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/evidencias", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/limpieza/incidencias", "LIMPIEZA:VER", <OperationsRedirect />, ["LIMPIEZA"]],
+  ["/mantenimiento", "MANTENIMIENTO:VER", <OperationsRedirect />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/reparacion", "MANTENIMIENTO:VER", <OperationsRedirect />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/finalizados", "MANTENIMIENTO:VER", <OperationsRedirect />, ["MANTENIMIENTO"]],
+  ["/mantenimiento/evidencias", "MANTENIMIENTO:VER", <OperationsRedirect />, ["MANTENIMIENTO"]],
+  ["/control-gastronomico/bar", "BARTENDER:VER", <GastronomyMonitorPage area="BARTENDER" />, ["SUPERADMIN", "ADMINISTRADOR"]],
   ["/piscina/ingresos", "RECEPCION:VER", <PoolPage />],
   ["/piscina/validar-qr", "RECEPCION:VER", <PoolPage />],
   ["/piscina/clientes-activos", "RECEPCION:VER", <PoolPage />],
@@ -139,7 +175,7 @@ const protectedRoutes = [
   ["/compras", "COMPRAS:VER", <PurchasesPage />, ["SUPERADMIN"]],
   ["/proveedores", "PROVEEDORES:VER", <AdminResourcePage type="proveedores" />],
   ["/pagos", "PAGOS:VER", <AdminResourcePage type="pagos" />],
-  ["/facturacion", "FACTURACION:VER", <AdminResourcePage type="facturacion" />],
+  ["/facturacion", "FACTURACION:VER", <ElectronicBillingPage />, ["SUPERADMIN", "ADMINISTRADOR"]],
   ["/caja", "CAJA:VER", <AdminResourcePage type="caja" />],
   ["/usuarios", "USUARIOS:VER", <UsersPage />],
   ["/roles", "ROLES:VER", <RolesPage />],
@@ -172,7 +208,7 @@ export function App() {
       <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route index element={<RoleRedirect />} />
         {protectedRoutes.map(([path, permission, element, roles]) => (
-          <Route key={path} path={path} element={<RequirePermission permission={permission} roles={roles}>{element}</RequirePermission>} />
+          <Route key={path} path={path} element={<RequirePermission permission={permission} roles={roles}><RequireGastronomyShift>{element}</RequireGastronomyShift></RequirePermission>} />
         ))}
       </Route>
       <Route path="*" element={<RoleRedirect />} />
@@ -198,5 +234,36 @@ function RequirePermission({ permission, roles, children }) {
   const { hasPermission, user } = useAuth();
   const roleAllowed = !roles?.length || roles.includes(user?.role);
   return roleAllowed && hasPermission(permission) ? children : <Forbidden />;
+}
+
+function OperationsRedirect() {
+  useEffect(() => {
+    const token = getToken();
+    const target = new URL(operationsBaseUrl, window.location.origin);
+    if (token) {
+      target.hash = new URLSearchParams({ session: token }).toString();
+      clearToken();
+    }
+    window.location.replace(target.toString());
+  }, []);
+  return <main className="p-8"><LoadingSpinner label="Abriendo estación oficial de Operaciones..." /></main>;
+}
+
+function RequireGastronomyShift({ children }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  const requiresShift = ["RESTAURANTE", "BARTENDER"].includes(user?.role);
+  const { data: attendance, loading } = useFetch("/attendance/current", {
+    initialData: { active: false },
+    enabled: requiresShift,
+    realtime: requiresShift,
+    pollInterval: 5000
+  });
+  if (!requiresShift) return children;
+  if (loading) return <main className="p-8"><LoadingSpinner label="Validando turno personal..." /></main>;
+  const home = user.role === "BARTENDER" ? "/bartender" : "/restaurante";
+  const homePaths = [home, `${home}/dashboard`];
+  if (!attendance?.active && !homePaths.includes(location.pathname)) return <Navigate to={home} replace />;
+  return children;
 }
 

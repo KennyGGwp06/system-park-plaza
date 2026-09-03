@@ -5,6 +5,7 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Button, PageHeader } from "../../components/ui";
 import { useFetch } from "../../hooks/useFetch";
+import { useAuth } from "../../context/AuthContext";
 
 const labels = {
   RESTAURANTE: { title: "Monitor de Restaurante", description: "Vista de supervisión. La estación de cocina es la única que prepara y entrega pedidos.", icon: ChefHat },
@@ -12,6 +13,7 @@ const labels = {
 };
 
 export function GastronomyMonitorPage({ area }) {
+  const { user } = useAuth();
   const config = labels[area] || labels.RESTAURANTE;
   const Icon = config.icon;
   const { data: orders = [], loading, error, reload } = useFetch(area === "BARTENDER" ? "/bartender" : "/restaurante", { initialData: [], realtime: true, pollInterval: 15000 });
@@ -31,7 +33,7 @@ export function GastronomyMonitorPage({ area }) {
       <div className="mb-4 flex items-start justify-between gap-3"><div><h2 className="font-black text-park-dark">Cola en tiempo real</h2><p className="text-sm text-park-muted">Solo lectura: la operación se realiza desde la estación asignada.</p></div><Icon className="text-park-green" /></div>
       {!active.length ? <EmptyState title="No hay pedidos activos" description="Los nuevos pedidos aparecerán aquí cuando estén autorizados." /> : <div className="space-y-2">{active.map((order) => <article key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-park-border bg-park-bg p-4"><div><strong className="text-park-dark">{order.code}</strong><p className="mt-1 text-sm text-park-muted">{(order.items || []).map((item) => `${item.quantity}× ${item.name}`).join(" · ") || "Sin detalle"}</p><small className="text-park-muted">{order.destination?.label || order.roomId || "Destino por confirmar"}</small></div><div className="flex items-center gap-3"><span className="text-xs font-bold text-park-muted">{Number(order.elapsedMinutes || 0)} min</span><StatusBadge value={order.status} /></div></article>)}</div>}
     </section>
-    <Link to="/admin/alimentos-bebidas" className="inline-flex rounded-xl border border-park-border bg-white px-4 py-3 text-sm font-black text-park-dark shadow-card transition hover:border-park-green hover:bg-park-green-soft">Volver al control gastronómico</Link>
+    <Link to={user?.role === "SUPERADMIN" ? "/admin/alimentos-bebidas" : "/admin-panel"} className="inline-flex rounded-xl border border-park-border bg-white px-4 py-3 text-sm font-black text-park-dark shadow-card transition hover:border-park-green hover:bg-park-green-soft">{user?.role === "SUPERADMIN" ? "Volver al control gastronómico" : "Volver al Centro de Recepción"}</Link>
   </div>;
 }
 

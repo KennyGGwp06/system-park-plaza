@@ -1,0 +1,185 @@
+/* Ajustes finales por dispositivo. Se carga después del estilo principal. */
+html,body,#root,.customer-app{max-width:100%;overflow-x:clip}
+.customer-app *{box-sizing:border-box}
+.customer-app img{max-width:100%}
+
+@media (max-width:1100px){
+  .reservations-v3-top,.reservations-v3-copy,.reservations-v3-content{width:min(94%,920px)}
+  .reservation-timeline-card{grid-template-columns:72px minmax(0,1fr) 105px minmax(150px,.8fr);gap:11px}
+  .reservation-timeline-actions{grid-column:1/-1!important;grid-row:auto!important;grid-template-columns:1fr 1fr!important}
+  .event-booking-studio,.event-review-studio,.event-balance-studio{max-width:100%}
+  .unified-payment-panel{width:min(94vw,1000px)}
+}
+
+@media (max-width:820px){
+  .reservation-verification{min-height:100svh;padding:14px 12px 28px;overflow:auto}
+  .reservation-verification-copy{margin:38px auto 20px}
+  .reservation-verification-copy h1{font-size:clamp(38px,8vw,54px)}
+  .reservation-verification-card{width:min(94vw,680px);padding:22px}
+  .reservation-timeline-card{grid-template-columns:64px minmax(0,1fr);gap:10px}
+  .reservation-timeline-date{grid-row:1/3}
+  .reservation-timeline-service,.reservation-timeline-price,.reservation-timeline-status{grid-column:2!important}
+  .reservation-timeline-price{display:grid;grid-template-columns:auto 1fr auto 1fr;align-items:center;gap:7px;border-left:0;border-top:1px solid #dce7ef;padding:9px 0 0}
+  .reservation-timeline-status{min-height:0}
+  .reservation-timeline-actions{grid-column:1/-1!important;grid-row:auto!important}
+  .event-booking-workspace,.event-review-panel,.event-balance-panel{grid-template-columns:1fr!important}
+  .event-booking-summary{position:static!important}
+  .unified-payment-panel{grid-template-columns:1fr!important}
+}
+
+/* Tablets, celulares en horizontal y laptops estrechas. */
+@media (max-width:900px){
+  .customer-app>main,
+  .identity-page,.service-hub,.lodging-studio,.pool-booking-studio,
+  .lookout-booking-studio,.experience-shell,.page-shell,.qr-experience,
+  .reservations-v3,.event-booking-studio,.event-review-studio,
+  .event-balance-studio,.unified-payment-success,.concierge-studio{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    height:auto!important;min-height:100svh!important;overflow-x:hidden!important;
+  }
+  .customer-app:has(.identity-page){height:auto!important;min-height:100svh!important;overflow:auto!important}
+  .identity-page{display:block!important;overflow:visible!important}
+  .identity-scene{width:100%!important;height:280px!important;min-height:280px!important;padding:18px!important}
+  .identity-copy{margin:62px 0 0!important;padding:0!important}
+  .identity-copy h1{max-width:520px!important;font-size:38px!important}
+  .identity-copy>div,.identity-photo,.identity-signature{display:none!important}
+  .identity-panel{display:block!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0 10px 20px!important;overflow:visible!important}
+  .identity-shell{width:100%!important;height:max-content!important;max-height:none!important;margin:0 auto!important;align-self:start!important;justify-content:flex-start!important;overflow:visible!important}
+  .identity-shell .identity-form{width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important}
+  .identity-mode-switch{width:min(94%,540px)!important}
+  .identity-form .two{grid-template-columns:1fr 1fr!important}
+
+  .service-hub{padding:8px 8px 28px!important;overflow:visible!important}
+  .service-hub-nav{grid-template-columns:1fr auto auto auto!important;height:64px!important}
+  .service-hub-nav nav,.service-hub-nav .ppx-brand div,.service-hub-profile b{display:none!important}
+  .service-hub-profile{width:40px!important;min-width:0!important;padding:4px!important}
+  .service-hub-stage{height:auto!important;overflow:visible!important}
+  .service-hub-hero{height:590px!important;border-radius:23px!important}
+  .service-hub-copy{top:42px!important;right:22px!important;left:22px!important;width:auto!important}
+  .service-hub-search{right:12px!important;bottom:12px!important;left:12px!important;grid-template-columns:1fr 1fr!important}
+  .service-hub-search-button{grid-column:1/-1!important;justify-content:center!important}
+  .service-hub-discover{display:block!important;margin-top:22px!important;padding:0 5px!important}
+  .service-hub-intro{display:block!important}
+  .service-hub-cards{grid-template-columns:1fr 1fr!important;margin-top:18px!important;gap:8px!important}
+
+  .lodging-studio-main{grid-template-columns:1fr!important;padding-inline:12px!important}
+  .lodging-studio-filter{display:flex!important;max-width:100%;overflow-x:auto!important}
+  .lodging-studio-list,.lodging-studio-rail{min-width:0!important;max-width:100%!important}
+  .lodging-studio-summary{position:static!important;grid-column:auto!important;grid-template-columns:1fr 1fr!important}
+  .lodging-studio-summary>button{grid-column:1/-1!important;grid-row:auto!important}
+
+  .pool-booking-layout{grid-template-columns:1fr!important;padding-inline:12px!important}
+  .pool-booking-primary,.pool-booking-options,.pool-booking-summary{position:static!important;grid-column:auto!important;grid-row:auto!important;min-width:0!important;max-width:100%!important}
+  .pool-booking-summary{order:initial!important}
+  .pool-booking-summary .flow-summary{display:block!important;width:100%!important}
+  .pool-booking-summary .flow-summary>div{display:flex!important;width:100%!important;justify-content:space-between!important;gap:12px!important}
+  .pool-booking-summary .flow-summary :is(span,b,strong){color:#405b72!important}
+  .pool-booking-summary .flow-summary .flow-total :is(span,b,strong){color:#0d66ae!important}
+  .pool-summary-trust{display:grid!important;grid-template-columns:1fr 1fr!important;overflow:hidden!important}
+  .pool-summary-trust span{min-width:0!important}
+  .pool-date-strip,.date-strip{max-width:100%;overflow-x:auto!important}
+
+  .lookout-booking-grid{grid-template-columns:1fr!important}
+  .lookout-booking-grid>*{min-width:0!important}
+  .lookout-booking-summary{position:static!important;grid-column:auto!important;grid-template-columns:1fr!important}
+  .lookout-booking-summary>button{grid-column:auto!important}
+
+  .checkout-page .page-content{width:100%!important;max-width:100%!important;padding-inline:12px!important}
+  .checkout-studio,.checkout-studio .checkout-grid{width:100%!important;max-width:100%!important;grid-template-columns:1fr!important}
+  .checkout-studio .checkout-options,.checkout-studio .invoice-summary{min-width:0!important}
+  .checkout-studio .payment-methods{grid-template-columns:1fr 1fr!important}
+
+  .qr-experience-top,.qr-experience-copy,.qr-experience-content{width:calc(100% - 18px)!important}
+  .qr-experience .qr-primary-pass{grid-template-columns:1fr!important;gap:0!important}
+  .qr-experience .qr-primary-pass .qr{justify-self:center!important;margin:18px 0!important}
+  .qr-pass-guidance{padding:0 18px 20px!important;text-align:center!important}
+  .qr-pass-guidance .pass-download{justify-self:center!important}
+  .qr-experience .entitlements,.qr-experience .actions-grid{grid-template-columns:1fr!important}
+
+  .event-review-studio,.event-balance-studio{overflow:visible!important}
+  .event-review-hero{grid-template-columns:1fr!important}
+  .event-review-panel,.event-balance-panel{width:100%!important;grid-template-columns:1fr!important}
+  .unified-payment-success{overflow:auto!important}
+  .unified-payment-panel{width:100%!important;grid-template-columns:1fr!important}
+}
+
+@media (max-width:620px){
+  button,a,input,select,textarea{touch-action:manipulation}
+  .reservation-verification-top{grid-template-columns:1fr auto}
+  .reservation-verification-brand{display:none}
+  .reservation-verification-copy{width:96%;margin-top:34px}
+  .reservation-verification-copy h1{font-size:38px;line-height:1.02}
+  .reservation-verification-copy p{font-size:13px}
+  .reservation-verification-card{width:100%;gap:13px;padding:17px;border-radius:20px}
+  .reservation-verification-notice{gap:11px;padding:13px}
+  .reservation-verification-notice>svg{width:26px;height:26px}
+  .reservation-verification-notice b{font-size:16px}
+  .reservation-verification-card input{height:48px;font-size:16px}
+  .reservation-verification-submit{min-height:50px;font-size:14px}
+  .reservations-v3-hero{height:270px}
+  .reservations-v3-top,.reservations-v3-copy,.reservations-v3-content{width:calc(100% - 22px)}
+  .reservations-v3-copy{margin-top:56px}
+  .reservations-v3-copy h1{font-size:39px}
+  .reservations-v3-list{padding-left:15px}
+  .reservation-timeline-card{grid-template-columns:52px minmax(0,1fr);padding:10px;border-radius:14px}
+  .reservation-timeline-date{min-height:68px}
+  .reservation-timeline-service>span{width:40px;height:40px}
+  .reservation-timeline-service h2{font-size:18px}
+  .reservation-timeline-price{grid-template-columns:auto 1fr;gap:4px 8px}
+  .reservation-timeline-actions{grid-template-columns:1fr 1fr!important;gap:7px}
+  .reservation-timeline-actions button{min-width:0;padding:10px 8px;font-size:10px}
+  .reservation-qr-modal{width:calc(100vw - 24px);max-height:calc(100svh - 24px);overflow:auto;padding:28px 17px 18px}
+  .reservation-qr-modal>img{width:min(220px,72vw)}
+  .reservation-detail{width:calc(100vw - 24px);max-height:calc(100svh - 24px);overflow:auto;padding:25px 17px 18px}
+  .event-booking-studio{width:100%;margin:0;border-radius:0}
+  .event-booking-head,.event-booking-hero,.event-booking-panel{width:calc(100% - 16px)}
+  .event-booking-hero h1,.event-review-hero h1,.event-balance-hero h1{font-size:36px!important}
+  .event-booking-pair,.event-booking-menu,.event-booking-timing,.event-booking-services,.event-review-facts{grid-template-columns:1fr!important}
+  .event-booking-studio .dish-grid,.event-booking-studio .space-grid{grid-template-columns:1fr!important}
+  .event-review-studio,.event-balance-studio{padding-inline:9px!important}
+  .unified-payment-success{padding:9px!important}
+  .unified-payment-panel{width:100%;border-radius:19px!important}
+  .unified-payment-main,.unified-payment-identity{padding-inline:18px!important}
+  .unified-payment-main h1{font-size:38px!important}
+  .unified-payment-actions{padding:11px!important}
+  .unified-payment-actions button{width:100%!important;min-width:0!important}
+  .concierge-options{grid-template-columns:1fr 1fr!important}
+  .concierge-note{grid-template-columns:1fr!important}
+  .concierge-submit{width:100%}
+  .identity-form .two{grid-template-columns:1fr!important}
+  .service-hub-copy h1{font-size:38px!important}
+  .service-hub-search{grid-template-columns:1fr!important}
+  .service-hub-search>label:nth-child(2),.service-hub-guests{display:none!important}
+  .service-hub-cards{grid-template-columns:1fr!important}
+  .service-hub-cards>button{height:310px!important}
+  .pool-booking-studio .slot-grid,.pool-booking-studio .plan-grid{grid-template-columns:1fr!important}
+  .pool-booking-studio .party-selector{width:100%!important;min-width:0!important;max-width:100%!important;overflow:hidden!important}
+  .pool-booking-studio .pool-date-strip{grid-template-columns:repeat(4,minmax(0,1fr))!important;overflow:visible!important}
+  .pool-booking-studio .party-presets{grid-template-columns:1fr!important}
+  .pool-booking-studio .party-presets button{width:100%!important;min-width:0!important}
+  .lookout-booking-studio .date-strip{grid-template-columns:repeat(4,minmax(0,1fr))!important;overflow:visible!important}
+  .lookout-booking-studio .slot-grid,.lookout-booking-studio .party-presets{grid-template-columns:1fr!important}
+  .lookout-booking-studio .party-selector,.lookout-booking-studio .party-presets button{width:100%!important;min-width:0!important;max-width:100%!important}
+  .checkout-studio .payment-methods{grid-template-columns:1fr!important}
+}
+
+@media (max-width:390px){
+  .reservation-verification{padding-inline:8px}
+  .reservation-verification-copy h1{font-size:33px}
+  .reservation-verification-card{padding:14px}
+  .reservation-verification-notice p{font-size:11px}
+  .reservation-timeline-actions{grid-template-columns:1fr!important}
+  .reservations-v3-top .reservations-v3-new{font-size:0;padding:10px}
+  .reservations-v3-top .reservations-v3-new svg{margin:0}
+  .concierge-options{grid-template-columns:1fr!important}
+}
+
+@media (max-height:720px) and (min-width:821px){
+  .reservation-verification{padding-top:15px}
+  .reservation-verification-copy{margin:24px auto 16px}
+  .reservation-verification-copy h1{font-size:46px}
+  .reservation-verification-card{gap:12px;padding:20px}
+  .reservation-verification-notice{padding:12px 16px}
+  .reservation-verification-card input{height:46px}
+  .reservation-verification-submit{min-height:49px}
+}

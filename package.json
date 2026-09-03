@@ -15,9 +15,11 @@
     "db:migrate": "npm run migrate --workspace server -- up",
     "db:rollback": "npm run migrate --workspace server -- down",
     "db:reset-demo": "node server/scripts/reset-demo.js",
-    "test:demo": "node scripts/demo-integral.mjs",
+    "test:demo": "npm run test:connectivity && npm run test:pilot-flow",
+    "test:demo-legacy": "node scripts/demo-integral.mjs",
     "test:pilot-flow": "node scripts/pilot-flow.mjs",
     "test:checkin-cleaning": "node scripts/checkin-cleaning-flow.mjs",
+    "test:connectivity": "node scripts/system-connectivity.mjs",
     "test:performance-mobile": "node scripts/mobile-performance.mjs",
     "test:inventory-phase1": "npm run test:inventory-phase1 --workspace server",
     "test:product-catalog": "npm run test:product-catalog --workspace server",
@@ -28,7 +30,11 @@
     "test:realtime": "npm run test:realtime --workspace server",
     "test:bar-bottles": "npm run test:bar-bottles --workspace server",
     "test:inventory-admin": "npm run test:inventory-admin --workspace server",
-    "test:rbac-security": "npm run test:rbac-security --workspace server"
+    "test:rbac-security": "npm run test:rbac-security --workspace server",
+    "test:electronic-billing": "npm run test:electronic-billing --workspace server",
+    "prod:preflight": "node scripts/production/preflight.mjs .env.production",
+    "prod:config": "docker compose --env-file .env.production -f docker-compose.production.yml config --quiet",
+    "prod:build": "docker compose --env-file .env.production -f docker-compose.production.yml build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

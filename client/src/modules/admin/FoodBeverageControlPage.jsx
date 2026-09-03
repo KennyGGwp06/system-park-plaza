@@ -1,111 +1,29 @@
-import { AlertTriangle, ArrowRightLeft, ChefHat, ClipboardList, PackageCheck, RefreshCw, Scale, ShoppingCart, UtensilsCrossed, Wine } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Button, PageHeader } from "../../components/ui";
-import { EmptyState } from "../../components/EmptyState";
+import { useMemo, useState } from "react";
+import { CheckCircle2, ChefHat, CirclePause, Clock3, PackageSearch, Save, Search, UtensilsCrossed, Wine } from "lucide-react";
+import { Alert, Button, Input, PageHeader } from "../../components/ui";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { Toast } from "../../components/Toast";
 import { useFetch } from "../../hooks/useFetch";
+import { api } from "../../services/api";
 
-const money = (value) => Number(value || 0).toLocaleString("es-PE", { style: "currency", currency: "PEN" });
+const money = (value) => `S/ ${Number(value || 0).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export function FoodBeverageControlPage() {
-  const restaurant = useFetch("/restaurante", { initialData: [], pollInterval: 10000 });
-  const bar = useFetch("/bartender", { initialData: [], pollInterval: 10000 });
-  const sessions = useFetch("/operational-inventory/sessions", { initialData: [], pollInterval: 15000 });
-  const inventory = useFetch("/inventory-admin/dashboard", { initialData: { metrics: {}, alerts: {} }, pollInterval: 15000 });
-
-  if (restaurant.loading || bar.loading || sessions.loading || inventory.loading) return <LoadingSpinner label="Cargando control de alimentos y bebidas..." />;
-
-  const restaurantOrders = Array.isArray(restaurant.data) ? restaurant.data : [];
-  const barOrders = Array.isArray(bar.data) ? bar.data : [];
-  const shiftSessions = Array.isArray(sessions.data) ? sessions.data : [];
-  const metrics = inventory.data?.metrics || {};
-  const alerts = inventory.data?.alerts || {};
-  const liveOrders = [...restaurantOrders, ...barOrders].filter((order) => !["ENTREGADO", "CANCELADO"].includes(order.status));
-  const paidPending = liveOrders.filter((order) => order.status === "PENDIENTE" && order.paymentStatus === "PAGADO");
-  const ready = liveOrders.filter((order) => order.status === "LISTO");
-  const activeSessions = shiftSessions.filter((session) => ["OPEN", "OPERATING", "COUNTING", "REOPENED"].includes(session.status));
-  const pendingClosures = shiftSessions.filter((session) => ["SUBMITTED", "OBSERVED"].includes(session.status));
-  const critical = Array.isArray(alerts.critical) ? alerts.critical : [];
-
-  const reloadAll = () => Promise.all([restaurant.reload(), bar.reload(), sessions.reload(), inventory.reload()]);
-
-  return (
-    <div className="space-y-5">
-      <PageHeader
-        eyebrow="Administrador / alimentos y bebidas"
-        title="Control de Restaurante y Bar"
-        description="Desde aquí abasteces, defines recetas y precios, supervisas pedidos y apruebas los cierres. El personal solo opera su propia estación."
-        actions={<Button icon={RefreshCw} variant="secondary" onClick={reloadAll}>Actualizar</Button>}
-      />
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Metric label="Pedidos pagados por aceptar" value={paidPending.length} tone="amber" href="/control-gastronomico/restaurante" />
-        <Metric label="Pedidos listos para entrega" value={ready.length} tone="blue" href="/control-gastronomico/restaurante" />
-        <Metric label="Turnos operativos activos" value={activeSessions.length} tone="green" href="/inventario/turnos" />
-        <Metric label="Cierres para revisar" value={pendingClosures.length} tone={pendingClosures.length ? "red" : "slate"} href="/inventario/turnos" />
-        <Metric label="Costo de alimentos + bebidas" value={money(Number(metrics.food || 0) + Number(metrics.beverage || 0))} tone="slate" href="/inventario/recetas" compact />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-3">
-        <ControlCard icon={UtensilsCrossed} title="Carta, precios y recetas" description="Platos, bebidas, tamaños, precios, tiempos y gramajes oficiales. Una receta activa determina disponibilidad y consumo." links={[
-          ["Administrar carta e insumos", "/inventario"],
-          ["Recetas técnicas", "/inventario/recetas"],
-          ["Precios y tarifas", "/admin/comercial"]
-        ]} />
-        <ControlCard icon={ShoppingCart} title="Comprar y abastecer" description="La compra entra al almacén general solo después de la recepción física; desde allí se transfiere a Cocina o Bar." links={[
-          ["Nueva compra o recepción", "/compras"],
-          ["Transferir a Restaurante / Bar", "/transferencias"],
-          ["Ver stock central", "/admin/inventario"]
-        ]} />
-        <ControlCard icon={Scale} title="Producción, porciones y lotes" description="Convierte materia prima en productos utilizables, registra rendimiento y prepara porciones con peso, fecha y vencimiento." links={[
-          ["Transformar y porcionar", "/inventario/produccion"],
-          ["Catálogo y unidades", "/inventario/catalogo"],
-          ["Control de botellas", "/bartender/botellas"]
-        ]} />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_1fr]">
-        <article className="rounded-card border border-park-border bg-white p-5 shadow-card">
-          <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-park-green-soft text-park-green"><ClipboardList size={20} /></span><div><h2 className="font-black text-park-dark">Operación en vivo</h2><p className="mt-1 text-sm text-park-muted">Los pedidos solo llegan a la estación cuando están pagados y el consumo se confirma al entregar.</p></div></div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <AreaSummary icon={ChefHat} title="Restaurante" orders={restaurantOrders} href="/control-gastronomico/restaurante" />
-            <AreaSummary icon={Wine} title="Bar" orders={barOrders} href="/control-gastronomico/bar" />
-          </div>
-        </article>
-
-        <article className="rounded-card border border-park-border bg-white p-5 shadow-card">
-          <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700"><AlertTriangle size={20} /></span><div><h2 className="font-black text-park-dark">Prioridades de control</h2><p className="mt-1 text-sm text-park-muted">Revisa primero aquello que puede impedir una venta o afectar el cierre.</p></div></div>
-          <div className="mt-4 space-y-2">
-            <Priority href="/admin/inventario" label="Productos con stock crítico" value={critical.length} />
-            <Priority href="/inventario/turnos" label="Cierres pendientes de aprobación" value={pendingClosures.length} />
-            <Priority href="/control-gastronomico/restaurante" label="Pedidos pagados sin aceptar" value={paidPending.length} />
-          </div>
-        </article>
-      </section>
-
-      <section className="rounded-card border border-park-border bg-white p-5 shadow-card">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-black text-park-dark">Cierre y trazabilidad</h2><p className="mt-1 text-sm text-park-muted">El relevo toma como apertura el conteo físico del turno anterior. Las diferencias, mermas y ajustes quedan auditados.</p></div><Button as={Link} to="/inventario/turnos" icon={ArrowRightLeft}>Revisar cierres</Button></div>
-        {!activeSessions.length && !pendingClosures.length ? <div className="mt-4"><EmptyState title="No hay turnos por revisar" description="Cuando Restaurante o Bar abran, envíen o cierren un turno, aparecerá aquí." /></div> : <div className="mt-4 grid gap-2 md:grid-cols-2">{[...activeSessions, ...pendingClosures].slice(0, 6).map((session) => <Link key={session.id} to="/inventario/turnos" className="flex items-center justify-between rounded-lg bg-park-bg p-3 text-sm hover:bg-park-green-soft"><span><strong className="text-park-dark">{session.area === "RESTAURANTE" ? "Restaurante" : "Bar"}</strong><span className="text-park-muted"> · {session.shift}</span></span><span className="font-bold text-park-dark">{session.statusLabel || session.status}</span></Link>)}</div>}
-      </section>
-    </div>
-  );
-}
-
-function Metric({ label, value, href, tone, compact = false }) {
-  const tones = { amber: "border-amber-200", blue: "border-blue-200", green: "border-emerald-200", red: "border-red-300", slate: "border-park-border" };
-  return <Link to={href} className={`rounded-card border bg-white p-4 shadow-card transition hover:border-park-green ${tones[tone] || tones.slate}`}><p className={`${compact ? "text-xl" : "text-2xl"} font-black text-park-dark`}>{value}</p><p className="mt-1 text-sm font-semibold text-park-muted">{label}</p></Link>;
-}
-
-function ControlCard({ icon: Icon, title, description, links }) {
-  return <article className="rounded-card border border-park-border bg-white p-5 shadow-card"><span className="grid h-11 w-11 place-items-center rounded-xl bg-park-bg text-park-green"><Icon size={21} /></span><h2 className="mt-4 font-black text-park-dark">{title}</h2><p className="mt-1 min-h-12 text-sm text-park-muted">{description}</p><div className="mt-4 grid gap-2">{links.map(([label, href]) => <Link key={href} to={href} className="rounded-lg border border-park-border px-3 py-2 text-sm font-semibold text-park-dark hover:border-park-green hover:bg-park-green-soft">{label}</Link>)}</div></article>;
-}
-
-function AreaSummary({ icon: Icon, title, orders, href }) {
-  const active = orders.filter((order) => !["ENTREGADO", "CANCELADO"].includes(order.status));
-  const delivered = orders.filter((order) => order.status === "ENTREGADO").length;
-  return <Link to={href} className="rounded-lg border border-park-border p-3 hover:border-park-green hover:bg-park-bg"><div className="flex items-center gap-2"><Icon size={18} className="text-park-green" /><strong className="text-park-dark">{title}</strong></div><p className="mt-3 text-2xl font-black text-park-dark">{active.length}</p><p className="text-xs text-park-muted">pedidos activos · {delivered} entregados</p></Link>;
-}
-
-function Priority({ href, label, value }) {
-  return <Link to={href} className="flex items-center justify-between rounded-lg bg-park-bg p-3 hover:bg-park-green-soft"><span className="text-sm font-semibold text-park-dark">{label}</span><strong className={value ? "text-park-danger" : "text-park-green"}>{value}</strong></Link>;
+  const menu = useFetch("/admin/menu-items", { initialData: [], pollInterval: 30000 });
+  const [area, setArea] = useState("TODOS"); const [saleState, setSaleState] = useState("TODOS"); const [category, setCategory] = useState("TODAS"); const [query, setQuery] = useState(""); const [selected, setSelected] = useState(null); const [saving, setSaving] = useState(false); const [notice, setNotice] = useState(""); const [failure, setFailure] = useState("");
+  const menuItems = Array.isArray(menu.data) ? menu.data : [];
+  const categories = useMemo(() => [...new Set(menuItems.filter((item) => area === "TODOS" || item.area === area).map((item) => item.category || "Sin categoría"))].sort(), [menuItems, area]);
+  const filtered = useMemo(() => menuItems.filter((item) => (area === "TODOS" || item.area === area) && (saleState === "TODOS" || (saleState === "EN_VENTA" ? item.salesEnabled === true : item.salesEnabled !== true)) && (category === "TODAS" || (item.category || "Sin categoría") === category) && `${item.name} ${item.category} ${item.code}`.toLowerCase().includes(query.toLowerCase())), [menuItems, area, saleState, category, query]);
+  if (menu.loading) return <LoadingSpinner label="Cargando carta y productos..." />;
+  if (menu.error) return <Alert tone="danger" title="No se pudo cargar la carta">{menu.error.message}</Alert>;
+  const salesEnabled = menuItems.filter((item) => item.salesEnabled === true).length;
+  async function toggleSale(item) { setSaving(true); setFailure(""); try { const next = item.salesEnabled !== true; await api(`/admin/menu-items/${item.id}/sales-enabled`, { method: "PATCH", body: { salesEnabled: next } }); await menu.reload(); setNotice(`${item.name}: venta ${next ? "habilitada" : "pausada"}.`); } catch (error) { setFailure(error.message); } finally { setSaving(false); } }
+  async function saveProduct(event) { event.preventDefault(); if (!selected) return; setSaving(true); setFailure(""); try { await api(`/admin/menu-items/${selected.id}`, { method: "PUT", body: selected }); await menu.reload(); setSelected(null); setNotice("El producto fue actualizado. Los nuevos pedidos usarán el precio y la información nueva."); } catch (error) { setFailure(error.message); } finally { setSaving(false); } }
+  return <main className="catalog-modern space-y-6 pb-10"><Toast message={notice} onClose={() => setNotice("")} /><PageHeader eyebrow="Catálogo · alimentos y bebidas" title="Carta" description="Administra los platos y bebidas que el cliente puede ver y pedir. Los pedidos, compras y cierres se gestionan en Operación e Inventario." />{failure ? <Alert tone="danger" title="No se pudo guardar">{failure}</Alert> : null}
+    <section className="catalog-modern__guide"><UtensilsCrossed size={22}/><div><strong>Una decisión simple por producto</strong><span>Busca un plato o bebida, revisa su precio y luego habilita o pausa la venta al cliente. Las recetas y gramajes se mantienen protegidos en Inventario.</span></div></section>
+    <section className="catalog-modern__catalog-summary"><div><span>{menuItems.length}</span><strong>productos en carta</strong></div><div><span>{salesEnabled}</span><strong>habilitados para vender</strong></div><div><span>{menuItems.filter((item) => item.area === "RESTAURANTE").length}</span><strong>de Restaurante</strong></div><div><span>{menuItems.filter((item) => item.area === "BARTENDER").length}</span><strong>de Bar</strong></div></section>
+    <section className="catalog-modern__filter-panel"><label><Search size={18}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar plato o bebida" /></label><div className="catalog-modern__filter-group"><span>Área</span><div className="catalog-modern__filters">{[["TODOS", "Toda la carta"], ["RESTAURANTE", "Restaurante"], ["BARTENDER", "Bar"]].map(([value, label]) => <button className={area === value ? "is-active" : ""} key={value} onClick={() => { setArea(value); setCategory("TODAS"); }} type="button">{label}</button>)}</div></div><div className="catalog-modern__filter-group"><span>Venta</span><div className="catalog-modern__filters">{[["TODOS", "Cualquier estado"], ["EN_VENTA", "Disponible"], ["PAUSADOS", "Pausada"]].map(([value, label]) => <button className={saleState === value ? "is-active" : ""} key={value} onClick={() => setSaleState(value)} type="button">{label}</button>)}</div></div><label className="catalog-modern__select-label"><span>Categoría</span><select aria-label="Filtrar por categoría" value={category} onChange={(event) => setCategory(event.target.value)}><option value="TODAS">Todas</option>{categories.map((item) => <option value={item} key={item}>{item}</option>)}</select></label></section>
+    <section><div className="catalog-modern__heading"><p>PRODUCTOS</p><h2>{filtered.length} resultado(s)</h2><span>Publicado significa que aparece en la carta. Para que el cliente lo pida, la venta y el stock de su receta deben estar listos.</span></div><div className="catalog-modern__product-list">{filtered.map((item) => <article key={item.id}><img src={item.image || ""} alt=""/><div className="catalog-modern__product-main"><strong>{item.name}</strong><span>{item.area === "BARTENDER" ? "Bar" : "Restaurante"} · {item.category}</span><small>{money(item.price)} · {item.prepMinutes || 0} min de preparación</small></div><div className="catalog-modern__product-status"><span className="is-published"><CheckCircle2 size={14}/>Publicado</span><span className={item.salesEnabled === true ? "is-selling" : "is-paused"}>{item.salesEnabled === true ? <CheckCircle2 size={14}/> : <CirclePause size={14}/>}{item.salesEnabled === true ? "Venta activa" : "Venta pausada"}</span>{item.salesEnabled === true ? <span className={item.available ? "is-selling" : "is-paused"}>{item.available ? <CheckCircle2 size={14}/> : <CirclePause size={14}/>}{item.available ? `${item.availablePortions} porciones listas` : `Sin stock${item.limitingIngredient?.productName ? `: ${item.limitingIngredient.productName}` : " o receta activa"}`}</span> : null}</div><div className="catalog-modern__product-actions"><Button size="sm" variant="secondary" onClick={() => setSelected({ ...item })}>Editar</Button><Button size="sm" disabled={saving} onClick={() => toggleSale(item)}>{item.salesEnabled === true ? "Pausar" : "Habilitar"}</Button></div></article>)}</div>{!filtered.length ? <div className="catalog-modern__empty"><PackageSearch size={25}/><strong>No encontramos productos con ese filtro</strong><span>Prueba cambiando el área, el estado de venta o la búsqueda.</span></div> : null}</section>
+    {selected ? <div className="catalog-modern__drawer-backdrop" onMouseDown={() => setSelected(null)}><form className="catalog-modern__drawer" onMouseDown={(event) => event.stopPropagation()} onSubmit={saveProduct}><div><p>EDITAR PRODUCTO</p><h2>{selected.name}</h2><span>Cambia la información comercial. La receta y los gramajes se editan en su módulo técnico.</span></div><Input label="Nombre visible" value={selected.name} onChange={(event) => setSelected({ ...selected, name: event.target.value })} /><Input label="Categoría" value={selected.category || ""} onChange={(event) => setSelected({ ...selected, category: event.target.value })} /><Input label="Precio de venta (S/)" type="number" min="0" step="0.01" value={selected.price} onChange={(event) => setSelected({ ...selected, price: event.target.value })} /><Input label="Tiempo de preparación (minutos)" type="number" min="0" value={selected.prepMinutes || 0} onChange={(event) => setSelected({ ...selected, prepMinutes: event.target.value })} /><Input label="Descripción visible" value={selected.description || ""} onChange={(event) => setSelected({ ...selected, description: event.target.value })} /><Input label="URL de imagen" type="url" value={selected.image || ""} onChange={(event) => setSelected({ ...selected, image: event.target.value })} /><div className="catalog-modern__drawer-note"><Clock3 size={17}/><span>Para cambiar ingredientes, gramajes, ml o costos, abre Recetas técnicas desde Inventario.</span></div><div className="catalog-modern__drawer-actions"><Button type="button" variant="secondary" onClick={() => setSelected(null)}>Cancelar</Button><Button type="submit" loading={saving} icon={Save}>Guardar producto</Button></div></form></div> : null}
+  </main>;
 }

@@ -12,6 +12,7 @@ operations/dist/
 *.err.log
 *.log
 server/uploads/
+backups/
 
 # Material local de diagnóstico o hardware no requerido para ejecutar el demo
 scratch/

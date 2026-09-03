@@ -32,11 +32,11 @@ export function TransformationsPage() {
   if (loading) return <LoadingSpinner />;
   return <div>
     <Toast message={message} onClose={() => setMessage("")} />
-    <PageHeader eyebrow="Inventario inteligente" title="Procesamiento, producción y porcionado" description="Transforma lotes sin perder su origen. Cada salida conserva costo, rendimiento, responsable y ruta completa hasta la materia prima." actions={<Button variant="secondary" icon={RefreshCw} onClick={refresh}>Actualizar</Button>} />
+    <PageHeader eyebrow="Inventario · preparación" title="Preparación y porcionado" description="Registra cuando un producto se limpia, se transforma en una preparación o se divide en porciones. El sistema conserva costos y lotes automáticamente." actions={<Button variant="secondary" icon={RefreshCw} onClick={refresh}>Actualizar</Button>} />
     <ProcessFlow />
     {error ? <Alert tone="danger" title="No se cargó el módulo">{error.message}</Alert> : null}
     {failure ? <div className="mb-4"><Alert tone="danger" title="No se completó la operación">{failure}</Alert></div> : null}
-    <Tabs tabs={[{ value: "PROCESSING", label: "Procesamiento" }, { value: "PRODUCTION", label: "Producción" }, { value: "PORTIONING", label: "Porcionado" }, { value: "HISTORY", label: "Historial y trazabilidad" }]} value={tab} onChange={(value) => { setTab(value); setFailure(""); }} />
+    <Tabs tabs={[{ value: "PROCESSING", label: "Limpiar o cortar" }, { value: "PRODUCTION", label: "Preparar una base" }, { value: "PORTIONING", label: "Crear porciones" }, { value: "HISTORY", label: "Ver historial" }]} value={tab} onChange={(value) => { setTab(value); setFailure(""); }} />
     <div className="mt-5">
       {tab === "PROCESSING" ? <ProcessingForm references={references} busy={busy} onSubmit={(body) => submit("processing", body)} /> : null}
       {tab === "PRODUCTION" ? <ProductionForm references={references} busy={busy} onSubmit={(body) => submit("production", body)} /> : null}

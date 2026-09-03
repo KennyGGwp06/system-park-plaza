@@ -20,7 +20,7 @@ try {
   try {
     await setup.query(`CREATE SCHEMA ${schema}`);
     await setup.query(`SET search_path TO ${schema}`);
-    for (const migration of ["001_inventory_intelligent.up.sql", "002_product_master_catalog.up.sql"]) {
+    for (const migration of ["001_inventory_intelligent.up.sql", "002_product_master_catalog.up.sql", "003_purchasing_receiving.up.sql", "004_warehouses_transfers.up.sql", "005_operational_shift_inventories.up.sql", "006_versioned_technical_recipes.up.sql"]) {
       await setup.query(await readFile(join(migrationRoot, migration), "utf8"));
     }
     await setup.query("CREATE TABLE app_state(id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
@@ -100,7 +100,9 @@ try {
   const rollback = await adminPool.connect();
   try {
     await rollback.query(`SET search_path TO ${schema}`);
-    await rollback.query(await readFile(join(migrationRoot, "002_product_master_catalog.down.sql"), "utf8"));
+    for (const migration of ["006_versioned_technical_recipes.down.sql", "005_operational_shift_inventories.down.sql", "004_warehouses_transfers.down.sql", "003_purchasing_receiving.down.sql", "002_product_master_catalog.down.sql"]) {
+      await rollback.query(await readFile(join(migrationRoot, migration), "utf8"));
+    }
     const removed = await rollback.query("SELECT to_regclass('inventory_product_cost_history') AS cost_history");
     assert.equal(removed.rows[0].cost_history, null);
     pass("Rollback del catálogo", "002 revertida en esquema aislado");

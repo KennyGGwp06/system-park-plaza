@@ -1,39 +1,98 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, XCircle, TreePine, Clock } from "lucide-react";
-import { api } from "../../services/api";
+import { api, clearToken, setToken } from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import { defaultRouteByRole } from "../../constants/menu";
+import { operationsBaseUrl } from "../../config/operations";
 
 export function AttendanceClockPage() {
   const [documentNumber, setDocumentNumber] = useState("");
   const [pin, setPin] = useState("");
   const [workerInfo, setWorkerInfo] = useState(null);
   const [status, setStatus] = useState(null); 
-  const [loading, setLoading] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [clockNow, setClockNow] = useState(Date.now());
+  const lookupRequest = useRef(0);
+  const resultTimeout = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!status?.record?.checkIn || status.record.checkOut) return undefined;
+    const interval = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [status?.record?.checkIn, status?.record?.checkOut]);
+
+  useEffect(() => {
+    const requestId = ++lookupRequest.current;
+    if (documentNumber.length === 8) {
+      // Nunca conservar datos de una búsqueda anterior mientras se valida otro DNI.
+      setWorkerInfo(null);
+      setLookupLoading(true);
+      setStatus(null);
+      api(`/attendance/lookup/${documentNumber}`)
+        .then((data) => {
+          if (requestId !== lookupRequest.current) return;
+          setWorkerInfo({ ...data, documentNumber });
+        })
+        .catch((err) => {
+          if (requestId !== lookupRequest.current) return;
+          setWorkerInfo(null);
+          setStatus({ type: 'error', message: err.message || "Trabajador no encontrado" });
+        })
+        .finally(() => {
+          if (requestId === lookupRequest.current) setLookupLoading(false);
+        });
+    } else {
+      setWorkerInfo(null);
+      setLookupLoading(false);
+      if (status?.type === 'error') setStatus(null);
+    }
+  }, [documentNumber]);
+
+  function updateDocument(value) {
+    if (resultTimeout.current) window.clearTimeout(resultTimeout.current);
+    setWorkerInfo(null);
+    setStatus(null);
+    setDocumentNumber(value.replace(/\D/g, '').slice(0, 8));
+  }
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (documentNumber.length !== 8 || pin.length !== 4) return;
+    if (!workerInfo || workerInfo.documentNumber !== documentNumber) {
+      setStatus({ type: 'error', message: 'Espera la validación del DNI antes de registrar la asistencia.' });
+      return;
+    }
 
-    setLoading(true);
+    setSubmitting(true);
     setStatus(null);
     try {
       const res = await api("/attendance/clock", { method: "POST", body: { documentNumber, pin } });
       setStatus({ 
         type: 'success', 
-        message: `Hola ${res.user}. Has registrado tu ${res.action === 'CHECK_IN' ? 'ingreso' : 'salida'} con exito.`
+        message: res.action === 'CHECK_IN'
+          ? `Hola ${res.user}. Ingreso registrado. Abriendo tu panel de trabajo…`
+          : `Hola ${res.user}. Has registrado tu salida con éxito.`,
+        record: res.record
       });
-      setDocumentNumber("");
-      setPin("");
-      setWorkerInfo(res.worker || null);
-      setTimeout(() => setStatus(null), 5000);
+      if (res.action === 'CHECK_IN' && res.session?.token) {
+        const role = res.session.user?.displayRole || res.session.user?.role;
+        resultTimeout.current = window.setTimeout(() => openWorkerPanel(role, res.session.token), 650);
+      } else {
+        clearToken();
+        setDocumentNumber("");
+        setPin("");
+        setWorkerInfo(null);
+        resultTimeout.current = window.setTimeout(() => setStatus(null), 7000);
+      }
     } catch (err) {
       setStatus({ type: 'error', message: err.message || "DNI o PIN incorrecto" });
       setDocumentNumber("");
       setPin("");
       setWorkerInfo(null);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -91,9 +150,12 @@ export function AttendanceClockPage() {
         {/* Input Section */}
         <form onSubmit={handleSubmit} className="rounded-2xl border border-white/20 bg-white/5 p-6 text-white shadow-inner">
           {status && (
-            <div className={`mb-4 flex items-center justify-center gap-2 rounded-lg p-3 font-bold ${status.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'} backdrop-blur-md`}>
-              {status.type === 'success' ? <CheckCircle2 /> : <XCircle />}
-              {status.message}
+            <div aria-live="polite" className={`mb-4 rounded-lg p-3 font-bold ${status.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'} backdrop-blur-md`} role={status.type === 'error' ? 'alert' : 'status'}>
+              <div className="flex items-center justify-center gap-2">
+                {status.type === 'success' ? <CheckCircle2 /> : <XCircle />}
+                {status.message}
+              </div>
+              {status.record ? <AttendanceSummary record={status.record} currentTime={clockNow} /> : null}
             </div>
           )}
 
@@ -101,7 +163,7 @@ export function AttendanceClockPage() {
           <input
             type="text"
             value={documentNumber}
-            onChange={(e) => { setWorkerInfo(null); setDocumentNumber(e.target.value.replace(/\D/g, '').slice(0, 8)); }}
+            onChange={(e) => updateDocument(e.target.value)}
             placeholder="Ingrese DNI..."
             className="mb-6 w-full rounded-xl border border-park-gold/50 bg-park-dark/40 px-4 py-4 text-white text-lg placeholder-white/40 outline-none backdrop-blur-md focus:border-park-gold focus:bg-park-dark/60 focus:ring-2 focus:ring-park-gold/50 transition-all text-center tracking-widest font-bold"
           />
@@ -112,7 +174,7 @@ export function AttendanceClockPage() {
             inputMode="numeric"
             autoComplete="off"
             value={pin}
-            onChange={(e) => { setWorkerInfo(null); setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             placeholder="••••"
             className="mb-6 w-full rounded-xl border border-park-gold/50 bg-park-dark/40 px-4 py-4 text-center text-lg font-bold tracking-[0.55em] text-white placeholder-white/40 outline-none backdrop-blur-md transition-all focus:border-park-gold focus:bg-park-dark/60 focus:ring-2 focus:ring-park-gold/50"
           />
@@ -120,10 +182,10 @@ export function AttendanceClockPage() {
           <div className="flex justify-center gap-4">
             <button
               type="submit"
-              disabled={documentNumber.length !== 8 || pin.length !== 4 || loading}
+              disabled={!workerInfo || documentNumber.length !== 8 || pin.length !== 4 || lookupLoading || submitting}
               className="rounded-xl bg-park-gold hover:bg-yellow-500 px-10 py-3 text-lg font-semibold text-park-dark shadow-lg backdrop-blur-md transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 border border-yellow-400"
             >
-              {loading ? 'Validando...' : 'Marcar Asistencia'}
+              {lookupLoading ? 'Buscando trabajador...' : submitting ? 'Registrando...' : 'Marcar Asistencia'}
             </button>
             <button
               type="button"
@@ -138,4 +200,45 @@ export function AttendanceClockPage() {
       </div>
     </div>
   );
+}
+
+function openWorkerPanel(role, token) {
+  if (["LIMPIEZA", "MANTENIMIENTO"].includes(role)) {
+    clearToken();
+    const target = new URL(operationsBaseUrl, window.location.origin);
+    target.hash = new URLSearchParams({ session: token }).toString();
+    window.location.replace(target.toString());
+    return;
+  }
+  setToken(token);
+  window.location.replace(defaultRouteByRole[role] || "/login");
+}
+
+function AttendanceSummary({ record, currentTime }) {
+  const checkIn = record.checkIn || record.clockIn;
+  const checkOut = record.checkOut || record.clockOut;
+  return <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/30 pt-3 text-center text-xs font-semibold sm:text-sm">
+    <TimeMetric label="Entrada" value={formatClockTime(checkIn)} />
+    <TimeMetric label="Salida" value={checkOut ? formatClockTime(checkOut) : "En turno"} />
+    <TimeMetric label="Tiempo" value={formatDuration(checkIn, checkOut, currentTime)} />
+  </div>;
+}
+
+function TimeMetric({ label, value }) {
+  return <div><p className="text-[10px] font-bold uppercase tracking-wide text-white/75">{label}</p><p className="mt-1">{value}</p></div>;
+}
+
+function formatClockTime(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true, timeZone: "America/Lima" }).format(new Date(value));
+}
+
+function formatDuration(start, end, currentTime) {
+  if (!start) return "-";
+  const milliseconds = Math.max(0, (end ? new Date(end).getTime() : currentTime) - new Date(start).getTime());
+  const seconds = Math.floor(milliseconds / 1000);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }

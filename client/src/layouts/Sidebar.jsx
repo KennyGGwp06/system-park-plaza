@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { menuSectionsByRole, permissionForHref } from "../constants/menu";
 import { useAuth } from "../context/AuthContext";
 
@@ -25,7 +25,7 @@ export function Sidebar({ open, onClose }) {
 
       <nav className="sidebar-scroll grid gap-6 overflow-y-auto px-4 py-6">
         {isV6Role ? sections.map((section) => {
-          const containsCurrentRoute = section.items.some((item) => Array.isArray(item) ? location.pathname === item[1] : item.children?.some((child) => location.pathname === child[1]));
+          const containsCurrentRoute = section.items.some((item) => Array.isArray(item) ? isMenuDestinationActive(location, item[1]) : item.children?.some((child) => isMenuDestinationActive(location, child[1])));
           const isExpanded = hasChosenV6Section ? openV6Section === section.label : containsCurrentRoute;
           return <ReceptionSidebarSection key={section.label} section={section} expanded={isExpanded} onClose={onClose} onToggle={() => { setHasChosenV6Section(true); setOpenV6Section(isExpanded ? null : section.label); }} />;
         }) : sections.map((section) => (
@@ -36,12 +36,15 @@ export function Sidebar({ open, onClose }) {
               <SidebarLink item={item} key={item[1]} onClose={onClose} receptionTheme={false} />
               ) : (
                 <SidebarGroup
-                  expanded={expanded[item.label] ?? item.children?.some((child) => location.pathname === child[1])}
+                  expanded={expanded[item.label] ?? item.children?.some((child) => isMenuDestinationActive(location, child[1]))}
                   item={item}
                   key={item.href}
                   onClose={onClose}
                   receptionTheme={false}
-                  onToggle={() => setExpanded((state) => ({ ...state, [item.label]: !(state[item.label] ?? item.children?.some((child) => location.pathname === child[1])) }))}
+                  onToggle={() => setExpanded((state) => ({
+                    ...state,
+                    [item.label]: !(state[item.label] ?? item.children?.some((child) => isMenuDestinationActive(location, child[1])))
+                  }))}
                 />
               ))}
             </div>
@@ -72,16 +75,25 @@ function ReceptionSidebarSection({ section, expanded, onToggle, onClose }) {
 
 function SidebarLink({ item, onClose, child = false, receptionTheme = false }) {
   const [label, href, Icon] = item;
+  const location = useLocation();
+  const isActive = isMenuDestinationActive(location, href);
   return (
-    <NavLink
+    <Link
       to={href}
       onClick={onClose}
-      className={({ isActive }) => `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors duration-200 ${child ? "ml-3 py-2 text-xs" : ""} ${receptionTheme ? `v6-sidebar-link ${isActive ? "is-active" : ""}` : isActive ? "bg-park-green text-white" : "text-white/75 hover:bg-white/10 hover:text-white"}`}
+      aria-current={isActive ? "page" : undefined}
+      className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors duration-200 ${child ? "ml-3 py-2 text-xs" : ""} ${receptionTheme ? `v6-sidebar-link ${isActive ? "is-active" : ""}` : isActive ? "bg-park-green text-white" : "text-white/75 hover:bg-white/10 hover:text-white"}`}
     >
       <Icon size={child ? 15 : 18} className={`transition-transform duration-200 group-hover:scale-110`} />
       <span className="drop-shadow-sm">{label}</span>
-    </NavLink>
+    </Link>
   );
+}
+
+function isMenuDestinationActive(location, href) {
+  const [targetPath, targetQuery] = href.split("?");
+  if (targetQuery !== undefined) return location.pathname === targetPath && location.search === `?${targetQuery}`;
+  return location.pathname === targetPath;
 }
 
 function SidebarGroup({ item, expanded, onToggle, onClose, receptionTheme = false }) {

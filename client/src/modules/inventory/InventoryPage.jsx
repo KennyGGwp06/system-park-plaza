@@ -9,6 +9,7 @@ import { Toast } from "../../components/Toast";
 import { useAuth } from "../../context/AuthContext";
 import { useFetch } from "../../hooks/useFetch";
 import { api } from "../../services/api";
+import { CentralStockPage } from "./CentralStockPage";
 
 const areaNames = { RESTAURANTE: "Cocina / restaurante", BARTENDER: "Bar" };
 const quantity = (value) => Number(value || 0).toLocaleString("es-PE", { maximumFractionDigits: 3 });
@@ -16,7 +17,7 @@ const money = (value) => Number(value || 0).toLocaleString("es-PE", { style: "cu
 
 export function InventoryPage() {
   const { user } = useAuth();
-  if (user?.role === "ADMINISTRADOR") return <AdminInventory />;
+  if (["ADMINISTRADOR", "SUPERADMIN"].includes(user?.role)) return <CentralStockPage />;
   return <OperationalInventory area={user?.role === "BARTENDER" ? "BARTENDER" : "RESTAURANTE"} />;
 }
 

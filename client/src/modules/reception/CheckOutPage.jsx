@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { CreditCard, LogOut, Search, WalletCards } from "lucide-react";
 import { api } from "../../services/api";
 import { useFetch } from "../../hooks/useFetch";
@@ -7,6 +8,16 @@ import { Toast } from "../../components/Toast";
 import { Button, Input, PageHeader, Tabs } from "../../components/ui";
 import { formatHotelDate as date, isHotelToday as isToday } from "../../utils/hotelDate";
 
+function CheckInOutNav() {
+  const { pathname } = useLocation();
+  return (
+    <div className="flex bg-park-bg rounded-input p-1 w-max mb-5 border border-park-border">
+      <Link to="/checkin" className={`px-4 py-1.5 rounded text-sm font-bold ${pathname === '/checkin' ? 'bg-white shadow text-park-black' : 'text-park-muted hover:text-park-dark'}`}>Check-in (Entradas)</Link>
+      <Link to="/checkout" className={`px-4 py-1.5 rounded text-sm font-bold ${pathname === '/checkout' ? 'bg-white shadow text-park-black' : 'text-park-muted hover:text-park-dark'}`}>Check-out (Salidas)</Link>
+    </div>
+  );
+}
+
 export function CheckOutPage() {
   const { data, loading, reload } = useFetch("/checkout/stays", { initialData: [] });
   const { data: dashboard } = useFetch("/dashboard", { initialData: { metrics: {} } });
@@ -14,7 +25,18 @@ export function CheckOutPage() {
   const [error, setError] = useState("");
   const [payments, setPayments] = useState({});
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState("HOY");
+  const [tab, setTab] = useState("TODOS");
+
+  async function requestInspection(stay) {
+    setError("");
+    try {
+      await api("/checkout/inspect", { method: "POST", body: { stayId: stay.id } });
+      setToast("Inspección de habitación solicitada a limpieza.");
+      reload();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   const rows = useMemo(() => (data || []).filter((stay) => {
     const text = `${stay.client?.firstName} ${stay.client?.lastName} ${stay.client?.documentNumber} ${stay.room?.number}`.toLowerCase();
@@ -36,7 +58,7 @@ export function CheckOutPage() {
       const paid = getPaid(stay);
       const amount = Number(payments[stay.id] ?? Math.max(0, total - paid));
       await api("/checkout", { method: "POST", body: { stayId: stay.id, paymentAmount: amount, paymentMethod: "EFECTIVO" } });
-      setToast("Habitacion enviada a limpieza.");
+      setToast("Check-out finalizado con éxito.");
       reload();
     } catch (err) {
       setError(err.message);
@@ -46,11 +68,12 @@ export function CheckOutPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-5">
+    <div className="hotel-modern space-y-5">
       <Toast message={toast} onClose={() => setToast("")} />
+      <CheckInOutNav />
       <PageHeader
         eyebrow="Recepcion"
-        title="Check-out"
+        title="Check-out (Salidas)"
         description="Revisa cuenta, pagos y consumos antes de enviar la habitacion a limpieza."
       />
 
@@ -113,19 +136,13 @@ export function CheckOutPage() {
                   <Input className="mt-3" type="number" value={payments[stay.id] ?? balance} onChange={(event) => setPayments({ ...payments, [stay.id]: event.target.value })} />
                 </div>
                 <div className="flex flex-col gap-2">
-                  {stay.consumptions?.some(c => ["PENDIENTE", "EN_PREPARACION"].includes(c.status)) && (
-                    <div className="flex flex-col gap-2 rounded bg-park-danger-soft p-3">
-                      <p className="text-xs font-bold text-park-danger">⚠️ Tiene pedidos de comida en curso.</p>
-                      <Button size="sm" variant="secondary" onClick={async () => {
-                        const pending = stay.consumptions.filter(c => ["PENDIENTE", "EN_PREPARACION"].includes(c.status));
-                        for (const order of pending) {
-                          await api(`/orders/${order.id}/status`, { method: "PATCH", body: { status: "CANCELADO", notes: "Cancelado en recepción (Check-out)" } });
-                        }
-                        reload();
-                      }}>Cancelar pendientes</Button>
-                    </div>
+                  {!stay.checkoutTask ? (
+                    <Button onClick={() => requestInspection(stay)} type="button">Solicitar inspección de cuarto</Button>
+                  ) : stay.checkoutTask.status !== "FINALIZADA" ? (
+                    <Button disabled variant="secondary" type="button">Esperando revisión de Limpieza...</Button>
+                  ) : (
+                    <Button onClick={() => finish(stay)} type="button">Finalizar check-out</Button>
                   )}
-                  <Button onClick={() => finish(stay)} type="button">Finalizar check-out</Button>
                   <Button variant="secondary" type="button">Ver consumos</Button>
                 </div>
               </div>

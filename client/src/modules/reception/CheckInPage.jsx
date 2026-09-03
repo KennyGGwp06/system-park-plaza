@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { CalendarCheck, CheckCircle2, ClipboardCheck, QrCode, Search, TriangleAlert, UserCheck } from "lucide-react";
 import { api } from "../../services/api";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -7,6 +7,16 @@ import { Toast } from "../../components/Toast";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { Button, Input, PageHeader, Tabs } from "../../components/ui";
 import { currentHotelDateKey, formatHotelDate, formatHotelTime, hotelDateKey, isHotelToday } from "../../utils/hotelDate";
+
+function CheckInOutNav() {
+  const { pathname } = useLocation();
+  return (
+    <div className="flex bg-park-bg rounded-input p-1 w-max mb-5 border border-park-border">
+      <Link to="/checkin" className={`px-4 py-1.5 rounded text-sm font-bold ${pathname === '/checkin' ? 'bg-white shadow text-park-black' : 'text-park-muted hover:text-park-dark'}`}>Check-in (Entradas)</Link>
+      <Link to="/checkout" className={`px-4 py-1.5 rounded text-sm font-bold ${pathname === '/checkout' ? 'bg-white shadow text-park-black' : 'text-park-muted hover:text-park-dark'}`}>Check-out (Salidas)</Link>
+    </div>
+  );
+}
 
 export function CheckInPage() {
   const location = useLocation();
@@ -72,11 +82,12 @@ export function CheckInPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-5">
+    <div className="hotel-modern space-y-5">
       <Toast message={toast} onClose={() => setToast("")} />
+      <CheckInOutNav />
       <PageHeader
         eyebrow="Recepcion"
-        title="Check-in"
+        title="Check-in (Llegadas)"
         description="Prioriza reservas pendientes y atrasadas. El pago y la habitación se validan automáticamente antes del ingreso."
         actions={<Button variant="secondary" icon={QrCode} type="button" disabled>Escanear QR</Button>}
       />

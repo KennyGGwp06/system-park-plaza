@@ -5,6 +5,12 @@ import { useAuth } from "../context/AuthContext";
 import { defaultRouteByRole } from "../constants/menu";
 
 const guides = {
+  SUPERADMIN: {
+    title: "Centro de control Park Plaza",
+    focus: "Empieza por las decisiones pendientes; después revisa servicios, dinero e inventario.",
+    actions: [["Ver operación de hoy", "/superadmin"], ["Revisar inventario", "/admin/inventario"], ["Administrar carta", "/admin/alimentos-bebidas"]],
+    steps: ["Revisa lo que necesita una decisión", "Abre el servicio que requiere atención", "Confirma que pedidos, stock y cobros quedaron actualizados"]
+  },
   ADMINISTRADOR: {
     title: "Control general del hotel",
     focus: "Revisa primero alertas, ocupación, personal activo y saldos pendientes.",
@@ -20,19 +26,19 @@ const guides = {
   RESTAURANTE: {
     title: "Pedidos de restaurante",
     focus: "Trabaja de izquierda a derecha: pendiente, preparando, listo y entregado.",
-    actions: [["Ver pedidos nuevos", "/restaurante/pedidos"], ["Ver preparación", "/restaurante/preparacion"], ["Confirmar entregas", "/restaurante/listos"]],
+    actions: [["Ver pedidos", "/restaurante/pedidos"], ["Solicitar insumos", "/restaurante/inventario/solicitudes"], ["Revisar mi stock", "/restaurante/inventario/insumos"]],
     steps: ["Acepta el pedido y revisa cantidades", "Actualiza el estado al comenzar", "Marca listo y confirma la entrega"]
   },
   BARTENDER: {
     title: "Pedidos de bar",
     focus: "Prioriza el pedido con mayor tiempo de espera y confirma cada entrega.",
-    actions: [["Ver pendientes", "/bartender/pendientes"], ["Ver preparando", "/bartender/preparando"], ["Ver entregados", "/bartender/entregados"]],
+    actions: [["Ver pedidos", "/bartender/pedidos"], ["Solicitar insumos", "/bartender/inventario/solicitudes"], ["Revisar mi stock", "/bartender/inventario/insumos"]],
     steps: ["Revisa producto y cantidad exacta", "Marca preparando para iniciar el tiempo", "Entrega y descuenta el inventario"]
   },
   LIMPIEZA: {
     title: "Turno de limpieza",
     focus: "Registra tu ingreso, atiende la prioridad más alta y finaliza con evidencia.",
-    actions: [["Ver habitaciones", "/limpieza/pendientes"], ["Consultar finalizadas", "/limpieza/finalizadas"], ["Revisar evidencias", "/limpieza/evidencias"]],
+    actions: [["Ver alertas", "/limpieza"], ["En atención", "/limpieza/en-atencion"], ["Consultar historial", "/limpieza/historial"]],
     steps: ["Confirma ingreso al turno", "Inicia la habitación asignada", "Adjunta evidencia y marca la salida"]
   }
 };
@@ -43,7 +49,7 @@ export function TrainingAssistant() {
   const [open, setOpen] = useState(false); const [showWelcome, setShowWelcome] = useState(false);
   useEffect(() => { setShowWelcome(localStorage.getItem(storageKey) !== "done"); }, [storageKey]);
   
-  if (user?.role === "RESTAURANTE" || user?.role === "BARTENDER") return null;
+  if (user?.role === "LIMPIEZA" || user?.role === "MANTENIMIENTO") return null;
   const isStart = location.pathname === defaultRouteByRole[user?.role];
   function dismiss() { localStorage.setItem(storageKey, "done"); setShowWelcome(false); }
 

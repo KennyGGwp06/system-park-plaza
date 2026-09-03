@@ -3,6 +3,9 @@
   OCUPADA: "bg-park-danger-soft text-park-danger",
   RESERVADA: "bg-park-gold-soft text-park-black",
   EN_LIMPIEZA: "bg-park-green-soft text-park-dark",
+  EN_ATENCION: "bg-blue-50 text-blue-700",
+  EN_REPARACION: "bg-blue-50 text-blue-700",
+  SOLUCIONADO: "bg-park-green-soft text-park-green",
   MANTENIMIENTO: "bg-slate-100 text-slate-700",
   FUERA_SERVICIO: "bg-park-danger-soft text-park-danger",
   CONFIRMADA: "bg-park-green-soft text-park-green",
@@ -50,10 +53,23 @@
   ,SENT: "bg-blue-100 text-blue-700"
   ,RECEIVED_WITH_DIFFERENCE: "bg-amber-100 text-amber-800"
   ,CANCELLED: "bg-slate-100 text-slate-700"
+  ,REQUESTED: "bg-park-gold-soft text-park-black"
+  ,OPEN: "bg-park-green-soft text-park-green"
+  ,OPERATING: "bg-park-green-soft text-park-green"
+  ,COUNTING: "bg-park-gold-soft text-park-black"
+  ,REOPENED: "bg-blue-100 text-blue-700"
+  ,SUBMITTED: "bg-blue-100 text-blue-700"
+  ,OBSERVED: "bg-park-danger-soft text-park-danger"
+  ,CLOSED: "bg-slate-100 text-slate-700"
+  ,ACTIVE: "bg-park-green-soft text-park-green"
+  ,ARCHIVED: "bg-slate-100 text-slate-700"
+  ,ACEPTADO: "bg-park-green-soft text-park-green"
+  ,PENDIENTE_REINTENTO: "bg-park-gold-soft text-park-black"
+  ,RECHAZADO: "bg-park-danger-soft text-park-danger"
+  ,ENVIANDO: "bg-blue-100 text-blue-700"
 };
 
-export function StatusBadge({ value }) {
-  const labels = {
+const labels = {
     PENDIENTE_PAGO: "Falta completar pago",
     PENDIENTE: "Requiere atención",
     EN_COCINA: "En cocina",
@@ -61,6 +77,9 @@ export function StatusBadge({ value }) {
     LISTO: "Listo para entregar",
     ENTREGADO: "Entregado",
     EN_LIMPIEZA: "En limpieza",
+    EN_ATENCION: "En atención",
+    EN_REPARACION: "En reparación",
+    SOLUCIONADO: "Solucionado",
     EN_REVISION: "En revisión",
     COTIZACION: "Cotización solicitada",
     CHECKED_IN: "Huésped ingresó",
@@ -76,10 +95,32 @@ export function StatusBadge({ value }) {
     ,SENT: "Enviada / en tránsito"
     ,RECEIVED_WITH_DIFFERENCE: "Recibida con diferencia"
     ,CANCELLED: "Cancelada"
+    ,REQUESTED: "Esperando aprobación"
+    ,OPEN: "Turno abierto"
+    ,OPERATING: "Turno operativo"
+    ,COUNTING: "Conteo físico"
+    ,REOPENED: "Reabierto para corregir"
+    ,SUBMITTED: "Enviado para revisión"
+    ,OBSERVED: "Devuelto con observaciones"
+    ,CLOSED: "Cerrado"
+    ,ACTIVE: "Activo"
+    ,ARCHIVED: "Archivado"
+    ,ACEPTADO: "Aceptado"
+    ,PENDIENTE_REINTENTO: "Pendiente de reintento"
+    ,RECHAZADO: "Rechazado"
+    ,ENVIANDO: "Enviando"
   };
+
+export function statusLabel(value) {
+  if (labels[value]) return labels[value];
+  const readable = String(value || "").replaceAll("_", " ").trim().toLocaleLowerCase("es-PE");
+  return readable ? readable.charAt(0).toLocaleUpperCase("es-PE") + readable.slice(1) : "Sin estado";
+}
+
+export function StatusBadge({ value }) {
   return (
-    <span title={`Estado: ${labels[value] || String(value || "").replaceAll("_", " ")}`} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${styles[value] || "bg-slate-100 text-slate-700"}`}>
-      {labels[value] || String(value || "").replaceAll("_", " ")}
+    <span title={`Estado: ${statusLabel(value)}`} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${styles[value] || "bg-slate-100 text-slate-700"}`}>
+      {statusLabel(value)}
     </span>
   );
 }

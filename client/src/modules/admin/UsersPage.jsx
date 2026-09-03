@@ -11,7 +11,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useFetch } from "../../hooks/useFetch";
 import { api } from "../../services/api";
 
-const DEFAULT_PASSWORD = "ParkPlaza123*";
 const PAGE_SIZE = 10;
 export function UsersPage() {
   const { user } = useAuth();
@@ -101,7 +100,7 @@ function UserRow({ item, currentUser, auditLogs, menuOpen, setMenuOpen, onDetail
 
 function ActionMenu({ item, isSelf, saving, onDetail, onModal, onQuickUpdate }) {
   const disabledAccess = item.status !== "ACTIVO";
-  return <div className="absolute right-4 z-20 mt-2 w-64 rounded-card border border-park-border bg-white p-2 shadow-drawer"><MenuButton icon={Eye} label="Ver informacion" onClick={() => onDetail(item)} /><MenuButton icon={Pencil} label="Editar trabajador" onClick={() => onModal({ type: "edit", user: item })} /><MenuButton icon={ShieldCheck} label="Cambiar rol/permisos" onClick={() => onModal({ type: "role", user: item })} /><MenuButton icon={CalendarDays} label="Ver asistencias" onClick={() => window.location.assign("/empleados")} /><MenuButton icon={KeyRound} label="Restablecer acceso" disabled={isSelf || saving} onClick={() => onQuickUpdate(item, { password: DEFAULT_PASSWORD, status: "ACTIVO" }, "Acceso restablecido. Contrasena temporal: ParkPlaza123*.")} /><Divider /><MenuButton icon={ShieldCheck} label={disabledAccess ? "Reactivar acceso" : "Desactivar acceso"} disabled={isSelf || saving} danger={!disabledAccess} onClick={() => onQuickUpdate(item, { status: disabledAccess ? "ACTIVO" : "INACTIVO" }, disabledAccess ? "Acceso reactivado." : "Acceso desactivado.")} /><MenuButton icon={Trash2} label="Eliminar trabajador" disabled={isSelf || saving} danger onClick={() => onQuickUpdate(item, { status: "INACTIVO" }, "El trabajador se inactivo para conservar historial.")} /></div>;
+  return <div className="absolute right-4 z-20 mt-2 w-64 rounded-card border border-park-border bg-white p-2 shadow-drawer"><MenuButton icon={Eye} label="Ver informacion" onClick={() => onDetail(item)} /><MenuButton icon={Pencil} label="Editar trabajador" onClick={() => onModal({ type: "edit", user: item })} /><MenuButton icon={ShieldCheck} label="Cambiar rol/permisos" onClick={() => onModal({ type: "role", user: item })} /><MenuButton icon={CalendarDays} label="Ver asistencias" onClick={() => window.location.assign("/empleados")} /><MenuButton icon={KeyRound} label="Restablecer acceso" disabled={isSelf || saving} onClick={() => onModal({ type: "reset", user: item })} /><Divider /><MenuButton icon={ShieldCheck} label={disabledAccess ? "Reactivar acceso" : "Desactivar acceso"} disabled={isSelf || saving} danger={!disabledAccess} onClick={() => onQuickUpdate(item, { status: disabledAccess ? "ACTIVO" : "INACTIVO" }, disabledAccess ? "Acceso reactivado." : "Acceso desactivado.")} /><MenuButton icon={Trash2} label="Eliminar trabajador" disabled={isSelf || saving} danger onClick={() => onQuickUpdate(item, { status: "INACTIVO" }, "El trabajador se inactivo para conservar historial.")} /></div>;
 }
 
 function UserDrawer({ user, roles, auditLogs, onClose, onModal }) {
@@ -115,11 +114,51 @@ function PermissionsTab({ permissions, role }) { return <section className="mt-5
 
 function UserModal({ modal, roles, onClose, onSave, saving }) {
   const target = modal.user;
-  const [form, setForm] = useState({ firstName: target?.firstName || "", lastName: target?.lastName || "", email: target?.email || "", documentNumber: target?.documentNumber || "", phone: target?.phone || "", birthDate: dateInputValue(target?.birthDate), photoUrl: target?.photoUrl || "", position: target?.position || "", hireDate: dateInputValue(target?.hireDate), username: target?.username || "", roleId: target?.roleId || target?.role?.id || "", status: target?.status || "ACTIVO" });
+  const [form, setForm] = useState({ firstName: target?.firstName || "", lastName: target?.lastName || "", email: target?.email || "", documentNumber: target?.documentNumber || "", phone: target?.phone || "", birthDate: dateInputValue(target?.birthDate), photoUrl: target?.photoUrl || "", position: target?.position || "", hireDate: dateInputValue(target?.hireDate), username: target?.username || "", roleId: target?.roleId || target?.role?.id || "", status: target?.status || "ACTIVO", password: "", pin: "" });
+  const [formError, setFormError] = useState("");
   function update(key, value) { setForm((state) => ({ ...state, [key]: value })); }
-  function submit(event) { event.preventDefault(); onSave(form, target); }
-  const title = modal.type === "role" ? "Cambiar rol/permisos" : target ? "Editar trabajador" : "Nuevo trabajador";
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"><form className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}><div className="flex items-center justify-between"><h2 className="font-sans text-xl font-black text-park-black">{title}</h2><button className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button></div>{modal.type === "create" ? <p className="mt-3 rounded-card bg-park-green-soft p-3 text-sm font-semibold text-park-green">Consulta DNI preparada para futura integracion. Por ahora ingresa los datos manualmente.</p> : null}{modal.type === "role" ? <p className="mt-3 rounded-card bg-park-gold-soft p-3 text-sm font-semibold text-park-black">El rol define los permisos y la vista operativa que vera el trabajador.</p> : null}<div className="mt-5 grid gap-4 md:grid-cols-2">{modal.type !== "role" ? <><TextInput label="DNI" value={form.documentNumber} onChange={(value) => update("documentNumber", onlyDigits(value, 12))} /><TextInput label="Usuario" value={form.username} onChange={(value) => update("username", value)} /><TextInput label="Nombres *" value={form.firstName} onChange={(value) => update("firstName", value)} required /><TextInput label="Apellidos *" value={form.lastName} onChange={(value) => update("lastName", value)} required /><TextInput label="Correo *" type="email" value={form.email} onChange={(value) => update("email", value)} required /><TextInput label="Celular" value={form.phone} onChange={(value) => update("phone", onlyDigits(value, 15))} /><TextInput label="Fecha de nacimiento" type="date" value={form.birthDate} onChange={(value) => update("birthDate", value)} /><TextInput label="Fecha de ingreso" type="date" value={form.hireDate} onChange={(value) => update("hireDate", value)} /><TextInput label="Puesto / area" value={form.position} onChange={(value) => update("position", value)} /><TextInput label="URL de fotografia" value={form.photoUrl} onChange={(value) => update("photoUrl", value)} /></> : null}<SelectControl label="Rol *" value={form.roleId} onChange={(value) => update("roleId", value)}><option value="">Seleccionar</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</SelectControl>{modal.type !== "create" ? <SelectControl label="Estado" value={form.status} onChange={(value) => update("status", value)}>{statusOptions().map((status) => <option key={status} value={status}>{status}</option>)}</SelectControl> : null}</div><div className="mt-6 flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit" loading={saving}>{modal.type === "role" ? "Cambiar rol" : target ? "Guardar cambios" : "Crear trabajador"}</Button></div></form></div>;
+  async function submit(event) {
+    event.preventDefault();
+    setFormError("");
+    if (modal.type !== "reset" && modal.type !== "role" && !/^\d{8}$/.test(form.documentNumber)) return setFormError("El DNI debe tener exactamente 8 dígitos.");
+    if (modal.type === "create" && !/^\d{4}$/.test(form.pin)) return setFormError("Asigna un PIN de asistencia de exactamente 4 dígitos.");
+    if (modal.type === "edit" && form.pin && !/^\d{4}$/.test(form.pin)) return setFormError("El nuevo PIN debe tener exactamente 4 dígitos.");
+    try { await onSave(modal.type === "reset" ? userPayload(target, { password: form.password, status: "ACTIVO" }) : form, target); }
+    catch (cause) { setFormError(cause.message || "No se pudo guardar al trabajador."); }
+  }
+  const title = modal.type === "reset" ? "Crear nueva contraseña temporal" : modal.type === "role" ? "Cambiar rol/permisos" : target ? "Editar trabajador" : "Nuevo trabajador";
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <form className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-card bg-white p-6 shadow-drawer" onSubmit={submit}>
+        <div className="flex items-center justify-between">
+          <h2 className="font-sans text-xl font-black text-park-black">{title}</h2>
+          <button className="grid h-9 w-9 place-items-center rounded-button border border-park-border" onClick={onClose} type="button"><X size={18} /></button>
+        </div>
+        {modal.type === "create" ? <p className="mt-3 rounded-card bg-park-green-soft p-3 text-sm font-semibold text-park-green">La contraseña sirve para entrar al sistema. El PIN personal de 4 dígitos sirve únicamente para iniciar y cerrar su turno con el DNI.</p> : null}
+        {modal.type === "role" ? <p className="mt-3 rounded-card bg-park-gold-soft p-3 text-sm font-semibold text-park-black">El rol define los permisos y la vista operativa que verá el trabajador.</p> : null}
+        {modal.type === "reset" ? <p className="mt-3 rounded-card bg-park-gold-soft p-3 text-sm font-semibold text-park-black">La contraseña anterior dejará de funcionar inmediatamente. Comunica la nueva clave únicamente al trabajador.</p> : null}
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {modal.type === "reset" ? (
+            <div className="md:col-span-2">
+              <TextInput label="Nueva contraseña temporal *" type="password" value={form.password} onChange={(value) => update("password", value)} required />
+              <p className="mt-2 text-xs text-park-muted">Mínimo 12 caracteres. Combina palabras, números y símbolos.</p>
+            </div>
+          ) : (
+            <>
+              {modal.type !== "role" ? <><TextInput label="DNI *" value={form.documentNumber} onChange={(value) => update("documentNumber", onlyDigits(value, 8))} inputMode="numeric" maxLength={8} required /><TextInput label="Usuario" value={form.username} onChange={(value) => update("username", value)} /><TextInput label="Nombres *" value={form.firstName} onChange={(value) => update("firstName", value)} required /><TextInput label="Apellidos *" value={form.lastName} onChange={(value) => update("lastName", value)} required /><TextInput label="Correo *" type="email" value={form.email} onChange={(value) => update("email", value)} required /><TextInput label="Celular" value={form.phone} onChange={(value) => update("phone", onlyDigits(value, 15))} inputMode="numeric" maxLength={15} /><TextInput label="Fecha de nacimiento" type="date" value={form.birthDate} onChange={(value) => update("birthDate", value)} /><TextInput label="Fecha de ingreso" type="date" value={form.hireDate} onChange={(value) => update("hireDate", value)} /><TextInput label="Puesto / area" value={form.position} onChange={(value) => update("position", value)} /><TextInput label="URL de fotografia" value={form.photoUrl} onChange={(value) => update("photoUrl", value)} /><div><TextInput label={modal.type === "create" ? "PIN de asistencia *" : "Nuevo PIN de asistencia"} type="password" value={form.pin} onChange={(value) => update("pin", onlyDigits(value, 4))} inputMode="numeric" maxLength={4} required={modal.type === "create"} /><p className="mt-2 text-xs text-park-muted">{modal.type === "create" ? "El trabajador lo usará junto con su DNI para marcar ingreso y salida." : "Déjalo vacío para conservar el PIN actual."}</p></div>{modal.type === "create" ? <div><TextInput label="Contraseña temporal del sistema *" type="password" value={form.password} onChange={(value) => update("password", value)} required /><p className="mt-2 text-xs text-park-muted">Mínimo 12 caracteres. Es distinta del PIN de asistencia.</p></div> : null}</> : null}
+              <SelectControl label="Rol *" value={form.roleId} onChange={(value) => update("roleId", value)}><option value="">Seleccionar</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</SelectControl>
+              {modal.type !== "create" ? <SelectControl label="Estado" value={form.status} onChange={(value) => update("status", value)}>{statusOptions().map((status) => <option key={status} value={status}>{status}</option>)}</SelectControl> : null}
+            </>
+          )}
+        </div>
+        {formError ? <p className="mt-4 rounded-card bg-park-danger-soft p-3 text-sm font-semibold text-park-danger">{formError}</p> : null}
+        <div className="mt-6 flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" loading={saving}>{modal.type === "reset" ? "Guardar nueva contraseña" : modal.type === "role" ? "Cambiar rol" : target ? "Guardar cambios" : "Crear trabajador"}</Button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 function Metric({ icon: Icon, label, value, hint, tone = "green" }) {
@@ -145,7 +184,7 @@ function MenuButton({ icon: Icon, label, onClick, danger, disabled }) {
 function Divider() { return <div className="my-2 border-t border-park-border" />; }
 function Panel({ title, children }) { return <section className="rounded-card border border-park-border bg-white p-4"><h3 className="mb-3 text-sm font-black uppercase text-park-muted">{title}</h3>{children}</section>; }
 function Detail({ label, value }) { return <div className="mb-3 grid grid-cols-[140px_1fr] gap-3 text-sm last:mb-0"><span className="text-park-muted">{label}</span><strong className="text-park-black">{value || "-"}</strong></div>; }
-function TextInput({ label, value, onChange, type = "text", required }) { return <label className="block"><span className="text-sm font-black text-park-black">{label}</span><input className="mt-2 h-11 w-full rounded-input border border-park-border px-3 text-sm outline-none focus:border-park-green" type={type} value={value} required={required} onChange={(event) => onChange(event.target.value)} /></label>; }
+function TextInput({ label, value, onChange, type = "text", required, inputMode, maxLength }) { return <label className="block"><span className="text-sm font-black text-park-black">{label}</span><input className="mt-2 h-11 w-full rounded-input border border-park-border px-3 text-sm outline-none focus:border-park-green" type={type} value={value} required={required} inputMode={inputMode} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} /></label>; }
 function SelectControl({ label, value, onChange, children }) { return <label className="block"><span className="text-xs font-black uppercase text-park-muted">{label}</span><select className="mt-2 h-11 w-full rounded-input border border-park-border bg-white px-3 text-sm outline-none focus:border-park-green" value={value} onChange={(event) => onChange(event.target.value)}>{children}</select></label>; }
 function Pagination({ page, pageCount, total, onPage }) {
   return <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-park-border bg-white p-4 text-sm text-park-muted shadow-card"><span>Mostrando pagina {page} de {pageCount} | {total} trabajadores</span><div className="flex gap-2"><Button type="button" variant="secondary" disabled={page <= 1} onClick={() => onPage(page - 1)}>Anterior</Button><Button type="button" variant="secondary" disabled={page >= pageCount} onClick={() => onPage(page + 1)}>Siguiente</Button></div></div>;
@@ -175,7 +214,7 @@ function initials(user) { return fullName(user).split(" ").map((part) => part[0]
 function formatDate(value) { return value ? new Date(value).toLocaleString("es-PE") : "-"; }
 function formatDateOnly(value) { return value ? new Date(value).toLocaleDateString("es-PE") : "-"; }
 function dateInputValue(value) { return value ? new Date(value).toISOString().slice(0, 10) : ""; }
-function onlyDigits(value, max) { return value.replace(/\\D/g, "").slice(0, max); }
+function onlyDigits(value, max) { return value.replace(/\D/g, "").slice(0, max); }
 function calculateAge(value) { if (!value) return "-"; const birth = new Date(value); const today = new Date(); let age = today.getFullYear() - birth.getFullYear(); const month = today.getMonth() - birth.getMonth(); if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) age -= 1; return age + " anos"; }
 function areaLabel(role) { return role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase().replaceAll("_", " ") : "Sin area"; }
 function roleLabel(role, position) { return role === "ADMINISTRADOR" && position === "ADMIN_RECEPCION" ? "Admin de recepción" : areaLabel(role); }
