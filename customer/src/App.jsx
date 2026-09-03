@@ -612,7 +612,7 @@ function Orders({ catalog, experience, onBack, onPlaced }) {
   const [area, setArea] = useState("TODOS"); const [category, setCategory] = useState("TODAS"); const [cart, setCart] = useState({}); const [busy, setBusy] = useState(false); const [notes, setNotes] = useState(""); const [destination, setDestination] = useState(""); const [paymentMethod, setPaymentMethod] = useState("YAPE"); const [error, setError] = useState("");
   useEffect(() => { if (!destinations.some((item) => item.value === destination)) setDestination(destinations[0]?.value || ""); }, [destinations, destination]);
   const [destinationKind, destinationId, destinationService] = destination.split(":"); const activeService = destinationKind === "booking" ? destinationService : destinationKind === "event" ? "EVENTOS" : null;
-  const visibleByArea = (catalog.menu || []).filter((item) => (area === "TODOS" || item.area === area) && (!activeService || menuAvailableFor(item, activeService)));
+  const visibleByArea = (catalog.menu || []).filter((item) => item.salesEnabled === true && item.available === true && (area === "TODOS" || item.area === area) && (!activeService || menuAvailableFor(item, activeService)));
   const categories = [...new Set(visibleByArea.map((item) => item.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
   const items = visibleByArea.filter((item) => category === "TODAS" || item.category === category);
   const selected = (catalog.menu || []).filter((item) => cart[item.id]);
