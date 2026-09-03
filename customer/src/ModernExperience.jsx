@@ -28,7 +28,7 @@ export function ModernWelcome({ catalog, onRegister, onLogin, onVerify, onServic
   const moveTo = (nextIndex) => {
     const normalized = (nextIndex + slides.length) % slides.length;
     if (normalized === activeIndex || transitioningRef.current) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce), (max-width: 660px)").matches) { setActiveIndex(normalized); return; }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setActiveIndex(normalized); return; }
     transitioningRef.current = true;
     gsap.timeline({ defaults: { ease: "power3.inOut" }, onComplete: () => setActiveIndex(normalized) })
       .to(visualRef.current, { xPercent: -38, rotate: -2.5, scale: .92, opacity: 0, filter: "blur(16px)", duration: .78 })
@@ -37,11 +37,6 @@ export function ModernWelcome({ catalog, onRegister, onLogin, onVerify, onServic
   useEffect(() => {
     if (!visualRef.current || !copyRef.current) return;
     gsap.killTweensOf([visualRef.current, copyRef.current]);
-    if (window.matchMedia("(prefers-reduced-motion: reduce), (max-width: 660px)").matches) {
-      gsap.set([visualRef.current, copyRef.current], { clearProps: "transform,opacity,filter" });
-      transitioningRef.current = false;
-      return;
-    }
     gsap.fromTo(visualRef.current, { xPercent: 30, rotate: 3, scale: 1.08, opacity: 0, filter: "blur(18px)" }, { xPercent: 0, rotate: 0, scale: 1, opacity: 1, filter: "blur(0px)", duration: 1.05, ease: "expo.out" });
     gsap.fromTo(copyRef.current, { y: -95, opacity: 0, filter: "blur(10px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: .92, delay: .12, ease: "power4.out", onComplete: () => { transitioningRef.current = false; } });
   }, [activeIndex]);
@@ -88,7 +83,7 @@ export function ModernHome({ client, catalog, experience, onService, onExperienc
     const image = imageRef.current;
     const copy = copyRef.current;
     const orbit = orbitRef.current;
-    if (!image || !copy || !orbit || window.matchMedia("(prefers-reduced-motion: reduce), (max-width: 760px)").matches) { setActiveIndex(normalized); return; }
+    if (!image || !copy || !orbit || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setActiveIndex(normalized); return; }
     transitioningRef.current = true;
     try {
       gsap.timeline({ defaults: { ease: "power3.inOut" }, onComplete: () => setActiveIndex(normalized) })
@@ -108,11 +103,6 @@ export function ModernHome({ client, catalog, experience, onService, onExperienc
   useEffect(() => {
     if (!imageRef.current || !copyRef.current) return;
     gsap.killTweensOf([imageRef.current, copyRef.current]);
-    if (window.matchMedia("(prefers-reduced-motion: reduce), (max-width: 760px)").matches) {
-      gsap.set([imageRef.current, copyRef.current], { clearProps: "transform,opacity,filter" });
-      transitioningRef.current = false;
-      return;
-    }
     gsap.fromTo(imageRef.current, { scale: .76, rotate: 18, opacity: 0, filter: "blur(18px)" }, { scale: 1, rotate: 0, opacity: 1, filter: "blur(0px)", duration: .95, ease: "expo.out" });
     gsap.fromTo(copyRef.current, { y: -45, opacity: 0, filter: "blur(8px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: .68, delay: .1, ease: "power4.out", onComplete: () => { transitioningRef.current = false; } });
   }, [activeIndex]);

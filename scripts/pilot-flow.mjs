@@ -53,7 +53,7 @@ async function ensureAttendance(auth) {
 }
 
 async function ensureOperationalInventory(auth, area) {
-  const today = hotelDate();
+  const today = new Date().toISOString().slice(0, 10);
   const sessions = await api(`/operational-inventory/sessions?area=${area}&date=${today}`, { token: auth.token });
   let session = sessions.find((item) => ["OPEN", "OPERATING", "REOPENED"].includes(item.status));
   if (session) return session;
@@ -67,7 +67,7 @@ async function ensureOperationalInventory(auth, area) {
 }
 
 async function closeExpiredDemoSessions(admin) {
-  const today = hotelDate();
+  const today = new Date().toISOString().slice(0, 10);
   const sessions = await api("/operational-inventory/sessions", { token: admin.token });
   const expired = sessions.filter((item) => item.date < today && item.metadata?.source === "OPERATIONAL_INVENTORY_V1" && ["OPEN", "COUNTING", "SUBMITTED", "OBSERVED"].includes(item.status));
   for (const entry of expired) {
