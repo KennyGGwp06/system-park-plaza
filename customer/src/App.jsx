@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Banknote, BedDouble, CalendarDays, Car, Check, ChevronRight, ClipboardList, Clock3, ConciergeBell, CreditCard, Download, HelpCircle, Home, LockKeyhole, Minus, Plus, QrCode, ShoppingBag, Smartphone, Sparkles, SunMedium, Users, Waves, Map, BookOpen, Wifi, Coffee, FileText, CheckCircle2, Utensils, ChefHat, Bike } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, BedDouble, CalendarDays, Car, Check, ChevronRight, ClipboardList, Clock3, ConciergeBell, CreditCard, Download, HelpCircle, Home, LockKeyhole, Minus, Plus, QrCode, ShoppingBag, Smartphone, Sparkles, SunMedium, Users, Waves, Map, BookOpen, Wifi, Coffee, FileText, CheckCircle2, Utensils, ChefHat, Bike, Search, MapPin, Leaf, Wine, GlassWater, Flame, Martini, Fish, Beer, UtensilsCrossed } from "lucide-react";
 import { io } from "socket.io-client";
 import { apiBaseUrl, apiOrigin } from "./config/api";
 import { signInWithGoogle } from "./config/firebase";
@@ -595,8 +595,6 @@ function orderDestinations(experience) {
     if (!destinations.some((item) => item.value === value)) destinations.push({ value, label: destinationLabel(serviceCode, booking) });
   };
   bookings.filter((booking) => booking.paymentStatus === "PAGADO" && (booking.status === "CHECKED_IN" || activeBookingIds.has(Number(booking.id)))).forEach((booking) => add(booking, booking.serviceCode));
-  // La Llave Maestra se activa desde el check-in de hospedaje: el huésped puede
-  // elegir si su pedido debe llegar a su habitación, Piscina o Mirador.
   activeEntitlements.filter((entry) => entry.includedByBundle && ["LISTO_INGRESO", "ACTIVO", "UTILIZADO"].includes(entry.status)).forEach((entry) => {
     const booking = bookings.find((item) => Number(item.id) === Number(entry.bookingId));
     if (booking?.status === "CHECKED_IN") add(booking, entry.serviceCode);
@@ -607,26 +605,229 @@ function orderDestinations(experience) {
 function activePassEntitlements(experience) { return (experience?.passes || (experience?.pass ? [experience.pass] : [])).flatMap((pass) => pass.entitlements || []).filter((item) => ["ACTIVO", "UTILIZADO"].includes(item.status)); }
 function canPlaceOrders(experience) { const usedBookingIds=new Set(activePassEntitlements(experience).map((item)=>Number(item.bookingId)).filter(Boolean)); return Boolean(experience?.bookings?.some((item) => item.paymentStatus === "PAGADO" && (item.status === "CHECKED_IN" || usedBookingIds.has(Number(item.id))) && !["CANCELADA", "FINALIZADA"].includes(item.status)) || experience?.events?.some((item) => item.status === "CONFIRMADO" && Number(item.balance || 0) <= 0 && item.accessStatus === "INGRESO_VALIDADO")); }
 
+function getCategoryIcon(cat) {
+  const c = (cat || "").toLowerCase();
+  if (c.includes("caf")) return Coffee;
+  if (c.includes("cerveza")) return Beer;
+  if (c.includes("ceviche")) return Fish;
+  if (c.includes("clásico")) return Wine;
+  if (c.includes("coctel") || c.includes("cóctel")) return Martini;
+  if (c.includes("frapp")) return GlassWater;
+  if (c.includes("fritura")) return Flame;
+  if (c.includes("guarnicion")) return Utensils;
+  if (c.includes("infusione")) return Leaf;
+  if (c.includes("amazónico")) return Leaf;
+  if (c.includes("criollo")) return UtensilsCrossed;
+  if (c.includes("refresco")) return GlassWater;
+  if (c.includes("saltado") || c.includes("chaufa")) return Flame;
+  if (c.includes("tiki")) return Wine;
+  return Utensils;
+}
+
 function Orders({ catalog, experience, onBack, onPlaced }) {
   const destinations = useMemo(() => orderDestinations(experience), [experience]);
-  const [area, setArea] = useState("TODOS"); const [category, setCategory] = useState("TODAS"); const [cart, setCart] = useState({}); const [busy, setBusy] = useState(false); const [notes, setNotes] = useState(""); const [destination, setDestination] = useState(""); const [paymentMethod, setPaymentMethod] = useState("YAPE"); const [error, setError] = useState("");
+  const [area, setArea] = useState("TODOS");
+  const [category, setCategory] = useState("TODAS");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [cart, setCart] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [destination, setDestination] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("YAPE");
+  const [error, setError] = useState("");
+
   useEffect(() => { if (!destinations.some((item) => item.value === destination)) setDestination(destinations[0]?.value || ""); }, [destinations, destination]);
-  const [destinationKind, destinationId, destinationService] = destination.split(":"); const activeService = destinationKind === "booking" ? destinationService : destinationKind === "event" ? "EVENTOS" : null;
-  const visibleByArea = (catalog.menu || []).filter((item) => (area === "TODOS" || item.area === area) && (!activeService || menuAvailableFor(item, activeService)));
+
+  const [destinationKind, , destinationService] = destination.split(":");
+  const activeService = destinationKind === "booking" ? destinationService : destinationKind === "event" ? "EVENTOS" : null;
+
+  const visibleByArea = (catalog.menu || []).filter((item) => item.available && (area === "TODOS" || item.area === area) && (!activeService || menuAvailableFor(item, activeService)));
   const categories = [...new Set(visibleByArea.map((item) => item.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
-  const items = visibleByArea.filter((item) => category === "TODAS" || item.category === category);
+
+  const items = visibleByArea.filter((item) => {
+    const matchCategory = category === "TODAS" || item.category === category;
+    const matchSearch = !searchTerm || item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchCategory && matchSearch;
+  });
+
   const selected = (catalog.menu || []).filter((item) => cart[item.id]);
   const total = selected.reduce((sum, item) => sum + item.price * cart[item.id], 0);
-  async function place() { setBusy(true); setError(""); try { const [kind, id, serviceCode] = destination.split(":"); await request("/public/orders", { method: "POST", body: { notes, paymentMethod, serviceCode, bookingId: kind === "booking" ? Number(id) : null, eventId: kind === "event" ? Number(id) : null, items: selected.map((item) => ({ menuItemId: item.id, quantity: cart[item.id] })) } }, true); onPlaced(); } catch (cause) { setError(cause.message); } finally { setBusy(false); } }
-  return <Page title="Carta Park Plaza" subtitle="Elige dónde recibirás el pedido. Cocina o bar lo reciben únicamente después de confirmar tu pago." onBack={onBack}><section className="card"><Field label="Servicio y punto de entrega" type="select" value={destination} options={destinations.length ? destinations : [{ value: "", label: "Aún no tienes un servicio habilitado" }]} onChange={(value) => { setDestination(value); setCart({}); }}/><small className="center">Solo aparecen servicios con pago e ingreso validados.</small></section>{!destinations.length ? <div className="empty-friendly"><ShoppingBag/><h2>Aún no puedes pedir</h2><p>Termina el pago y valida tu ingreso en Recepción o en el punto de acceso. Esta vista se actualizará automáticamente.</p><button className="primary" onClick={onBack}>Volver a mi experiencia</button></div> : <><div className="segments menu-segments">{[["TODOS", "Toda la carta"], ["RESTAURANTE", "Restaurante"], ["BARTENDER", "Bar"]].map(([value, label]) => <button key={value} className={area === value ? "active" : ""} onClick={() => { setArea(value); setCategory("TODAS"); }}>{label}</button>)}</div>{categories.length > 1 ? <div className="segments menu-segments">{[["TODAS", "Todas"], ...categories].map((entry) => { const [value, label] = Array.isArray(entry) ? entry : [entry, entry]; return <button key={value} className={category === value ? "active" : ""} onClick={() => setCategory(value)}>{label}</button>; })}</div> : null}<div className="visual-menu">{items.map((item) => <article className={!item.available ? "unavailable" : ""} key={item.id}><img src={item.image} alt={item.name}/><div className="menu-copy"><span>{item.category} · {item.area === "BARTENDER" ? "Bar" : "Cocina"}</span><h3>{item.name}</h3><p>{item.description}</p><div className="menu-tags">{(item.tags || []).map((tag) => <small key={tag}>{tag}</small>)}</div><p className="ingredients">{(item.ingredients || []).map((entry) => entry.name).join(" · ")}</p><b>S/ {item.price} · {item.prepMinutes} min</b></div><div className="qty"><button type="button" aria-label={`Quitar ${item.name}`} disabled={!item.available} onClick={() => setCart({ ...cart, [item.id]: Math.max(0, (cart[item.id] || 0) - 1) })}><Minus/></button><strong>{cart[item.id] || 0}</strong><button type="button" aria-label={`Agregar ${item.name}`} disabled={!item.available} onClick={() => setCart({ ...cart, [item.id]: (cart[item.id] || 0) + 1 })}><Plus/></button></div>{!item.available ? <span className="sold-out">Agotado</span> : null}</article>)}</div>{!items.length ? <div className="empty-friendly"><Utensils/><h2>No hay productos disponibles</h2><p>Administración debe habilitar platos o bebidas para este servicio.</p></div> : null}{selected.length ? <section className="cart-summary"><div className="cart-total"><span><b>{selected.reduce((sum, item) => sum + cart[item.id], 0)} productos</b><small>{selected.some((item) => item.area === "RESTAURANTE") && selected.some((item) => item.area === "BARTENDER") ? "Cocina y bar recibirán sus partes sincronizadas después del pago" : "El área responsable recibirá el pedido después del pago"}</small></span><strong>S/ {Number(total).toFixed(2)}</strong></div><Field label="Indicaciones para el equipo" value={notes} onChange={setNotes}/><h3>Pago inmediato</h3><PaymentMethods value={paymentMethod} onChange={setPaymentMethod}/>{paymentMethod === "CAJA HOTEL" ? <p className="error">Los pedidos desde la aplicación se pagan digitalmente. Para efectivo, solicita el pedido directamente en el área.</p> : null}{error ? <p className="error">{error}</p> : null}</section> : null}{total ? <button className="sticky primary" disabled={busy || !destination || paymentMethod === "CAJA HOTEL"} onClick={place}>{busy ? "Procesando pago…" : `Pagar y enviar pedido · S/ ${Number(total).toFixed(2)}`}</button> : null}</>}</Page>;
+  const totalItemsCount = selected.reduce((sum, item) => sum + cart[item.id], 0);
+
+  async function place() {
+    setBusy(true);
+    setError("");
+    try {
+      const [kind, id, serviceCode] = destination.split(":");
+      await request("/public/orders", { method: "POST", body: { notes, paymentMethod, serviceCode, bookingId: kind === "booking" ? Number(id) : null, eventId: kind === "event" ? Number(id) : null, items: selected.map((item) => ({ menuItemId: item.id, quantity: cart[item.id] })) } }, true);
+      onPlaced();
+    } catch (cause) {
+      setError(cause.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="page-shell carta-dark-page">
+      <header className="carta-hero">
+        <div className="top-row">
+          <button className="back" type="button" aria-label="Volver" onClick={onBack}>
+            <ArrowLeft />
+          </button>
+          <img src="/brand/park-plaza-mark.svg" alt="Park Plaza" />
+        </div>
+        <div className="carta-hero-content">
+          <small>EXPERIENCIA PARK PLAZA</small>
+          <h1><span>Carta</span> Park Plaza</h1>
+          <p>Elige dónde recibirás el pedido. Cocina o bar lo reciben únicamente después de confirmar tu pago.</p>
+          <div className="carta-features">
+            <div><Leaf size={16} /><span>Ingredientes frescos</span></div>
+            <div><ChefHat size={16} /><span>Preparación al momento</span></div>
+            <div><Clock3 size={16} /><span>Calidad en cada plato</span></div>
+          </div>
+        </div>
+      </header>
+
+      <section className="page-content carta-content">
+        <div className="delivery-selector">
+          <div className="delivery-input-wrapper">
+            <BedDouble size={20} className="delivery-icon" />
+            <div className="delivery-input-content">
+              <label>Servicio y punto de entrega</label>
+              <select value={destination} onChange={(e) => { setDestination(e.target.value); setCart({}); }}>
+                {destinations.length ? destinations.map(d => <option key={d.value} value={d.value}>{d.label}</option>) : <option value="">Aún no tienes un servicio habilitado</option>}
+              </select>
+            </div>
+          </div>
+          <div className="delivery-note">
+            <MapPin size={16} />
+            <small>Solo aparecerán servicios con pago e ingreso validado.</small>
+          </div>
+        </div>
+
+        {!destinations.length ? (
+          <div className="empty-friendly carta-empty">
+            <ShoppingBag />
+            <h2>Aún no puedes pedir</h2>
+            <p>Termina el pago y valida tu ingreso en Recepción o en el punto de acceso. Esta vista se actualizará automáticamente.</p>
+            <button className="primary" onClick={onBack}>Volver a mi experiencia</button>
+          </div>
+        ) : (
+          <>
+            <div className="carta-top-filters">
+              <div className="segments carta-segments">
+                {[["TODOS", "Toda la carta", Utensils], ["RESTAURANTE", "Restaurante", ChefHat], ["BARTENDER", "Bar", Wine]].map(([value, label, Icon]) => (
+                  <button key={value} className={area === value ? "active" : ""} onClick={() => { setArea(value); setCategory("TODAS"); }}>
+                    {Icon && <Icon size={14} />} {label}
+                  </button>
+                ))}
+              </div>
+              <div className="menu-search">
+                <Search size={16} />
+                <input type="text" placeholder="Buscar un plato..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              </div>
+            </div>
+
+            {categories.length > 0 ? (
+              <div className="categories-scroll">
+                <button className={`category-pill ${category === "TODAS" ? "active" : ""}`} onClick={() => setCategory("TODAS")}>
+                  <Utensils size={14} /> Todas
+                </button>
+                {categories.map((cat) => {
+                  const Icon = getCategoryIcon(cat);
+                  return (
+                    <button key={cat} className={`category-pill ${category === cat ? "active" : ""}`} onClick={() => setCategory(cat)}>
+                      <Icon size={14} /> {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            <div className="visual-menu carta-grid">
+              {items.map((item) => (
+                <article key={item.id} className="carta-card">
+                  <div className="carta-card-image">
+                    <img src={item.image} alt={item.name} />
+                    <span className="carta-card-category">{item.category}</span>
+                  </div>
+                  <div className="carta-card-body">
+                    <h3>{item.name}</h3>
+                    <p>{item.description}</p>
+                    <div className="carta-card-tags">
+                      {(item.tags || []).map((tag) => <small key={tag}>{tag}</small>)}
+                    </div>
+                    {item.ingredients?.length ? <p className="ingredients">{(item.ingredients || []).map((entry) => entry.name).join(" · ")}</p> : null}
+                    <div className="carta-card-footer">
+                      <div className="price-time">
+                        <b>S/ {Number(item.price).toFixed(0)}</b>
+                        <small><Clock3 size={12} /> {item.prepMinutes} min</small>
+                      </div>
+                      <div className="qty-controls">
+                        <button type="button" aria-label={`Quitar ${item.name}`} onClick={() => setCart({ ...cart, [item.id]: Math.max(0, (cart[item.id] || 0) - 1) })}><Minus size={14} /></button>
+                        <strong>{cart[item.id] || 0}</strong>
+                        <button type="button" aria-label={`Agregar ${item.name}`} onClick={() => setCart({ ...cart, [item.id]: (cart[item.id] || 0) + 1 })} className="add-btn"><Plus size={14} /></button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {!items.length ? (
+              <div className="empty-friendly carta-empty">
+                <Utensils />
+                <h2>No hay productos disponibles</h2>
+                <p>{searchTerm || category !== "TODAS" ? "No encontramos productos con esos filtros." : "Superadmin todavía no ha habilitado productos disponibles para este servicio."}</p>
+              </div>
+            ) : null}
+
+            {selected.length > 0 && (
+               <section className="cart-summary carta-summary-inline">
+                 <Field label="Indicaciones para el equipo" value={notes} onChange={setNotes}/>
+                 <h3>Pago inmediato</h3>
+                 <PaymentMethods value={paymentMethod} onChange={setPaymentMethod}/>
+                 {paymentMethod === "CAJA HOTEL" ? <p className="error">Los pedidos se pagan digitalmente.</p> : null}
+                 {error ? <p className="error">{error}</p> : null}
+               </section>
+            )}
+
+            <div className="cart-spacer"></div>
+            <div className="floating-cart">
+              <div className="floating-cart-left">
+                <div className="cart-icon-badge">
+                  <ShoppingBag size={20} />
+                  {totalItemsCount > 0 && <span className="badge">{totalItemsCount}</span>}
+                </div>
+                <div className="cart-titles">
+                  <strong>Tu pedido {totalItemsCount > 0 ? totalItemsCount : "0"}</strong>
+                  <small>{totalItemsCount > 0 ? "Revisa el total y confirma tu pago" : "Agrega platos para continuar"}</small>
+                </div>
+              </div>
+              {total > 0 && (
+                <div className="floating-cart-right">
+                  <div className="cart-total-text">
+                    <small>Total estimado</small>
+                    <strong>S/ {Number(total).toFixed(2)}</strong>
+                  </div>
+                  <button className="primary-action" disabled={busy || !destination || paymentMethod === "CAJA HOTEL"} onClick={place}>
+                    {busy ? "Procesando…" : "Ver pedido y pagar"} <ArrowRight size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </section>
+    </main>
+  );
 }
 
 function Requests({ onBack, onDone }) { 
   const [type, setType] = useState(""); 
   const [description, setDescription] = useState(""); 
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
   async function send() { 
     setBusy(true);
     setError("");

@@ -271,6 +271,13 @@ app.get("/api/public/catalog", async (_req, res, next) => {
       const salesEnabled = item.salesEnabled === true;
       return { ...hydrated, salesEnabled, available: salesEnabled && Number(operational?.availablePortions || 0) > 0, availablePortions: Number(operational?.availablePortions || 0), limitingIngredient: operational?.limitingIngredient || null };
     };
+    // El catálogo público no debe revelar productos pausados ni productos que
+    // el área todavía no puede preparar. Superadmin conserva la carta completa
+    // en /api/admin/menu-items y decide qué vuelve a publicarse.
+    const publicMenu = state.menuItems
+      .filter((item) => item.active !== false)
+      .map(publicMenuItem)
+      .filter((item) => item.salesEnabled === true && item.available === true);
     const roomMedia = roomTypeMedia(state);
     const roomGroups = Object.values(state.rooms.reduce((acc, room) => {
       const key = room.type.name;
@@ -281,9 +288,9 @@ app.get("/api/public/catalog", async (_req, res, next) => {
     const parkingSpaces = state.cochera.filter((item) => item.status === "LIBRE").map((item) => ({ id: item.id, code: item.code, type: item.type || "GENERAL" }));
     const occupiedParkingSpaces = state.cochera.filter((item) => item.status !== "LIBRE").map((item) => item.code);
     const experience = experienceCatalog(state);
-    experience.restaurantMenu = experience.restaurantMenu.map((item) => publicMenuItem(item));
+    experience.restaurantMenu = publicMenu.filter((item) => ["RESTAURANTE", "BARTENDER"].includes(item.area));
     const parkingRates = state.settings?.parkingRates || { MOTO: 0, AUTO: 15, CAMIONETA: 20, MINIVAN: 25 };
-    res.json({ services: state.services, roomTypes: roomGroups, menu: state.menuItems.filter((item) => item.active).map(publicMenuItem), eventSpaces: eventSpaces(state), experienceMedia: experienceMedia(state), ...experience, parking: { available: parkingSpaces.length, spaces: parkingSpaces, occupiedSpaces: occupiedParkingSpaces, motorcyclePrice: Number(parkingRates.MOTO || 0), carPrice: Number(parkingRates.AUTO || 0), truckPrice: Number(parkingRates.CAMIONETA || 0), vanPrice: Number(parkingRates.MINIVAN || 0) } });
+    res.json({ services: state.services, roomTypes: roomGroups, menu: publicMenu, eventSpaces: eventSpaces(state), experienceMedia: experienceMedia(state), ...experience, parking: { available: parkingSpaces.length, spaces: parkingSpaces, occupiedSpaces: occupiedParkingSpaces, motorcyclePrice: Number(parkingRates.MOTO || 0), carPrice: Number(parkingRates.AUTO || 0), truckPrice: Number(parkingRates.CAMIONETA || 0), vanPrice: Number(parkingRates.MINIVAN || 0) } });
   } catch (error) { next(error); }
 });
 
