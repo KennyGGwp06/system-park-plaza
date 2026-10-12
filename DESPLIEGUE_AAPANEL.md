@@ -49,10 +49,16 @@ Los puertos 18081 y 18082 deben estar libres. No toques los otros sitios que apa
 ## 2. Respaldar y descargar
 
 ```bash
-bash deploy/aapanel/2-respaldar-version-anterior.sh
+sudo bash deploy/aapanel/2-respaldar-version-anterior.sh
 ```
 
-El respaldo incluye base, fotos, carpeta con su configuración privada y Nginx, en `/www/backup/parkplaza/<fecha>/`.
+El respaldo reconoce las parejas `park_plaza_postgres`/`park_plaza_backend` y
+`parkplazagrupoamayocom-postgres-1`/`parkplazagrupoamayocom-backend-1`; exige una única pareja activa.
+Incluye base, fotos, carpeta con su configuración privada, Nginx y sus proxies, reescrituras y certificados
+asociados a los tres dominios de Park Plaza, en `/www/backup/parkplaza/<fecha>.<identificador>/`.
+Busca los proxies también por su ruta porque su contenido puede no mencionar el dominio.
+Valida el índice del dump, los archivos comprimidos y los hashes de todos los archivos antes de marcarlo completo.
+Este paso no detiene la versión anterior. La copia contiene claves privadas y no debe publicarse en GitHub.
 El script debe terminar correctamente y crear `RESPALDO_COMPLETO`. Descarga el respaldo a tu PC y verifica sus hashes.
 Antes de autorizar el corte con datos reales, restaura esa copia en un entorno separado y verifica reservas, cobros y fotos.
 El backup automático de v2 incluye base, fotos y SHA256; guarda también `.env.aapanel` aparte, fuera de GitHub.
