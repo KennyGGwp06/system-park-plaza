@@ -1,179 +1,130 @@
-# Subir Park Plaza v2 al servidor aaPanel (reemplazo completo, sin tumbar los demás sistemas)
+# Park Plaza v2: LOCAL → GITHUB → CLAVES/RESPALDO → NUBE
 
-Servidor: el aaPanel de producción. Hoy corre ahí la versión de septiembre de Park Plaza (carpeta
-`/www/wwwroot/GA/CLIENTES/parkplaza.grupoamayo.com`, contenedores `park_plaza_*`) junto con **otros sistemas de
-clientes**. **Ninguno de ellos se toca.**
+La reestructuración se instala al lado de la versión anterior. No borres la carpeta actual ni sus volúmenes.
+El servidor no fue modificado durante esta auditoría local. Los nombres y rutas anteriores deben confirmarse con el paso 1.
 
-## Cómo se hace sin riesgo
-1. **Se revisa** el servidor (solo lectura).
-2. **Se respalda** la versión anterior: base de datos, fotos, carpeta y configuración de Nginx.
-3. La versión nueva se instala **en otra carpeta y con otro nombre** (`parkplaza_v2`), escuchando solo dentro del
-   servidor en `127.0.0.1:18081` (ERP) y `127.0.0.1:18082` (cliente). La anterior sigue funcionando mientras tanto.
-4. Se **verifica** la nueva sin que nadie la vea todavía.
-5. Se **cambia el proxy** de los dominios: es cambiar un número de puerto en aaPanel. Si algo falla, se vuelve a poner
-   el anterior y listo.
-6. Recién entonces se **apaga** (no se borra) la versión anterior.
+## Antes de empezar
 
-Nunca se ejecuta `docker system prune`, `docker compose down -v`, ni se reinicia Docker o Nginx (aaPanel solo *recarga*
-la configuración de un sitio). Los otros sitios no se enteran.
+- La versión revisada está en la rama `auditoria/2026-10-12` de https://github.com/KennyGGwp06/system-park-plaza.
+- La carta trae 91 productos originales (29 de Restaurante y 62 de Bar), todos con imagen asignada en el código.
+  Las presentaciones comparten fotos; el cóctel Piscina Park Plaza usa la foto de piscina elegida por el dueño.
+- El dueño confirmó que la nube tiene solo demostración. El ZIP `parkplaza-v2-auditado-20261012.zip` incluye
+  `datos/parkplaza.dump`, `datos/uploads.tgz` y sus hashes: operación vacía y 14 productos habilitados para pedidos.
+  El paquete se restauró y verificó en otra base local. Contiene usuarios demo y configuración privada: **no subirlo a GitHub**.
+- Una base nueva carga la carta con la venta pausada. Se habilita cada producto desde el dueño cuando tiene receta
+  técnica vigente y stock; no se simulan existencias para vender. La copia local actual tiene 14 productos disponibles.
+- Si la nube tiene reservas, pagos o clientes reales, **no importes una base local de demostración**: conserva el
+  respaldo y ensaya su migración en una copia aislada antes del corte. Esta auditoría no certifica la migración de
+  la base de septiembre porque todavía no se inspeccionó ese respaldo.
+- Las claves usuario = contraseña y SUNAT_MODE=demo son únicamente de demostración. Cambia las claves antes de
+  usar datos reales; la emisión demo no es una emisión fiscal real.
 
-| Dominio | Antes | Después |
-|---|---|---|
-| `parkplaza.grupoamayo.com` | ERP v1 (puerto 5173) | **ERP v2** → `127.0.0.1:18081` |
-| `cliente.parkplaza.grupoamayo.com` | App del cliente v1 (4173) | **App del cliente v2** → `127.0.0.1:18082` |
-| `operaciones.parkplaza.grupoamayo.com` | App de operaciones v1 (4174) | Ya no existe en v2: Limpieza y Mantenimiento entran al ERP. Se redirige al ERP. |
+## 0. Obtener el código en otra carpeta
 
-> Los puertos "Antes" son los de la configuración de septiembre; el paso 1 muestra los reales.
+En aaPanel → Files usa una carpeta nueva, `/www/wwwroot/GA/CLIENTES/parkplaza-v2`.
+Puedes subir y extraer el ZIP preparado o, desde Terminal, clonar:
 
-## Reemplazo completo el mismo día (lo vigente)
-El dueño decidió quitar la versión anterior y dejar solo la nueva. Orden, todo en una sesión:
-**1 → 2 → 3 → 4 → 5 → 6 → 8.** La versión anterior se borra recién al final, cuando la nueva ya responde en los
-dominios, y queda su respaldo (paso 2). El corte que ven los usuarios es solo el instante del cambio de proxy (paso 5).
-
-## Fotos de la carta (por qué antes no subieron)
-89 de las 96 fotos de platos se subieron desde el ERP: **no están en el código ni en GitHub**, viven en el volumen de
-fotos de Docker. Si solo se sube el código, la carta llega sin fotos. Este paquete las trae en `datos/uploads.tgz`
-(con la base en `datos/parkplaza.dump`) y el paso 3 las carga. Verificado el 2026-10-12 instalando el zip desde cero:
-96 platos y 194/194 fotos servidas por la app del cliente y el ERP. Si más adelante se suben fotos nuevas en la PC,
-hay que regenerar `uploads.tgz` (ver *Opción B* en el historial de la guía o pedirlo) antes de volver a subir.
-
-## Orden de trabajo para cada mejora
-**LOCAL → GITHUB → CLAVES/RESPALDO → NUBE**: se prueba en la PC, se sube a GitHub, se respalda la nube (paso 2) y se
-guardan sus claves (`.env.aapanel`), y recién entonces se despliega.
-
-## Credenciales (sin correo)
-| Usuario | Clave | Entra a |
-|---|---|---|
-| `superadmin` | `superadmin` | Centro de dirección (dueño) |
-| `recepcion` | `recepcion` | Recepción |
-| `cocina` | `cocina` | Cocina |
-| `bar` | `bar` | Bar |
-| `limpieza` | `limpieza` | Limpieza |
-| `mantenimiento` | `mantenimiento` | Mantenimiento |
-
-Reloj de asistencia (`/reloj`, DNI + PIN): Rosa 70000002/2222, Carlos 70000003/3333, Luis 70000004/4444, Ana 70000005/5555, Jorge 70000007/6666.
-Las claves se cambian en ERP › Sistema › Usuarios (recomendado antes de operar con clientes reales).
-
----
-
-## Paso 0 — Subir los archivos
-Lo que hay que subir está en la PC, en `C:\Dev\Clientes\park_plaza_ejem\subir-aapanel\`:
-- `parkplaza-v2.zip`: el sistema (sin `node_modules`) **con la carpeta `datos/`** (base en día cero con la carta real y las fotos).
-
-En aaPanel › **Files** › `/www/wwwroot/GA/CLIENTES/` › **New** › carpeta **`parkplaza-v2`** › entra › **Upload** el zip ›
-clic derecho › **Unzip** (ahí mismo). **No** lo descomprimas dentro de la carpeta anterior.
-
-Desde aquí todo es en aaPanel › **Terminal**:
 ```bash
-cd /www/wwwroot/GA/CLIENTES/parkplaza-v2
+cd /www/wwwroot/GA/CLIENTES
+git clone --branch auditoria/2026-10-12 --single-branch https://github.com/KennyGGwp06/system-park-plaza.git parkplaza-v2
+cd parkplaza-v2
 ```
 
-## Paso 1 — Revisar (no cambia nada)
+Si ya existe esa carpeta, revisa su contenido antes de usarla; no clones encima de la instalación actual.
+Las fotos incluidas en Git se sirven como respaldo de las fotos del volumen: las nuevas subidas desde el ERP tienen prioridad.
+Un ZIP de código no transporta las fotos nuevas subidas después de esta auditoría; esas necesitan respaldar el volumen.
+
+## 1. Revisar el servidor (solo lectura)
+
 ```bash
 bash deploy/aapanel/1-revisar-servidor.sh
 ```
-Fíjate en:
-- **Memoria libre**: conviene ≥ 1,5 GB disponibles (si no, aaPanel › Linux Tools › Swap de 2 GB).
-- Los puertos **18081 y 18082 libres**.
-- La sección **"A dónde apunta hoy cada dominio"**: anota los puertos `proxy_pass` actuales (servirán para volver atrás).
 
-## Paso 2 — Respaldar la versión anterior
+Anota los puertos actuales de los tres dominios y confirma la carpeta y los contenedores de Park Plaza.
+Los puertos 18081 y 18082 deben estar libres. No toques los otros sitios que aparecen en tu aaPanel.
+
+## 2. Respaldar y descargar
+
 ```bash
 bash deploy/aapanel/2-respaldar-version-anterior.sh
 ```
-Queda todo en `/www/backup/parkplaza/<fecha>/` (base, fotos, carpeta y Nginx). **Descarga esa carpeta a tu PC**
-(aaPanel › Files › clic derecho › Download). Opcional: en aaPanel › Website › parkplaza › *Backup*, botón *Backup*.
 
-## Paso 3 — Instalar la versión nueva al lado
+El respaldo incluye base, fotos, carpeta con su configuración privada y Nginx, en `/www/backup/parkplaza/<fecha>/`.
+El script debe terminar correctamente y crear `RESPALDO_COMPLETO`. Descarga el respaldo a tu PC y verifica sus hashes.
+Antes de autorizar el corte con datos reales, restaura esa copia en un entorno separado y verifica reservas, cobros y fotos.
+El backup automático de v2 incluye base, fotos y SHA256; guarda también `.env.aapanel` aparte, fuera de GitHub.
+
+## 3. Instalar v2 aislada
+
 ```bash
 bash deploy/aapanel/3-instalar-version-nueva.sh
 ```
-Genera las claves internas (`.env.aapanel`), construye, levanta `parkplaza_v2-*`, carga la base y las fotos de `datos/`
-y termina con la verificación. La primera vez tarda de 5 a 10 minutos. Debe terminar con **`Todo OK`** y
-"los dominios SIGUEN mostrando la versión anterior" (correcto: aún no se cambió nada visible).
 
-**Guarda las claves:** descarga `parkplaza-v2/.env.aapanel` (aaPanel › Files › Download) y guárdalo junto al respaldo.
-Tiene la clave de la base de datos y el secreto de las sesiones: sin él no se puede restaurar ni reinstalar con los
-mismos datos. No lo subas a GitHub.
+Genera `.env.aapanel` con claves internas aleatorias, construye con Node 22 y levanta únicamente `parkplaza_v2`.
+Descarga ese archivo y guárdalo con el respaldo. No lo publiques en GitHub ni lo pegues en un chat.
 
-## Paso 4 — Verificar (cuantas veces quieras)
+Si existe el paquete privado `datos/parkplaza.dump`, también debe existir `datos/uploads.tgz`: se restaura únicamente
+la base nueva, con el backend detenido y una transacción. Un fallo detiene la instalación y no crea `datos/.cargado`.
+Ese paquete sirve para la demostración preparada, no para reemplazar los datos reales de la nube.
+Sin paquete privado se crea una base nueva con la carta completa; revisa existencias y habilita las ventas necesarias.
+
+## 4. Verificar antes de cambiar dominios
+
 ```bash
 bash deploy/aapanel/4-verificar.sh
 ```
-Prueba la API, la app del cliente, el ingreso de las 6 cuentas y la carta.
 
-## Paso 5 — Cambiar los dominios a la versión nueva (en aaPanel)
-Para cada sitio, en aaPanel › **Website**:
+Revisa el ERP y cliente nuevos usando un túnel SSH o acceso local del servidor a 127.0.0.1:18081 y 18082.
+El script comprueba salud, accesos demo, los 91 productos y sus fotos; falla si falta alguna foto.
+En una instalación con contraseñas propias, sustituye las comprobaciones demo por ingresos con las cuentas reales.
+Prueba reservas, pedidos, cobros, devoluciones y descargas antes del corte. Nunca ejecutes pruebas que crean ventas sobre datos reales.
 
-**`parkplaza.grupoamayo.com` → 18081**
-- Si el sitio usa la pestaña **Reverse proxy**: edita el proxy y cambia la URL destino a `http://127.0.0.1:18081` › Guardar.
-- Si el proxy está escrito en **Conf**: cambia el puerto de cada `proxy_pass http://127.0.0.1:XXXX;` por `18081` › Guardar.
-  (Plantilla completa, con websocket, en `deploy/aapanel/nginx-sitio.conf`.)
+## 5. Cambio de proxy en aaPanel
 
-**`cliente.parkplaza.grupoamayo.com` → 18082**: lo mismo con `18082`.
+En **Website → sitio → Reverse proxy**, cambia solo la URL de destino:
 
-**`operaciones.parkplaza.grupoamayo.com`**: en el sitio › **Redirect** › redirigir todo a `https://parkplaza.grupoamayo.com`
-(o cambia su proxy a `18081`).
+| Sitio | Destino nuevo |
+|---|---|
+| parkplaza.grupoamayo.com | http://127.0.0.1:18081 |
+| cliente.parkplaza.grupoamayo.com | http://127.0.0.1:18082 |
+| operaciones.parkplaza.grupoamayo.com | Redirección al ERP, porque Limpieza y Mantenimiento ahora están allí |
 
-El SSL de los sitios no se toca: sigue el mismo certificado. Comprueba:
+Conserva SSL y revisa el bloque de WebSocket en `deploy/aapanel/nginx-sitio.conf`.
+Si modificas **Conf**, adapta únicamente los bloques del proxy de Park Plaza. Las reglas de estáticos que busquen
+archivos en la carpeta vieja pueden impedir que se carguen los assets del contenedor; no las quites de otros sitios.
+Con datos reales, coordina una breve pausa de escrituras y una copia final antes de cambiar el proxy: el respaldo de
+unas horas antes no contiene las reservas ni cobros posteriores. No permitas operaciones simultáneas en v1 y v2.
+
+Después del cambio:
+
 ```bash
-bash deploy/aapanel/4-verificar.sh     # debe decir "ya muestra la versión NUEVA" para los dos dominios
+bash deploy/aapanel/4-verificar.sh --require-domains
 ```
-En el navegador: `https://parkplaza.grupoamayo.com` → usuario `superadmin`, clave `superadmin`. Si la pantalla
-sale en blanco, recarga con Ctrl+F5 (caché del navegador).
 
-## Paso 6 — Apagar la versión anterior
-Solo cuando la nueva ya se ve en los dominios y la probaste:
-```bash
-bash deploy/aapanel/6-apagar-version-anterior.sh
-```
-Detiene únicamente `park_plaza_*` (no borra nada). La carpeta vieja puede quedarse unas semanas; después se puede
-borrar junto con sus volúmenes, una vez descargado el respaldo del paso 2.
+Ambos dominios deben servir la versión nueva y pasar la verificación. Con las cuentas reales comprueba también los flujos.
+Solo entonces puedes apagar v1 con `bash deploy/aapanel/6-apagar-version-anterior.sh`; sus datos siguen conservados.
+No uses el script de borrado para este despliegue. No ejecutes `down -v` ni `docker system prune`.
 
-## Paso 8 — Borrar la versión anterior (1 o 2 semanas después)
-Cuando la nueva lleva días funcionando y el respaldo del paso 2 está descargado en tu PC:
-```bash
-bash deploy/aapanel/8-borrar-version-anterior.sh
-```
-Borra solo los contenedores, volúmenes, imágenes y la carpeta de la versión de septiembre. Pide escribir `BORRAR` y se
-niega si falta el respaldo, si los dominios aún no muestran la nueva o si la anterior sigue encendida. Después quita
-en aaPanel › Website el sitio `operaciones.parkplaza…` si ya no lo quieres.
+## Volver atrás
 
-## Plan B — Volver atrás
 ```bash
 bash deploy/aapanel/7-volver-atras.sh
 ```
-y en aaPanel devuelve el proxy de cada sitio a su puerto anterior (paso 1 / respaldo `nginx/`). En segundos vuelve la
-versión de septiembre, con sus datos.
 
----
+Devuelve los proxies a los puertos que anotaste en el paso 1. Si v2 ya recibió movimientos reales, pausa las escrituras
+antes de volver y conserva esos movimientos para conciliarlos; encender v1 no migra las operaciones nuevas.
 
-## Después de subirlo
-- **Configuración general** (ERP › Sistema): RUC, razón social, dirección fiscal y ubigeo (para boletas y facturas),
-  números reales de Yape y Plin, dirección y teléfono del hotel.
-- **Google en la app del cliente**: en Firebase (proyecto `logincon-936a3`) › Authentication › Settings ›
-  Authorized domains, agrega `cliente.parkplaza.grupoamayo.com`.
-- **Respaldos**: el servicio `backup` deja una copia diaria en `parkplaza-v2/backups/` (14 días). Conviene una tarea en
-  aaPanel › Cron que copie esa carpeta fuera del servidor.
-- **Volver a día cero** (borra clientes, reservas y pagos de prueba; conserva configuración, carta y fotos):
-  ```bash
-  docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel exec backend node scripts/clean-operational-demo.js
-  ```
-- **Actualizar a otra versión**: sube los archivos nuevos encima de `parkplaza-v2` (sin borrar `.env.aapanel`,
-  `datos/.cargado` ni `backups/`) y ejecuta
-  `docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel up -d --build`.
-- **Ver errores**: `docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel logs --tail 100 backend`.
+## Actualizaciones posteriores
 
-## Facturación electrónica real
-Hoy está en `SUNAT_MODE=demo` (XML UBL 2.1 con hash, CDR y PDF con QR, sin enviar a SUNAT). Para emitir de verdad se
-necesita un OSE/PSE y el certificado digital del hotel; con su URL y token se pone en `.env.aapanel`
-`SUNAT_MODE=beta` (pruebas) y luego `production`, y se ejecuta `up -d`.
+Dentro de la carpeta v2, respalda primero base, fotos y configuración; verifica el respaldo en otra instalación.
+Luego obtén el commit revisado de GitHub con `git pull --ff-only` (en la rama aprobada) y ejecuta:
 
-## Problemas comunes
-| Síntoma | Solución |
-|---|---|
-| Pantalla en blanco, 404 en `/assets/…` | En el **Conf** del sitio hay reglas de estáticos de aaPanel (`location ~ .*\.(js|css)?$`): bórralas. |
-| 502 Bad Gateway | `docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel ps` y `logs backend`. |
-| No se actualiza "en vivo" | El proxy del sitio no pasa el websocket: usa el bloque `/socket.io/` de `nginx-sitio.conf`. |
-| La cámara de Recepción no lee QR | El sitio debe abrirse con `https://`. |
-| "Usuario o contraseña incorrectos" | Usuario en minúsculas (`superadmin`), sin correo. |
+```bash
+docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel up -d --build
+bash deploy/aapanel/4-verificar.sh --require-domains
+```
+
+Conserva `.env.aapanel`, `backups/`, `datos/.cargado` y los volúmenes. No vuelvas a importar el paquete inicial.
+Para el backup inicial de v1 se usa el paso 2; para v2 revisa el servicio backup y guarda también la configuración Nginx.
+
+Referencia del panel: https://www.aapanel.com/docs/Function/proxy.html

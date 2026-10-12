@@ -1,0 +1,57 @@
+# Copia de QA aislada. Nunca comparte la base ni las fotos con la instalación local.
+name: parkplaza_audit_20261012
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:-hotel_park_plaza}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  backend:
+    image: parkplaza-audit-backend
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      NODE_ENV: production
+      PARK_PLAZA_DEMO: "true"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-hotel_park_plaza}
+      JWT_SECRET: ${JWT_SECRET:?}
+      DEMO_STAFF_PASSWORD: ${DEMO_STAFF_PASSWORD:-ParkPlaza123*}
+      FRONTEND_URL: http://localhost:18573
+      CUSTOMER_URL: http://localhost:18473
+      UPLOAD_DIR: /app/uploads
+      TRUST_PROXY: "1"
+    ports: ["127.0.0.1:18300:3000"]
+    volumes: ["uploads_data:/app/uploads"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  frontend:
+    image: parkplaza-audit-frontend
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        VITE_API_URL: /api
+    ports: ["127.0.0.1:18573:80"]
+    depends_on: [backend]
+  customer:
+    image: parkplaza-audit-customer
+    build:
+      context: .
+      dockerfile: customer/Dockerfile
+      args:
+        VITE_API_URL: /api
+    ports: ["127.0.0.1:18473:80"]
+    depends_on: [backend]
+volumes:
+  postgres_data:
+  uploads_data:

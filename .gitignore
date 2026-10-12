@@ -13,6 +13,9 @@ operations/dist/
 *.log
 server/uploads/
 backups/
+datos/
+*.dump
+*.tgz
 
 # Material local de diagnóstico o hardware no requerido para ejecutar el demo
 scratch/

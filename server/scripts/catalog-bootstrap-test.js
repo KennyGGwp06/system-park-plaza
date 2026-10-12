@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { initialCatalog, publicCatalogItem } from "../src/catalog-bootstrap.js";
+const source = JSON.parse(await readFile(new URL("../data/park-plaza-original-catalog.json", import.meta.url)));
+const base = { menuItems: [], inventory: [], bookings: [], payments: [], users: [{ id: 1 }] };
+const initial = initialCatalog(base, source);
+assert.equal(base.menuItems.length, 0);
+assert.equal(initial.menuItems.length, 91);
+assert.equal(initial.menuItems.filter(item => item.area === "RESTAURANTE").length, 29);
+assert.ok(initial.inventory.every(item => item.stock === 0 && item.reserved === 0));
+assert.ok(initial.menuItems.every(item => item.salesEnabled === false && !("recipeVersionId" in item)));
+assert.deepEqual(initial.users, base.users);
+const item = { ...source.menuItems[0], salesEnabled: true, recipeCost: 999 };
+assert.equal(publicCatalogItem(item, { availablePortions: 1 }).available, true);
+assert.equal(publicCatalogItem(item, { availablePortions: 0 }).available, false);
+assert.equal(publicCatalogItem({ ...item, salesEnabled: false }, { availablePortions: 50 }).available, false);
+assert.equal(publicCatalogItem({ ...item, image: "/catalog/restaurant-menu-placeholder.png" }).photoPending, true);
+assert.equal("recipeCost" in publicCatalogItem(item), false);
+assert.equal("recipe" in publicCatalogItem(item), false);
+const manifest = JSON.parse(await readFile(new URL("../data/menu-image-manifest.json", import.meta.url)));
+assert.equal(manifest.images.length, 91);
+assert.equal(manifest.missing.length, 0);
+assert.equal(new Set(manifest.images.map(image => image.menuItemId)).size, 91);
+for (const image of manifest.images) {
+  const bytes = await readFile(new URL(`../public/menu/${image.file}`, import.meta.url));
+  assert.equal(bytes.length, image.bytes);
+  assert.equal(createHash("sha256").update(bytes).digest("hex"), image.sha256);
+  assert.equal(initial.menuItems.find(item => item.id === image.menuItemId).image, image.url);
+}
+console.log("OK: carta nueva 91 productos, stock cero, venta protegida, datos privados y 91 fotos con SHA256");

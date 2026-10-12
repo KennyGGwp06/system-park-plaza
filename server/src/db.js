@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { assignOpeningLots, migrateLegacyInventory, relationalInventoryStatus, synchronizeLegacyInventory } from "./inventory-relational.js";
 import { migrateUp } from "./migrations.js";
 import { stabilizeLegacyState } from "./state-stabilization.js";
+import { initialCatalog } from "./catalog-bootstrap.js";
 
 const { Pool } = pg;
 export const db = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -79,7 +80,10 @@ export async function initializeDatabase() {
 async function initializeDatabaseLocked() {
   await db.query(`CREATE TABLE IF NOT EXISTS app_state (id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   const existing = await db.query("SELECT id FROM app_state WHERE id = 1");
-  if (!existing.rowCount) await db.query("INSERT INTO app_state (id, data) VALUES (1, $1::jsonb)", [JSON.stringify(createDemoState())]);
+  if (!existing.rowCount) {
+    const source = JSON.parse(await readFile(new URL("../data/park-plaza-original-catalog.json", import.meta.url), "utf8"));
+    await db.query("INSERT INTO app_state (id, data) VALUES (1, $1::jsonb)", [JSON.stringify(initialCatalog(createDemoState(), source))]);
+  }
   await migrateUp(db);
   const client = await db.connect();
   try {

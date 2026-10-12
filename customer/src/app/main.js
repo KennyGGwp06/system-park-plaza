@@ -6,6 +6,7 @@ import { visitBarAction, loadAvail } from "./visits.js";
 import { eventBarAction, loadEvAvail } from "./events.js";
 import "./site.js";
 import "./estadia.js";
+import "./carta.js";
 import { googleAuthError } from "./google-auth.js";
 
 /* ---------- Identificación ---------- */

@@ -6,7 +6,7 @@
 # Uso: bash deploy/aapanel/6-apagar-version-anterior.sh
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-if ! bash deploy/aapanel/4-verificar.sh | grep -q "ya muestra la versión NUEVA"; then
+if ! bash deploy/aapanel/4-verificar.sh --require-domains; then
   echo "Los dominios todavía no muestran la versión nueva. Cambia primero el proxy en aaPanel (paso 5)."; exit 1
 fi
 ANTERIORES=$(docker ps --format '{{.Names}}' | grep -E '^park_plaza_(frontend|customer|operations|backend|postgres|backup)$' || true)

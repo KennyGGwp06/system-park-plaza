@@ -41,12 +41,16 @@
     "prueba:negocio": "node scripts/pruebas/recorrido-negocio.mjs",
     "prueba:botones": "node scripts/pruebas/botones.cjs",
     "aapanel:preflight": "node scripts/production/preflight.mjs .env.aapanel aapanel",
-    "aapanel:up": "docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel up -d --build"
+    "aapanel:up": "docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel up -d --build",
+    "test:catalog-bootstrap": "node server/scripts/catalog-bootstrap-test.js",
+    "prueba:carta": "node scripts/pruebas/carta.cjs"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "puppeteer-core": "^25.13.0"
   },
   "overrides": {
-    "qs": "^6.16.0"
+    "qs": "^6.16.0",
+    "@grpc/grpc-js": "^1.14.5"
   }
 }

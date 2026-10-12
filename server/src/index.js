@@ -10,6 +10,7 @@ import { REFUND_WINDOW_HOURS, buildRefundCandidates, completeRefund, createRefun
 import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import jwt from "jsonwebtoken";
 import morgan from "morgan";
 import QRCode from "qrcode";
@@ -48,6 +49,7 @@ import { buildMiradorOverview } from "./mirador-reservations.js";
 import { buildTerrazaOverview } from "./terraza-reservations.js";
 import { buildEventsOverview } from "./events-overview.js";
 import { buildReceptionDesk, buildReceptionPlanning, buildReceptionSearch } from "./reception-desk.js";
+import { publicCatalogItem } from "./catalog-bootstrap.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -166,6 +168,9 @@ app.use("/api", (_req, res, next) => {
   res.set("Expires", "0");
   next();
 });
+// Las fotos publicadas en Git acompañan al código. Las nuevas del volumen tienen prioridad.
+app.use("/uploads/menu", express.static(menuUploadDir, { maxAge: "7d", immutable: true }));
+app.use("/uploads/menu", express.static(fileURLToPath(new URL("../public/menu/", import.meta.url)), { fallthrough: false, maxAge: "7d", immutable: true }));
 app.use("/uploads", express.static(uploadRoot, { fallthrough: false, maxAge: "7d", immutable: true }));
 app.use(morgan(isProduction ? "combined" : "dev"));
 // Aviso de cambios en tiempo real. Los cambios que ocurren dentro de 250 ms se agrupan en un solo aviso:
@@ -359,15 +364,14 @@ app.get("/api/public/catalog", async (_req, res, next) => {
     const publicMenuItem = (item) => {
       const hydrated = hydrateMenuItem(state, item);
       const operational = operationalByMenu.get(Number(item.id));
-      const salesEnabled = item.salesEnabled === true;
-      return { ...hydrated, salesEnabled, available: salesEnabled && Number(operational?.availablePortions || 0) > 0, availablePortions: Number(operational?.availablePortions || 0), limitingIngredient: operational?.limitingIngredient || null };
+      return publicCatalogItem(hydrated, operational);
     };
-    // El ERP conserva los 91 productos. La experiencia del cliente recibe
-    // únicamente los que Superadmin habilitó y el área puede preparar.
-    const publicMenu = state.menuItems
+    // La carta muestra todos los productos activos. Para pedidos se entregan
+    // únicamente los habilitados que el área puede preparar con su stock.
+    const fullMenu = state.menuItems
       .filter((item) => item.active !== false)
-      .map(publicMenuItem)
-      .filter((item) => item.salesEnabled === true && item.available === true);
+      .map(publicMenuItem);
+    const publicMenu = fullMenu.filter((item) => item.available === true);
     const roomMedia = roomTypeMedia(state);
     const roomGroups = Object.values(state.rooms.reduce((acc, room) => {
       const key = room.type.name;
@@ -382,7 +386,7 @@ app.get("/api/public/catalog", async (_req, res, next) => {
     const parkingRates = state.settings?.parkingRates || { MOTO: 0, AUTO: 15, CAMIONETA: 20, MINIVAN: 25 };
     const settings = state.settings || {};
     const hotel = { name: settings.hotelName || "Hotel Park Plaza", address: settings.address || "", phone: settings.phone || "", email: settings.email || "", yapeNumber: settings.yapeNumber || "", plinNumber: settings.plinNumber || "", payHolder: settings.payHolder || settings.legalName || settings.hotelName || "" };
-    const body = JSON.stringify({ hotel, services: state.services, roomTypes: roomGroups, menu: publicMenu, eventSpaces: eventSpaces(state), experienceMedia: experienceMedia(state), ...experience, parking: { available: parkingSpaces.length, spaces: parkingSpaces, occupiedSpaces: occupiedParkingSpaces, motorcyclePrice: Number(parkingRates.MOTO || 0), carPrice: Number(parkingRates.AUTO || 0), truckPrice: Number(parkingRates.CAMIONETA || 0), vanPrice: Number(parkingRates.MINIVAN || 0) } });
+    const body = JSON.stringify({ hotel, services: state.services, roomTypes: roomGroups, fullMenu, menu: publicMenu, eventSpaces: eventSpaces(state), experienceMedia: experienceMedia(state), ...experience, parking: { available: parkingSpaces.length, spaces: parkingSpaces, occupiedSpaces: occupiedParkingSpaces, motorcyclePrice: Number(parkingRates.MOTO || 0), carPrice: Number(parkingRates.AUTO || 0), truckPrice: Number(parkingRates.CAMIONETA || 0), vanPrice: Number(parkingRates.MINIVAN || 0) } });
     catalogCache = { state, at: Date.now(), body };
     res.type("json").send(body);
   } catch (error) { next(error); }
