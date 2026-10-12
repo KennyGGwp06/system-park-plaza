@@ -25,6 +25,22 @@ la configuración de un sitio). Los otros sitios no se enteran.
 
 > Los puertos "Antes" son los de la configuración de septiembre; el paso 1 muestra los reales.
 
+## Reemplazo completo el mismo día (lo vigente)
+El dueño decidió quitar la versión anterior y dejar solo la nueva. Orden, todo en una sesión:
+**1 → 2 → 3 → 4 → 5 → 6 → 8.** La versión anterior se borra recién al final, cuando la nueva ya responde en los
+dominios, y queda su respaldo (paso 2). El corte que ven los usuarios es solo el instante del cambio de proxy (paso 5).
+
+## Fotos de la carta (por qué antes no subieron)
+89 de las 96 fotos de platos se subieron desde el ERP: **no están en el código ni en GitHub**, viven en el volumen de
+fotos de Docker. Si solo se sube el código, la carta llega sin fotos. Este paquete las trae en `datos/uploads.tgz`
+(con la base en `datos/parkplaza.dump`) y el paso 3 las carga. Verificado el 2026-10-12 instalando el zip desde cero:
+96 platos y 194/194 fotos servidas por la app del cliente y el ERP. Si más adelante se suben fotos nuevas en la PC,
+hay que regenerar `uploads.tgz` (ver *Opción B* en el historial de la guía o pedirlo) antes de volver a subir.
+
+## Orden de trabajo para cada mejora
+**LOCAL → GITHUB → CLAVES/RESPALDO → NUBE**: se prueba en la PC, se sube a GitHub, se respalda la nube (paso 2) y se
+guardan sus claves (`.env.aapanel`), y recién entonces se despliega.
+
 ## Credenciales (sin correo)
 | Usuario | Clave | Entra a |
 |---|---|---|
@@ -75,6 +91,10 @@ bash deploy/aapanel/3-instalar-version-nueva.sh
 Genera las claves internas (`.env.aapanel`), construye, levanta `parkplaza_v2-*`, carga la base y las fotos de `datos/`
 y termina con la verificación. La primera vez tarda de 5 a 10 minutos. Debe terminar con **`Todo OK`** y
 "los dominios SIGUEN mostrando la versión anterior" (correcto: aún no se cambió nada visible).
+
+**Guarda las claves:** descarga `parkplaza-v2/.env.aapanel` (aaPanel › Files › Download) y guárdalo junto al respaldo.
+Tiene la clave de la base de datos y el secreto de las sesiones: sin él no se puede restaurar ni reinstalar con los
+mismos datos. No lo subas a GitHub.
 
 ## Paso 4 — Verificar (cuantas veces quieras)
 ```bash
