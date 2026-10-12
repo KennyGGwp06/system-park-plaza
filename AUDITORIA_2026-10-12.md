@@ -69,6 +69,8 @@ El paquete privado contiene un dump de demostración limpia preparado en QA y pr
 No incluye `.env` local ni claves de GitHub; el instalador genera las claves internas nuevas en el servidor.
 La guía [DESPLIEGUE_AAPANEL.md](DESPLIEGUE_AAPANEL.md) detalla: revisar → respaldar → instalar en otra
 carpeta → verificar → cambiar los proxies → verificar ambos dominios → apagar la versión anterior.
+El ZIP final también se extrajo en Linux: nombres UTF-8 (incluidos los tequeños) y SHA256 de sus datos verificados.
+Los hashes privados usan saltos de línea de Linux. La guía distingue actualizaciones desde Git y desde un ZIP sin `.git`.
 
 ## Límites y pendientes explícitos
 

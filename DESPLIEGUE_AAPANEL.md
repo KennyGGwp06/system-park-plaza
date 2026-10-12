@@ -30,6 +30,9 @@ git clone --branch auditoria/2026-10-12 --single-branch https://github.com/Kenny
 cd parkplaza-v2
 ```
 
+Si clonas desde GitHub, sube aparte la carpeta privada `datos/` incluida en el ZIP para obtener la demostración
+preparada. El ZIP contiene código sin `.git`: `git pull` solo funciona en una instalación clonada con Git.
+
 Si ya existe esa carpeta, revisa su contenido antes de usarla; no clones encima de la instalación actual.
 Las fotos incluidas en Git se sirven como respaldo de las fotos del volumen: las nuevas subidas desde el ERP tienen prioridad.
 Un ZIP de código no transporta las fotos nuevas subidas después de esta auditoría; esas necesitan respaldar el volumen.
@@ -117,7 +120,10 @@ antes de volver y conserva esos movimientos para conciliarlos; encender v1 no mi
 ## Actualizaciones posteriores
 
 Dentro de la carpeta v2, respalda primero base, fotos y configuración; verifica el respaldo en otra instalación.
-Luego obtén el commit revisado de GitHub con `git pull --ff-only` (en la rama aprobada) y ejecuta:
+Si instalaste clonando Git, obtén el commit revisado con `git pull --ff-only` (en la rama aprobada).
+Si instalaste desde ZIP, usa un ZIP posterior **solo de código**, conservando `.env.aapanel`, `backups/`,
+`datos/.cargado` y los volúmenes; no reemplaces `datos/` con otra demostración ni ejecutes `git pull` sin repositorio.
+Después ejecuta:
 
 ```bash
 docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel up -d --build
