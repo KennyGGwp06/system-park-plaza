@@ -13,7 +13,7 @@
         "Chorizo",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097008504-1040a23d-d45f-4340-b3c0-da073f2e01a5.jpg",
+      "image": "/uploads/menu/catalog/chufa-amazonico.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -75,7 +75,7 @@
         "Pollo",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097158053-5dd818ea-3093-4d58-9b49-a1484b285e50.jpg",
+      "image": "/uploads/menu/catalog/chaufa-de-pollo.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -128,7 +128,7 @@
         "Res",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097237681-c1d76439-bb09-4b2d-ac83-37e5ffe5908d.jpg",
+      "image": "/uploads/menu/catalog/chaufa-de-res.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -185,7 +185,7 @@
         "Res",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097285466-c81f4911-91a9-4796-9ced-38f282caaa04.jpg",
+      "image": "/uploads/menu/catalog/lomo-saltado-de-res.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -237,7 +237,7 @@
         "Pollo",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097347805-62f9247d-d76b-4541-9038-94438119b54d.jpg",
+      "image": "/uploads/menu/catalog/lomo-saltado-de-pollo.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -286,7 +286,7 @@
         "Chorizo",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097403196-ddacca9c-9138-441e-b3e0-4d5ab7dc9c9b.jpg",
+      "image": "/uploads/menu/catalog/lomo-saltado-amazonico.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -343,7 +343,7 @@
         "Taypa",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097441909-d6ee2775-4ef6-45f4-a3df-d8f728cd7b41.jpg",
+      "image": "/uploads/menu/catalog/aeropuerto.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -397,7 +397,7 @@
         "Cecina",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097476017-513fef75-52e4-4c12-891e-09db93f90026.jpg",
+      "image": "/uploads/menu/catalog/tacacho-con-cecina.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -443,7 +443,7 @@
         "Chorizo regional",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097509153-57652d2d-2530-4a30-9186-c88780027e0a.jpg",
+      "image": "/uploads/menu/catalog/tacacho-con-chorizo.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -490,7 +490,7 @@
         "Amazónico",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097672712-54280943-65df-4a21-9560-29c92023546f.jpg",
+      "image": "/uploads/menu/catalog/parilla-con-patacones.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -531,7 +531,7 @@
         "Fresco",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097711949-91dc6571-149f-487a-a584-30c00319d251.jpg",
+      "image": "/uploads/menu/catalog/ceviche-de-doncella.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -580,7 +580,7 @@
         "Pollo",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097855542-29219cc0-c158-483d-81de-8508c384f7fc.jpg",
+      "image": "/uploads/menu/catalog/tallarin-criollo-de-pollo.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -634,7 +634,7 @@
         "Res",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788097976462-c30889e6-9a4c-49a2-a25a-d9e631224961.jpg",
+      "image": "/uploads/menu/catalog/tallarin-criollo-de-res.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -693,7 +693,7 @@
         "Chorizo regional",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098022249-8ceb981b-51a0-499b-a93e-9567765fcc81.jpg",
+      "image": "/uploads/menu/catalog/tallarin-amazonico.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -757,7 +757,7 @@
         "Criollo",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098069507-a872601e-e6ea-48a8-b315-b623b5926ad6.jpg",
+      "image": "/uploads/menu/catalog/chicharron-de-chancho.jpg",
       "price": 30,
       "active": true,
       "recipe": [
@@ -801,7 +801,7 @@
         "Frituras",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098105768-4301df59-268e-4b1e-835a-26399f1d75df.jpg",
+      "image": "/uploads/menu/catalog/chicharron-de-doncella.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -849,7 +849,7 @@
         "Criollo",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098151195-6856bd1b-ba89-4e38-97ad-328045b7ba7d.jpg",
+      "image": "/uploads/menu/catalog/chicharron-de-pollo.jpg",
       "price": 30,
       "active": true,
       "recipe": [
@@ -888,7 +888,7 @@
       "code": "MENU-23",
       "name": "Pachamanca a la Piedra",
       "tags": [],
-      "image": "/catalog/restaurant-menu-placeholder.png",
+      "image": "/uploads/menu/catalog/pachamanca-piedra.jpg",
       "price": 35,
       "active": true,
       "recipe": [
@@ -935,7 +935,7 @@
         "Alitas",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098196499-8a508bc4-6beb-4d0e-86a8-ee307eacba96.jpg",
+      "image": "/uploads/menu/catalog/broster-tipo-alita.jpg",
       "price": 10,
       "active": true,
       "recipe": [
@@ -983,7 +983,7 @@
         "Pierna",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098217114-311ce623-1a1f-4b93-a27f-b00dc83c7514.jpg",
+      "image": "/uploads/menu/catalog/broster-tipo-pierna.jpg",
       "price": 15,
       "active": true,
       "recipe": [
@@ -1031,7 +1031,7 @@
         "Pecho",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098237361-e6d55f61-8d4a-4261-8c11-de6d99fc594c.jpg",
+      "image": "/uploads/menu/catalog/broster-tipo-pecho.jpg",
       "price": 15,
       "active": true,
       "recipe": [
@@ -1078,7 +1078,7 @@
         "Arroz",
         "Preparación diaria"
       ],
-      "image": "/uploads/menu/1788098271107-717f3e69-3b9e-4c9e-bd4d-9c50c534f1ea.jpg",
+      "image": "/uploads/menu/catalog/porcion-arroz.jpg",
       "price": 5,
       "active": true,
       "recipe": [
@@ -1116,7 +1116,7 @@
         "Plátano verde",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098344401-79750373-35cc-42a1-b0cb-447059b68301.jpg",
+      "image": "/uploads/menu/catalog/porcion-patacones.jpg",
       "price": 5,
       "active": true,
       "recipe": [
@@ -1152,7 +1152,7 @@
         "Plátano maduro",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098439720-fa29c971-2fe0-43b9-b38d-5025e02f175a.jpg",
+      "image": "/uploads/menu/catalog/porcion-maduro.jpg",
       "price": 8,
       "active": true,
       "recipe": [
@@ -1188,7 +1188,7 @@
         "Yuca",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098479504-fa975683-2180-48d5-b4b1-9ba352afeda5.jpg",
+      "image": "/uploads/menu/catalog/porcion-yuca-frita.jpg",
       "price": 8,
       "active": true,
       "recipe": [
@@ -1225,7 +1225,7 @@
         "Vegetales",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098519776-7fc0bf6b-c02c-4d9e-b90c-d28c1e39cb8d.jpg",
+      "image": "/uploads/menu/catalog/porcion-ensalada-fresca.jpg",
       "price": 6,
       "active": true,
       "recipe": [
@@ -1273,7 +1273,7 @@
         "Frituras",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098643239-9ac9171a-7d0b-4158-b1f2-b9d91fd73883.jpg",
+      "image": "/uploads/menu/catalog/tequeños-clasicos.jpg",
       "price": 8,
       "active": true,
       "recipe": [
@@ -1320,7 +1320,7 @@
         "Frituras",
         "Preparación al momento"
       ],
-      "image": "/uploads/menu/1788098673249-a57c6600-85df-4ade-91cf-a743e4c125fd.jpg",
+      "image": "/uploads/menu/catalog/tequeños-amazonicos.jpg",
       "price": 8,
       "active": true,
       "recipe": [
@@ -1369,7 +1369,7 @@
         "Preparación al momento",
         "Relleno por confirmar"
       ],
-      "image": "/uploads/menu/1788098696142-066a7985-ef70-44cf-b7be-2b704487d117.jpg",
+      "image": "/uploads/menu/catalog/tequeños-rellenos.jpg",
       "price": 8,
       "active": true,
       "recipe": [
@@ -1409,7 +1409,7 @@
       "code": "MENU-35",
       "name": "Chilcano Clásico",
       "tags": [],
-      "image": "/uploads/menu/1788100075276-94d69739-8c10-41b8-9dbe-91fd9c8ffa10.jpg",
+      "image": "/uploads/menu/catalog/chilcano-clasico.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1446,7 +1446,7 @@
       "code": "MENU-36",
       "name": "Machu Pichu",
       "tags": [],
-      "image": "/uploads/menu/1788100198261-1edc0906-bc40-45f6-baf0-84f505e9eebb.jpg",
+      "image": "/uploads/menu/catalog/machu-pichu.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1490,7 +1490,7 @@
       "code": "MENU-37",
       "name": "Mojito Clásico",
       "tags": [],
-      "image": "/uploads/menu/1788100242723-eb734194-fb5a-4e26-874a-23b7c6fe58e4.jpg",
+      "image": "/uploads/menu/catalog/mojito-clasico.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1526,7 +1526,7 @@
       "code": "MENU-38",
       "name": "Cuba Libre",
       "tags": [],
-      "image": "/uploads/menu/1788100285930-2113ea63-30b6-4200-9cce-250f4e97f02b.jpg",
+      "image": "/uploads/menu/catalog/cuba-libre.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1562,7 +1562,7 @@
       "code": "MENU-39",
       "name": "Piña Colada",
       "tags": [],
-      "image": "/uploads/menu/1788100337458-07a7141e-6b73-4b0d-a98b-d4a91ece8d82.jpg",
+      "image": "/uploads/menu/catalog/pina-colada.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1607,7 +1607,7 @@
       "code": "MENU-40",
       "name": "Algarrobina",
       "tags": [],
-      "image": "/uploads/menu/1788100733747-808e13bb-bb5f-4f5f-b596-289bbb5843a5.jpg",
+      "image": "/uploads/menu/catalog/algarrobina.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1657,7 +1657,7 @@
       "code": "MENU-41",
       "name": "Pantera Rosa",
       "tags": [],
-      "image": "/uploads/menu/1788100806454-7b35af56-0776-4e98-9369-bfb9690ac3dc.jpg",
+      "image": "/uploads/menu/catalog/pantera-rosa.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1706,7 +1706,7 @@
       "code": "MENU-42",
       "name": "Fresa Colada",
       "tags": [],
-      "image": "/uploads/menu/1788100956890-e2520a89-258d-4c50-a683-0cb8c4cfc8e2.jpg",
+      "image": "/uploads/menu/catalog/fresa-colada.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1753,7 +1753,7 @@
       "code": "MENU-43",
       "name": "Laguna Azul",
       "tags": [],
-      "image": "/uploads/menu/1788101051543-8c2b8f50-9953-4f65-833a-f2c26a94cd74.jpg",
+      "image": "/uploads/menu/catalog/laguna-azul.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1794,7 +1794,7 @@
       "code": "MENU-44",
       "name": "Tequila Sunrie",
       "tags": [],
-      "image": "/uploads/menu/1788101294502-7ac4cdf9-a82d-4ece-b5c4-e4b25d0c3dfe.jpg",
+      "image": "/uploads/menu/catalog/tequila-sunrise.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -1833,7 +1833,7 @@
       "code": "MENU-45",
       "name": "Margarita Clásica",
       "tags": [],
-      "image": "/uploads/menu/1788101397935-63364674-1dee-4185-8c85-87d349cc2865.jpg",
+      "image": "/uploads/menu/catalog/margarita clasico.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -1869,7 +1869,7 @@
       "code": "MENU-46",
       "name": "Margarita Blue",
       "tags": [],
-      "image": "/uploads/menu/1788101398142-bb6cc423-6898-461d-89c1-edecddd4d5c0.jpg",
+      "image": "/uploads/menu/catalog/margarita-blue.jpg",
       "price": 20,
       "active": true,
       "recipe": [
@@ -1910,7 +1910,7 @@
       "code": "MENU-47",
       "name": "Caipirinha",
       "tags": [],
-      "image": "/uploads/menu/1788101453325-7ffe8858-7d0b-450f-ba86-3392207d9446.jpg",
+      "image": "/uploads/menu/catalog/caipirinha.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1945,7 +1945,7 @@
       "code": "MENU-48",
       "name": "Blue Hawaii",
       "tags": [],
-      "image": "/uploads/menu/1788101497331-a84e67ef-0fdd-4bc8-b19b-f0ddffe97ce9.jpg",
+      "image": "/uploads/menu/catalog/blue-hawai.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -1996,7 +1996,7 @@
       "code": "MENU-49",
       "name": "Moscow Mule",
       "tags": [],
-      "image": "/uploads/menu/1788101592407-346ef2a9-bf0d-485a-9279-37f19d606714.jpg",
+      "image": "/uploads/menu/catalog/moscow-mule.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -2032,7 +2032,7 @@
       "code": "MENU-50",
       "name": "Bey Liz Colado",
       "tags": [],
-      "image": "/uploads/menu/1788103365405-8a14350e-4e2d-44df-bae4-7c8d13ffc8a4.jpg",
+      "image": "/uploads/menu/catalog/bayleis-colada.jpg",
       "price": 22,
       "active": true,
       "recipe": [
@@ -2082,7 +2082,7 @@
       "code": "MENU-51",
       "name": "Sublime Mediano",
       "tags": [],
-      "image": "/uploads/menu/1788103400227-5cb5768a-a664-47b1-a02d-05ae03d215be.jpg",
+      "image": "/uploads/menu/catalog/frappe-sublime.jpg",
       "price": 12,
       "active": true,
       "recipe": [
@@ -2133,7 +2133,7 @@
       "code": "MENU-52",
       "name": "Sublime Grande",
       "tags": [],
-      "image": "/uploads/menu/1788103400397-f47a1ca7-924f-452a-94db-ad2a8959d94a.jpg",
+      "image": "/uploads/menu/catalog/frappe-sublime.jpg",
       "price": 14,
       "active": true,
       "recipe": [
@@ -2184,7 +2184,7 @@
       "code": "MENU-53",
       "name": "Mocaccino Mediano",
       "tags": [],
-      "image": "/uploads/menu/1788103469118-cfdd1c4b-0795-49f4-b998-ce6f5777b91f.jpg",
+      "image": "/uploads/menu/catalog/frappe-mocacino.jpg",
       "price": 12,
       "active": true,
       "recipe": [
@@ -2240,7 +2240,7 @@
       "code": "MENU-54",
       "name": "Mocaccino Grande",
       "tags": [],
-      "image": "/uploads/menu/1788103469293-41a3835d-2bca-428f-941d-e2bc65d90e3a.jpg",
+      "image": "/uploads/menu/catalog/frappe-mocacino.jpg",
       "price": 14,
       "active": true,
       "recipe": [
@@ -2296,7 +2296,7 @@
       "code": "MENU-55",
       "name": "Fresa Mediano",
       "tags": [],
-      "image": "/uploads/menu/1788103503707-b3f64c57-39f2-4ca1-818e-53b534457dc2.jpg",
+      "image": "/uploads/menu/catalog/freappe-fresa.jpg",
       "price": 12,
       "active": true,
       "recipe": [
@@ -2347,7 +2347,7 @@
       "code": "MENU-56",
       "name": "Fresa Grande",
       "tags": [],
-      "image": "/uploads/menu/1788103503936-b0dbef2c-1b60-4e3a-b2a1-547e6ada9799.jpg",
+      "image": "/uploads/menu/catalog/freappe-fresa.jpg",
       "price": 14,
       "active": true,
       "recipe": [
@@ -2398,7 +2398,7 @@
       "code": "MENU-57",
       "name": "Chicle Mediano",
       "tags": [],
-      "image": "/uploads/menu/1788103552516-41ae7763-daea-4217-89b9-29b714c60065.jpg",
+      "image": "/uploads/menu/catalog/frape-chicle.jpg",
       "price": 12,
       "active": true,
       "recipe": [
@@ -2449,7 +2449,7 @@
       "code": "MENU-58",
       "name": "Chicle Grande",
       "tags": [],
-      "image": "/uploads/menu/1788103552683-70770949-f1ba-45a6-801e-d7d999dedce2.jpg",
+      "image": "/uploads/menu/catalog/frape-chicle.jpg",
       "price": 14,
       "active": true,
       "recipe": [
@@ -2500,7 +2500,7 @@
       "code": "MENU-59",
       "name": "Capuchino Mediano",
       "tags": [],
-      "image": "/uploads/menu/1788103600765-a3b1925b-95ab-46c6-8537-56269b5cd037.jpg",
+      "image": "/uploads/menu/catalog/frappe-capuchino.jpg",
       "price": 12,
       "active": true,
       "recipe": [
@@ -2551,7 +2551,7 @@
       "code": "MENU-60",
       "name": "Capuchino Grande",
       "tags": [],
-      "image": "/uploads/menu/1788103600965-c81ca453-76de-4b16-b020-9468d30079e6.jpg",
+      "image": "/uploads/menu/catalog/frappe-capuchino.jpg",
       "price": 14,
       "active": true,
       "recipe": [
@@ -2602,7 +2602,7 @@
       "code": "MENU-61",
       "name": "Vainilla Mediano",
       "tags": [],
-      "image": "/uploads/menu/1788103638381-58164109-e7b6-4f0c-9436-887a996c7f2c.jpg",
+      "image": "/uploads/menu/catalog/frappe-vainilla.jpg",
       "price": 12,
       "active": true,
       "recipe": [
@@ -2648,7 +2648,7 @@
       "code": "MENU-62",
       "name": "Vainilla Grande",
       "tags": [],
-      "image": "/uploads/menu/1788103638537-02dd24e7-a9a1-4447-853d-3e9b14c6c61b.jpg",
+      "image": "/uploads/menu/catalog/frappe-vainilla.jpg",
       "price": 14,
       "active": true,
       "recipe": [
@@ -2694,7 +2694,7 @@
       "code": "MENU-63",
       "name": "Oreo Mediano",
       "tags": [],
-      "image": "/uploads/menu/1788103708072-53c7c00c-64b5-424a-ac63-b7bc81ff9e68.jpg",
+      "image": "/uploads/menu/catalog/frappe-oreo.jpg",
       "price": 12,
       "active": true,
       "recipe": [
@@ -2745,7 +2745,7 @@
       "code": "MENU-64",
       "name": "Oreo Grande",
       "tags": [],
-      "image": "/uploads/menu/1788103708235-d819b200-12c3-480f-869a-9eddcafb5ec6.jpg",
+      "image": "/uploads/menu/catalog/frappe-oreo.jpg",
       "price": 14,
       "active": true,
       "recipe": [
@@ -2796,7 +2796,7 @@
       "code": "MENU-65",
       "name": "Punch de Limón",
       "tags": [],
-      "image": "/uploads/menu/1788103805621-d14e5473-322c-45f3-8bec-2768118d8655.jpg",
+      "image": "/uploads/menu/catalog/punch-limon.jpg",
       "price": 18,
       "active": true,
       "recipe": [
@@ -2832,7 +2832,7 @@
       "code": "MENU-66",
       "name": "Piscina Park Plaza",
       "tags": [],
-      "image": "/catalog/bar-menu-placeholder.png",
+      "image": "/uploads/menu/catalog/piscina-park-plaza.jpg",
       "price": 22,
       "active": true,
       "recipe": [
@@ -2888,7 +2888,7 @@
       "code": "MENU-67",
       "name": "Café Pasado",
       "tags": [],
-      "image": "/uploads/menu/1788103875291-b5856dc5-23eb-41ca-a5ff-a1b677d2e832.jpg",
+      "image": "/uploads/menu/catalog/cafe-pasado.jpg",
       "price": 7,
       "active": true,
       "recipe": [],
@@ -2914,7 +2914,7 @@
       "code": "MENU-68",
       "name": "Café Americano",
       "tags": [],
-      "image": "/uploads/menu/1788103908997-b99ac9ba-1d52-4ae2-8263-1e108c694a4c.jpg",
+      "image": "/uploads/menu/catalog/cafe-americano.jpg",
       "price": 5,
       "active": true,
       "recipe": [],
@@ -2940,7 +2940,7 @@
       "code": "MENU-69",
       "name": "Mai Tai",
       "tags": [],
-      "image": "/uploads/menu/1788103939928-0018ec9e-128c-405d-a550-bfa0a36f82f7.jpg",
+      "image": "/uploads/menu/catalog/mai-tai.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -2986,7 +2986,7 @@
       "code": "MENU-70",
       "name": "Pain Killer",
       "tags": [],
-      "image": "/uploads/menu/1788103972817-4804af49-b56d-42c8-bf12-943bcc45c721.jpg",
+      "image": "/uploads/menu/catalog/pain-killer.jpg",
       "price": 25,
       "active": true,
       "recipe": [
@@ -3031,7 +3031,7 @@
       "code": "MENU-71",
       "name": "San Juan",
       "tags": [],
-      "image": "/uploads/menu/1788104089534-f827bbad-5772-4ee7-a30a-53ded8a1e9a3.jpg",
+      "image": "/uploads/menu/catalog/cerveza-san-juan.jpg",
       "price": 8,
       "active": true,
       "recipe": [],
@@ -3051,7 +3051,7 @@
       "code": "MENU-72",
       "name": "Trigo Lata Grande",
       "tags": [],
-      "image": "/uploads/menu/1788104140582-673761e7-0fcf-48e5-aa04-fd84307576cf.jpg",
+      "image": "/uploads/menu/catalog/cerveza-trigo-lata.jpg",
       "price": 10,
       "active": true,
       "recipe": [],
@@ -3071,7 +3071,7 @@
       "code": "MENU-73",
       "name": "Corona",
       "tags": [],
-      "image": "/uploads/menu/1788104164984-2ab72611-cf85-49f1-8e5f-9986cc97c1c9.jpg",
+      "image": "/uploads/menu/catalog/cerveza-corona.jpg",
       "price": 10,
       "active": true,
       "recipe": [],
@@ -3091,7 +3091,7 @@
       "code": "MENU-74",
       "name": "Mike Manzana",
       "tags": [],
-      "image": "/uploads/menu/1788149357727-2d6ecd50-89f8-4aec-a306-46f2cd5e1d86.jpg",
+      "image": "/uploads/menu/catalog/make-manzana.jpg",
       "price": 10,
       "active": true,
       "recipe": [],
@@ -3111,7 +3111,7 @@
       "code": "MENU-75",
       "name": "Mike Maracuyá",
       "tags": [],
-      "image": "/uploads/menu/1788149381810-aa6f2495-fe6b-4b1b-8e7c-696840324052.jpg",
+      "image": "/uploads/menu/catalog/mike-maracuya.jpg",
       "price": 10,
       "active": true,
       "recipe": [],
@@ -3131,7 +3131,7 @@
       "code": "MENU-76",
       "name": "Smirnoff",
       "tags": [],
-      "image": "/uploads/menu/1788149442304-4820c0a2-450c-4eab-af9f-1f02909d9f87.jpg",
+      "image": "/uploads/menu/catalog/smirnoff.jpg",
       "price": 10,
       "active": true,
       "recipe": [],
@@ -3151,7 +3151,7 @@
       "code": "MENU-77",
       "name": "Pilsen Lata Grande",
       "tags": [],
-      "image": "/uploads/menu/1788149484653-46b6c956-8a72-4d1b-a9ef-01d0d53645f5.jpg",
+      "image": "/uploads/menu/catalog/pilsen-lata-grande.jpg",
       "price": 10,
       "active": true,
       "recipe": [],
@@ -3171,7 +3171,7 @@
       "code": "MENU-78",
       "name": "Maracuyá Vaso",
       "tags": [],
-      "image": "/uploads/menu/1788149535903-3a330b7b-dd12-421b-9b61-8bd1995c3e54.jpg",
+      "image": "/uploads/menu/catalog/refresco-maracuya.jpg",
       "price": 5,
       "active": true,
       "recipe": [
@@ -3206,7 +3206,7 @@
       "code": "MENU-79",
       "name": "Maracuyá Jarra",
       "tags": [],
-      "image": "/uploads/menu/1788149536322-ec17bc17-db06-4a7e-a881-b1ba8404bea2.jpg",
+      "image": "/uploads/menu/catalog/refresco-maracuya.jpg",
       "price": 15,
       "active": true,
       "recipe": [
@@ -3241,7 +3241,7 @@
       "code": "MENU-80",
       "name": "Camu Camu Vaso",
       "tags": [],
-      "image": "/uploads/menu/1788149579239-f4977bef-056d-4278-85ce-165120c7db83.jpg",
+      "image": "/uploads/menu/catalog/refresco-camu-camu.jpg",
       "price": 5,
       "active": true,
       "recipe": [
@@ -3276,7 +3276,7 @@
       "code": "MENU-81",
       "name": "Camu Camu Jarra",
       "tags": [],
-      "image": "/uploads/menu/1788149579626-0170e1ad-93cc-4bb5-bdfe-e8c301f81d42.jpg",
+      "image": "/uploads/menu/catalog/refresco-camu-camu.jpg",
       "price": 15,
       "active": true,
       "recipe": [
@@ -3311,7 +3311,7 @@
       "code": "MENU-82",
       "name": "Limonada Vaso",
       "tags": [],
-      "image": "/uploads/menu/1788149633990-2c897730-1529-4c92-8753-02aab8ef64b7.jpg",
+      "image": "/uploads/menu/catalog/refresco-limonada-frozen.jpg",
       "price": 5,
       "active": true,
       "recipe": [
@@ -3351,7 +3351,7 @@
       "code": "MENU-83",
       "name": "Limonada Jarra",
       "tags": [],
-      "image": "/uploads/menu/1788149634549-dff77f89-a2ed-4cd1-9c7d-fb442acc868e.jpg",
+      "image": "/uploads/menu/catalog/refresco-limonada-frozen.jpg",
       "price": 15,
       "active": true,
       "recipe": [
@@ -3391,7 +3391,7 @@
       "code": "MENU-84",
       "name": "San Luis",
       "tags": [],
-      "image": "/uploads/menu/1788149878166-2df9ebcf-5c35-4d0c-bc28-a7c27da2ce34.jpg",
+      "image": "/uploads/menu/catalog/agua-san-luis.jpg",
       "price": 3,
       "active": true,
       "recipe": [],
@@ -3411,7 +3411,7 @@
       "code": "MENU-85",
       "name": "Coca Cola",
       "tags": [],
-      "image": "/uploads/menu/1788149910681-acfae98b-9122-48db-b567-3eb36a86f4dd.jpg",
+      "image": "/uploads/menu/catalog/coca-cola.jpg",
       "price": 5,
       "active": true,
       "recipe": [],
@@ -3431,7 +3431,7 @@
       "code": "MENU-86",
       "name": "Inca Kola",
       "tags": [],
-      "image": "/uploads/menu/1788149880082-d8b59962-1045-4b44-ba26-699586614fe9.jpg",
+      "image": "/uploads/menu/catalog/inka-kola.jpg",
       "price": 5,
       "active": true,
       "recipe": [],
@@ -3451,7 +3451,7 @@
       "code": "MENU-87",
       "name": "Volt",
       "tags": [],
-      "image": "/uploads/menu/1788149881053-a0dd67a8-083d-40c6-ad51-bcf85b76c1e4.jpg",
+      "image": "/uploads/menu/catalog/volt.jpg",
       "price": 3,
       "active": true,
       "recipe": [],
@@ -3471,7 +3471,7 @@
       "code": "MENU-88",
       "name": "Sporade",
       "tags": [],
-      "image": "/uploads/menu/1788149882262-0f5165d8-5d5a-4076-993d-50e785aa3565.jpg",
+      "image": "/uploads/menu/catalog/sporade.jpg",
       "price": 3,
       "active": true,
       "recipe": [],
@@ -3491,7 +3491,7 @@
       "code": "MENU-89",
       "name": "Bio",
       "tags": [],
-      "image": "/uploads/menu/1788149883108-fa6c80d0-809d-472e-815a-96216b586369.jpg",
+      "image": "/uploads/menu/catalog/bio.jpg",
       "price": 3,
       "active": true,
       "recipe": [],
@@ -3511,7 +3511,7 @@
       "code": "MENU-90",
       "name": "Guaranita",
       "tags": [],
-      "image": "/uploads/menu/1788149885336-6caa8555-18c5-438d-8595-e252862db05f.png",
+      "image": "/uploads/menu/catalog/guaranita.jpg",
       "price": 2,
       "active": true,
       "recipe": [],
@@ -3531,7 +3531,7 @@
       "code": "MENU-91",
       "name": "Agua Mineral con Gas",
       "tags": [],
-      "image": "/uploads/menu/1788149886973-3294ba70-ed4f-49e6-aaaf-e4461dd9fd8b.png",
+      "image": "/uploads/menu/catalog/agua-mineral-gas.jpg",
       "price": 3,
       "active": true,
       "recipe": [],
@@ -3551,7 +3551,7 @@
       "code": "MENU-92",
       "name": "Agua Mineral sin Gas",
       "tags": [],
-      "image": "/uploads/menu/1788149887815-9cd27cec-90c1-4e19-b483-1114362445ce.jpg",
+      "image": "/uploads/menu/catalog/agua-mineral-sin-gas.jpg",
       "price": 2,
       "active": true,
       "recipe": [],
@@ -3571,7 +3571,7 @@
       "code": "MENU-93",
       "name": "Té Canela y Clavo",
       "tags": [],
-      "image": "/uploads/menu/1788149889405-e9939252-f207-4760-b9de-4ea8f8cc31af.webp",
+      "image": "/uploads/menu/catalog/te-canela-clavo.jpg",
       "price": 5,
       "active": true,
       "recipe": [],
@@ -3598,7 +3598,7 @@
       "code": "MENU-94",
       "name": "Té de Anís",
       "tags": [],
-      "image": "/uploads/menu/1788149891456-ce98b536-1698-45cc-a2ef-0572367de4bf.jpg",
+      "image": "/uploads/menu/catalog/te-anis.jpg",
       "price": 5,
       "active": true,
       "recipe": [],
@@ -3624,7 +3624,7 @@
       "code": "MENU-95",
       "name": "Té de Manzanilla",
       "tags": [],
-      "image": "/uploads/menu/1788149893311-8e4b18fc-0032-410c-82ab-b3436c75c856.jpg",
+      "image": "/uploads/menu/catalog/te-manzanilla.jpg",
       "price": 5,
       "active": true,
       "recipe": [],
@@ -3650,7 +3650,7 @@
       "code": "MENU-96",
       "name": "Pisco Sour",
       "tags": [],
-      "image": "/uploads/menu/1788100157395-05326c4f-76e0-444a-9596-51cb2c32d414.jpg",
+      "image": "/uploads/menu/catalog/pisco-sour.jpg",
       "price": 18,
       "active": true,
       "recipe": [

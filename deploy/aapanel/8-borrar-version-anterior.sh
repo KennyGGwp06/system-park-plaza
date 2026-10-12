@@ -15,11 +15,14 @@ NOMBRES="park_plaza_frontend park_plaza_customer park_plaza_operations park_plaz
 
 RESPALDO=$(ls -d /www/backup/parkplaza/*/ 2>/dev/null | tail -1 || true)
 if [ -z "$RESPALDO" ] || [ ! -s "${RESPALDO}base-anterior.dump" ]; then echo "No encuentro el respaldo del paso 2 (/www/backup/parkplaza/<fecha>/base-anterior.dump). Hazlo primero."; exit 1; fi
-if ! bash deploy/aapanel/4-verificar.sh | grep -q "ya muestra la versión NUEVA"; then echo "Los dominios todavía no muestran la versión nueva. No se borra nada."; exit 1; fi
+[ -f "${RESPALDO}RESPALDO_COMPLETO" ] && (cd "$RESPALDO" && sha256sum -c SHA256SUMS) || { echo "Respaldo incompleto o alterado. No se borra nada."; exit 1; }
+if ! bash deploy/aapanel/4-verificar.sh --require-domains; then echo "Los dos dominios deben mostrar la versión nueva y pasar todas las verificaciones. No se borra nada."; exit 1; fi
 for nombre in $NOMBRES; do
   if docker ps --format '{{.Names}}' | grep -qx "$nombre"; then echo "$nombre sigue encendido: ejecuta primero el paso 6."; exit 1; fi
 done
-case "$ANTERIOR" in */parkplaza-v2|*/parkplaza-v2/) echo "Esa es la carpeta de la versión NUEVA. No se borra."; exit 1;; esac
+ANTERIOR=$(realpath -e -- "$ANTERIOR")
+[ "$ANTERIOR" = /www/wwwroot/GA/CLIENTES/parkplaza.grupoamayo.com ] || { echo "Ruta fuera del alcance permitido; no se borra nada."; exit 1; }
+[ "$ANTERIOR" != "$(realpath "$PWD")" ] || { echo "No se borra la carpeta desde la que corre este script."; exit 1; }
 
 EXISTEN=$(for nombre in $NOMBRES; do docker ps -a --format '{{.Names}}' | grep -x "$nombre" || true; done)
 VOLUMENES=$(for nombre in $EXISTEN; do docker inspect -f '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}} {{end}}{{end}}' "$nombre"; done | tr ' ' '\n' | grep -v '^$' | sort -u)

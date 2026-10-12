@@ -172,7 +172,7 @@ function panel(k, j) {
 V.servicios = () => {
   if (!EXPS.includes(S.exp)) S.exp = "HOSPEDAJE";
   return `<section class="sv" data-soft aria-label="Experiencias de Park Plaza">
-    <header class="sv-h"><span class="pp-k">Cinco experiencias · un solo lugar</span><h1>¿Qué quieres vivir?</h1></header>
+    <header class="sv-h"><span class="pp-k">Cinco experiencias · un solo lugar</span><h1>¿Qué quieres vivir?</h1><button class="ghostb" type="button" data-a="carta">Ver carta de Restaurante y Bar</button></header>
     <div class="sv-row">${EXPS.map(panel).join("")}</div></section>`;
 };
 function openPanel(k, focus) {

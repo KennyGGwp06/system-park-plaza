@@ -16,11 +16,25 @@ const expand = (route) => {
   if (route.includes(":type")) return TYPES.map((t) => route.replace(":type", t).replace(/:\w+/g, "1"));
   return [route.replace(":serviceCode", "PISCINA").replace(":code", "PP-0001").replace(/:\w+/g, "1")];
 };
-const login = async (email) => (await (await fetch(`${API}/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password: passwordOf(email) }) })).json()).token;
-const client = async () => (await (await fetch(`${API}/public/document-access`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ documentNumber: "40222333" }) })).json()).token;
+const login = async (email) => {
+  const response = await fetch(`${API}/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password: passwordOf(email) }) });
+  if (email === "admin@parkplaza.com" && [401, 403].includes(response.status)) return null;
+  const data = await response.json();
+  if (!response.ok || !data.token) throw new Error(`No inició sesión ${email}: HTTP ${response.status}`);
+  return data.token;
+};
+const client = async () => {
+  if (!process.env.TEST_CLIENT_DNI) return null;
+  const response = await fetch(`${API}/public/document-access`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ documentNumber: process.env.TEST_CLIENT_DNI }) });
+  const data = await response.json();
+  if (!response.ok || !data.token) throw new Error("TEST_CLIENT_DNI no corresponde a un cliente registrado");
+  return data.token;
+};
 const who = { superadmin: "superadmin@parkplaza.com", admin: "admin@parkplaza.com", recepcion: "recepcion@parkplaza.com", restaurante: "restaurante@parkplaza.com", bartender: "bartender@parkplaza.com", limpieza: "limpieza@parkplaza.com", mantenimiento: "mantenimiento@parkplaza.com" };
-const tokens = { cliente: await client() };
-for (const [k, email] of Object.entries(who)) tokens[k] = await login(email);
+const tokens = { publico: null };
+const clientToken = await client();
+if (clientToken) tokens.cliente = clientToken;
+for (const [k, email] of Object.entries(who)) { const token = await login(email); if (token) tokens[k] = token; }
 const bad = [], count = { total: 0 };
 const query = `?from=${today}&checkIn=${today}&checkOut=${today}&date=${today}`;
 for (const [role, token] of Object.entries(tokens)) {

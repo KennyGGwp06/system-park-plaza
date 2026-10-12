@@ -2,6 +2,23 @@
 
 Regla de trabajo: cada cambio de código que afecte al Superadmin se documenta aquí (fecha, qué, por qué, archivos, cómo se verificó). Auditoría base: `SUPERADMIN_AUDIT.md`.
 
+## 2026-10-12 — Auditoría, carta completa y entrega a aaPanel
+
+La consulta pública anterior parecía incompleta porque filtraba todos los productos sin venta habilitada o stock.
+Se añadió una vista de los 91 productos con sus imágenes; el filtro de pedidos conserva la protección de recetas y stock.
+Se integraron las carpetas de fotos entregadas y se sincronizaron solo las imágenes del catálogo, comprobando que
+precios, recetas, stock y demás datos operativos quedaron intactos. Las instalaciones nuevas cargan la carta completa.
+
+Se corrigieron pruebas que contaban pantallas redirigidas como revisadas y lecturas sin cliente como autenticadas.
+Se actualizaron Node y dependencias de ejecución y se reforzaron respaldo, hashes, restauración y comprobación de
+ambos dominios en los scripts aaPanel. El despliegue conserva la versión anterior.
+
+Archivos: `server/src/catalog-bootstrap.js`, `db.js`, `index.js`, manifiesto y fotos en `server/public/menu`,
+`customer/src/app/carta.js`, scripts de pruebas, Dockerfiles y `deploy/aapanel`.
+Pasaron 85 pantallas/2664 controles con acción asociada, 120 comprobaciones de negocio, permisos e inventario,
+flujo en navegador, carta móvil/escritorio y restauración del paquete demo. Detalles y límites, incluidos los 7 avisos
+de dependencias de construcción pendientes, en [AUDITORIA_2026-10-12.md](AUDITORIA_2026-10-12.md).
+
 ## 2026-09-21 — Auditoría inicial
 - Solo lectura. **Sin cambios de código.**
 - Se creó `SUPERADMIN_AUDIT.md` (hallazgos P0/P1/P2 y plan por fases).

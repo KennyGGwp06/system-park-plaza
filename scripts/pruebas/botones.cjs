@@ -20,16 +20,27 @@ const STATIONS = [
   const { SUPERADMIN_MODULES, superAdminUrl } = await import("../../client/src/modules/admin/superAdminNavigation.js");
   const roles = [["superadmin@parkplaza.com", SUPERADMIN_MODULES.flatMap((module) => module.views.map((view) => superAdminUrl(module.id, view.id)))], ...STATIONS];
   const browser = await puppeteer.launch({ executablePath: "C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe", headless: "new", args: ["--no-sandbox"] });
-  let total = 0, screens = 0; const empty = [];
+  let total = 0, screens = 0; const empty = [], failed = [];
   for (const [email, routes] of roles) {
     const context = await browser.createBrowserContext();
     const page = await context.newPage(); await page.setViewport({ width: 1440, height: 900 });
+    let errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("response", (response) => { if (response.status() >= 400 && response.url().includes("/api/")) errors.push(`${response.status()} ${response.url()}`); });
     await page.goto(`${BASE}/login`, { waitUntil: "networkidle2" });
     await page.type("#erp-email", email); await page.type("#erp-password", passwordOf(email));
     await Promise.all([page.waitForNavigation({ waitUntil: "networkidle2" }).catch(() => {}), page.keyboard.press("Enter")]);
+    if (new URL(page.url()).pathname === "/login") throw new Error(`No inició sesión ${email}`);
     for (const route of routes) {
-      await page.goto(`${BASE}${route}`, { waitUntil: "networkidle2" }).catch(() => {});
+      errors = [];
+      await page.goto(`${BASE}${route}`, { waitUntil: "networkidle2" });
       await new Promise((r) => setTimeout(r, 700));
+      if (new URL(page.url()).pathname !== route.split("?")[0]) {
+        failed.push(`${email}: ${route} redirige a ${new URL(page.url()).pathname}; pantalla no revisada`);
+        continue;
+      }
+      if (errors.length) failed.push(`${email}: ${route}: ${errors.join(" | ")}`);
+      if (await page.evaluate(() => /No pudimos mostrar esta vista|Algo salió mal|Esta vista no existe|Acceso restringido/.test(document.body.innerText))) failed.push(`${email}: ${route}: pantalla de error`);
       const result = await page.evaluate(() => {
         const propsOf = (el) => { const key = Object.keys(el).find((k) => k.startsWith("__reactProps")); return key ? el[key] : null; };
         const acts = (el) => { for (let node = el, depth = 0; node && depth < 5; node = node.parentElement, depth++) { const p = propsOf(node); if (p && (p.onClick || p.onMouseDown || p.onPointerDown || (depth === 0 && p.onChange))) return true; } return false; };
@@ -52,5 +63,6 @@ const STATIONS = [
   await browser.close();
   console.log(`${screens} pantallas · ${total} botones y enlaces revisados`);
   console.log(empty.length ? `${empty.length} SIN ACCIÓN:\n${[...new Set(empty)].join("\n")}` : "Todos los botones tienen una acción");
-  process.exitCode = empty.length ? 1 : 0;
+  if (failed.length) console.log(`PANTALLAS SIN REVISAR:\n${failed.join("\n")}`);
+  process.exitCode = empty.length || failed.length ? 1 : 0;
 })().catch((error) => { console.error("FALLO:", error.message); process.exit(1); });

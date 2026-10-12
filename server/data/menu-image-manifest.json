@@ -1,0 +1,735 @@
+{
+  "images": [
+    {
+      "menuItemId": 6,
+      "name": "Chaufa Amazónica",
+      "url": "/uploads/menu/catalog/chufa-amazonico.jpg",
+      "file": "catalog/chufa-amazonico.jpg",
+      "bytes": 55378,
+      "sha256": "e01c7adfd4637d0da6a69db96974236d6cc88dddd5c46864bf2598a80802073e"
+    },
+    {
+      "menuItemId": 7,
+      "name": "Chaufa de Pollo",
+      "url": "/uploads/menu/catalog/chaufa-de-pollo.jpg",
+      "file": "catalog/chaufa-de-pollo.jpg",
+      "bytes": 21743,
+      "sha256": "f5a49811d3e143f2553f2317bdf172a548c3fe956fec566694b88294eb08209f"
+    },
+    {
+      "menuItemId": 8,
+      "name": "Chaufa de Res",
+      "url": "/uploads/menu/catalog/chaufa-de-res.jpg",
+      "file": "catalog/chaufa-de-res.jpg",
+      "bytes": 53515,
+      "sha256": "d37cf510ad5181ccb3cd22a07aebe153719bedc9d6e501daacf1964cea1e36e1"
+    },
+    {
+      "menuItemId": 9,
+      "name": "Lomo Saltado de Res",
+      "url": "/uploads/menu/catalog/lomo-saltado-de-res.jpg",
+      "file": "catalog/lomo-saltado-de-res.jpg",
+      "bytes": 26483,
+      "sha256": "31dfde0e98a451ae05120328eb37163368c9a702dc204adbcfe35d819f319e20"
+    },
+    {
+      "menuItemId": 10,
+      "name": "Lomo Saltado de Pollo",
+      "url": "/uploads/menu/catalog/lomo-saltado-de-pollo.jpg",
+      "file": "catalog/lomo-saltado-de-pollo.jpg",
+      "bytes": 32248,
+      "sha256": "085c3cb3e74413180ab7762c55fb127bd8e48780b965eb13f51832a914d51ea9"
+    },
+    {
+      "menuItemId": 11,
+      "name": "Lomo Saltado Amazónico",
+      "url": "/uploads/menu/catalog/lomo-saltado-amazonico.jpg",
+      "file": "catalog/lomo-saltado-amazonico.jpg",
+      "bytes": 33222,
+      "sha256": "07e73177fb9838772f2defd5b06d129ee42f8e85c430ab7018bd7f86cba9691e"
+    },
+    {
+      "menuItemId": 12,
+      "name": "Aeropuerto Taypa",
+      "url": "/uploads/menu/catalog/aeropuerto.jpg",
+      "file": "catalog/aeropuerto.jpg",
+      "bytes": 36984,
+      "sha256": "09593f27ce4da8442730729634301f0d3c290a258f02ee0d925036f2c3bef613"
+    },
+    {
+      "menuItemId": 13,
+      "name": "Tacacho con Cecina",
+      "url": "/uploads/menu/catalog/tacacho-con-cecina.jpg",
+      "file": "catalog/tacacho-con-cecina.jpg",
+      "bytes": 47472,
+      "sha256": "0f691f63fa45368d54afd94f1325fc471033400098cecfb563a685da30274b86"
+    },
+    {
+      "menuItemId": 14,
+      "name": "Tacacho con Chorizo",
+      "url": "/uploads/menu/catalog/tacacho-con-chorizo.jpg",
+      "file": "catalog/tacacho-con-chorizo.jpg",
+      "bytes": 28202,
+      "sha256": "7d63c4abd286e762856e36722095771a3fc9b0c5050cb64c736a744d47c0ac58"
+    },
+    {
+      "menuItemId": 15,
+      "name": "Parrilla con Patacones",
+      "url": "/uploads/menu/catalog/parilla-con-patacones.jpg",
+      "file": "catalog/parilla-con-patacones.jpg",
+      "bytes": 9039,
+      "sha256": "54320f7361b0da4d8096f233793b5ada7753803b80bc967289433c174e02b402"
+    },
+    {
+      "menuItemId": 16,
+      "name": "Ceviche de Doncella",
+      "url": "/uploads/menu/catalog/ceviche-de-doncella.jpg",
+      "file": "catalog/ceviche-de-doncella.jpg",
+      "bytes": 23427,
+      "sha256": "23735c312dbea6b69ea3fd39ce3a3d9491b178fc913688ace2ed000cd466b3e7"
+    },
+    {
+      "menuItemId": 17,
+      "name": "Tallarín Criollo de Pollo",
+      "url": "/uploads/menu/catalog/tallarin-criollo-de-pollo.jpg",
+      "file": "catalog/tallarin-criollo-de-pollo.jpg",
+      "bytes": 40492,
+      "sha256": "e7b406970635e8fa213e8710828ba4d3c6d4c181758ce3ab3b28c1ffce07e998"
+    },
+    {
+      "menuItemId": 18,
+      "name": "Tallarín Criollo de Res",
+      "url": "/uploads/menu/catalog/tallarin-criollo-de-res.jpg",
+      "file": "catalog/tallarin-criollo-de-res.jpg",
+      "bytes": 36406,
+      "sha256": "5a724ee7f177541319bb21a6f1bba3f2ddbc1db1370207e5dffd533535799977"
+    },
+    {
+      "menuItemId": 19,
+      "name": "Tallarín Amazónico",
+      "url": "/uploads/menu/catalog/tallarin-amazonico.jpg",
+      "file": "catalog/tallarin-amazonico.jpg",
+      "bytes": 37650,
+      "sha256": "6b1a3bec2b5db319fe8769bbdd1fe9394e771a58c36e51fbba49eee66b981ae5"
+    },
+    {
+      "menuItemId": 20,
+      "name": "Chicharrón de Chancho",
+      "url": "/uploads/menu/catalog/chicharron-de-chancho.jpg",
+      "file": "catalog/chicharron-de-chancho.jpg",
+      "bytes": 11981,
+      "sha256": "7af0e74b008feb9dfbfa2312ed2bd052560695c7657feaa655070166e82d814b"
+    },
+    {
+      "menuItemId": 21,
+      "name": "Chicharrón de Doncella",
+      "url": "/uploads/menu/catalog/chicharron-de-doncella.jpg",
+      "file": "catalog/chicharron-de-doncella.jpg",
+      "bytes": 28285,
+      "sha256": "3d41bdcf1dfafde3cfc45f291a4ed8295b2c80d4cbfac0fa829c686895be13f1"
+    },
+    {
+      "menuItemId": 22,
+      "name": "Chicharrón de Pollo",
+      "url": "/uploads/menu/catalog/chicharron-de-pollo.jpg",
+      "file": "catalog/chicharron-de-pollo.jpg",
+      "bytes": 47285,
+      "sha256": "ce75768e553835ecb100427b71e5a1a15616c6d4e67cd726c632877164a35e23"
+    },
+    {
+      "menuItemId": 23,
+      "name": "Pachamanca a la Piedra",
+      "url": "/uploads/menu/catalog/pachamanca-piedra.jpg",
+      "file": "catalog/pachamanca-piedra.jpg",
+      "bytes": 15829,
+      "sha256": "7756bb9e4b20c859b3f17309ba72890a8ff8d50a849c09606a04caab9ff82598"
+    },
+    {
+      "menuItemId": 24,
+      "name": "Broaster - Alitas",
+      "url": "/uploads/menu/catalog/broster-tipo-alita.jpg",
+      "file": "catalog/broster-tipo-alita.jpg",
+      "bytes": 39510,
+      "sha256": "bdc4a53a9dd3227152c07b673fa7970e6f28d192b19e0ba7b05f2c9d3702c39f"
+    },
+    {
+      "menuItemId": 25,
+      "name": "Broaster - Pierna",
+      "url": "/uploads/menu/catalog/broster-tipo-pierna.jpg",
+      "file": "catalog/broster-tipo-pierna.jpg",
+      "bytes": 36279,
+      "sha256": "bcdd69d3134a185e26391baa5333f38bb057754a60dae0c4bcd4a5d87daf26b4"
+    },
+    {
+      "menuItemId": 26,
+      "name": "Broaster - Pecho",
+      "url": "/uploads/menu/catalog/broster-tipo-pecho.jpg",
+      "file": "catalog/broster-tipo-pecho.jpg",
+      "bytes": 46199,
+      "sha256": "f0c059c352e025369760f740979eda41a8824132baf81d700687aae41f9350c1"
+    },
+    {
+      "menuItemId": 27,
+      "name": "Porción de Arroz",
+      "url": "/uploads/menu/catalog/porcion-arroz.jpg",
+      "file": "catalog/porcion-arroz.jpg",
+      "bytes": 21231,
+      "sha256": "69a4d6498bc3186a44e31f37d15703935fe62c4ac749347b088debc76321461c"
+    },
+    {
+      "menuItemId": 28,
+      "name": "Porción de Patacones",
+      "url": "/uploads/menu/catalog/porcion-patacones.jpg",
+      "file": "catalog/porcion-patacones.jpg",
+      "bytes": 24835,
+      "sha256": "8b0599afb85f8f9e9e74674cf81d0e8d89ba36c64ecbdd5fb241a815fb3d2cab"
+    },
+    {
+      "menuItemId": 29,
+      "name": "Porción de Maduro",
+      "url": "/uploads/menu/catalog/porcion-maduro.jpg",
+      "file": "catalog/porcion-maduro.jpg",
+      "bytes": 24144,
+      "sha256": "3ec4c9e5706ab4569e0294321c45c9f679aa93d8c9fd68e4f2d39c4b657303a0"
+    },
+    {
+      "menuItemId": 30,
+      "name": "Porción de Yuca Frita",
+      "url": "/uploads/menu/catalog/porcion-yuca-frita.jpg",
+      "file": "catalog/porcion-yuca-frita.jpg",
+      "bytes": 28944,
+      "sha256": "686a6c76a9df1acdc5857f02e57654f9b83a789c258b1d9c5c0f4cf73ba53bdc"
+    },
+    {
+      "menuItemId": 31,
+      "name": "Porción de Ensalada Fresca",
+      "url": "/uploads/menu/catalog/porcion-ensalada-fresca.jpg",
+      "file": "catalog/porcion-ensalada-fresca.jpg",
+      "bytes": 7021,
+      "sha256": "e129a626b56f4c7703d388b958813566417ff5418e5f0b4af37d5b9c8154f7da"
+    },
+    {
+      "menuItemId": 32,
+      "name": "Tequeños Clásicos",
+      "url": "/uploads/menu/catalog/tequeños-clasicos.jpg",
+      "file": "catalog/tequeños-clasicos.jpg",
+      "bytes": 28952,
+      "sha256": "da0ff9b7b435e671da3a13a4c75bf4d2c277f0843eaca8844cbc079f9aed2fa6"
+    },
+    {
+      "menuItemId": 33,
+      "name": "Tequeños Amazónicos",
+      "url": "/uploads/menu/catalog/tequeños-amazonicos.jpg",
+      "file": "catalog/tequeños-amazonicos.jpg",
+      "bytes": 35982,
+      "sha256": "ca029209ad008deb75c101cbf12f780f7df3b29635fc3ac00a39ce84d7aec5f9"
+    },
+    {
+      "menuItemId": 34,
+      "name": "Tequeños Rellenos",
+      "url": "/uploads/menu/catalog/tequeños-rellenos.jpg",
+      "file": "catalog/tequeños-rellenos.jpg",
+      "bytes": 38260,
+      "sha256": "89c6ddb527fe88841a3e4d7cbaa7ef002d5843aff31a205d68fde37d801ec294"
+    },
+    {
+      "menuItemId": 35,
+      "name": "Chilcano Clásico",
+      "url": "/uploads/menu/catalog/chilcano-clasico.jpg",
+      "file": "catalog/chilcano-clasico.jpg",
+      "bytes": 15943,
+      "sha256": "7e3ffaa30fc8f47b8212728c93c05ab8d48fcbb6c73d5cf139132c84f50fa068"
+    },
+    {
+      "menuItemId": 36,
+      "name": "Machu Pichu",
+      "url": "/uploads/menu/catalog/machu-pichu.jpg",
+      "file": "catalog/machu-pichu.jpg",
+      "bytes": 18016,
+      "sha256": "8e4b6a29740623219f8febe33034580369c4072778b943669099a525047cf98f"
+    },
+    {
+      "menuItemId": 37,
+      "name": "Mojito Clásico",
+      "url": "/uploads/menu/catalog/mojito-clasico.jpg",
+      "file": "catalog/mojito-clasico.jpg",
+      "bytes": 25015,
+      "sha256": "eeff8958c67c70c701a3ec5c0644e0603b35b8062cc2a4b5621dcfb4b848b780"
+    },
+    {
+      "menuItemId": 38,
+      "name": "Cuba Libre",
+      "url": "/uploads/menu/catalog/cuba-libre.jpg",
+      "file": "catalog/cuba-libre.jpg",
+      "bytes": 24915,
+      "sha256": "e68c512d162e96f88286615202033c986f1e0a0726c923becf937b602751700e"
+    },
+    {
+      "menuItemId": 39,
+      "name": "Piña Colada",
+      "url": "/uploads/menu/catalog/pina-colada.jpg",
+      "file": "catalog/pina-colada.jpg",
+      "bytes": 15795,
+      "sha256": "64e61486a88378098db0e153795cbc4ad3f8c26aba1d37b517e05d43319e82a5"
+    },
+    {
+      "menuItemId": 40,
+      "name": "Algarrobina",
+      "url": "/uploads/menu/catalog/algarrobina.jpg",
+      "file": "catalog/algarrobina.jpg",
+      "bytes": 64234,
+      "sha256": "dc275f4b4b8c532a2fd18cc85662d27947cfd02fe071182e626242f41d244c6a"
+    },
+    {
+      "menuItemId": 41,
+      "name": "Pantera Rosa",
+      "url": "/uploads/menu/catalog/pantera-rosa.jpg",
+      "file": "catalog/pantera-rosa.jpg",
+      "bytes": 23323,
+      "sha256": "be5b510f7953b66fcc3739d5a8eb57ead1775905c5995635dde3aaf2cd83e45a"
+    },
+    {
+      "menuItemId": 42,
+      "name": "Fresa Colada",
+      "url": "/uploads/menu/catalog/fresa-colada.jpg",
+      "file": "catalog/fresa-colada.jpg",
+      "bytes": 25266,
+      "sha256": "8c6e5aeb99693f8c5cd9e0ea25e6c9f5de7914238f42b74ff6abdeb9f6d5b170"
+    },
+    {
+      "menuItemId": 43,
+      "name": "Laguna Azul",
+      "url": "/uploads/menu/catalog/laguna-azul.jpg",
+      "file": "catalog/laguna-azul.jpg",
+      "bytes": 21342,
+      "sha256": "a4ed23f6c1ff638982a33fad6023703aa194694ef807e6b97c562a02322364a2"
+    },
+    {
+      "menuItemId": 44,
+      "name": "Tequila Sunrie",
+      "url": "/uploads/menu/catalog/tequila-sunrise.jpg",
+      "file": "catalog/tequila-sunrise.jpg",
+      "bytes": 19365,
+      "sha256": "16318dfe9e55cc9905922916b764ae83b04563276543acb9aa0e792b232f6440"
+    },
+    {
+      "menuItemId": 45,
+      "name": "Margarita Clásica",
+      "url": "/uploads/menu/catalog/margarita clasico.jpg",
+      "file": "catalog/margarita clasico.jpg",
+      "bytes": 10668,
+      "sha256": "c3d1c44a5466acc419eb1203ac21caff2f43e256ec5ad8e0340755f3080b2353"
+    },
+    {
+      "menuItemId": 46,
+      "name": "Margarita Blue",
+      "url": "/uploads/menu/catalog/margarita-blue.jpg",
+      "file": "catalog/margarita-blue.jpg",
+      "bytes": 27269,
+      "sha256": "5d41c2157fb54964184f476d41ae952584e2c229a8523a7f2c884949282d7f79"
+    },
+    {
+      "menuItemId": 47,
+      "name": "Caipirinha",
+      "url": "/uploads/menu/catalog/caipirinha.jpg",
+      "file": "catalog/caipirinha.jpg",
+      "bytes": 15088,
+      "sha256": "d579095002ddd510797ff849462377a0be840206f7b973a62a06d6ad16dd97f3"
+    },
+    {
+      "menuItemId": 48,
+      "name": "Blue Hawaii",
+      "url": "/uploads/menu/catalog/blue-hawai.jpg",
+      "file": "catalog/blue-hawai.jpg",
+      "bytes": 13830,
+      "sha256": "40b1b4bf2fb7ab510daed7408ff2f8b985384c6e5d091dabc0dfa2b5c4a280e4"
+    },
+    {
+      "menuItemId": 49,
+      "name": "Moscow Mule",
+      "url": "/uploads/menu/catalog/moscow-mule.jpg",
+      "file": "catalog/moscow-mule.jpg",
+      "bytes": 39381,
+      "sha256": "2fcf2ce9d092d90ea58b7dc434a5e3aea84459a4839edb318a1cc59f39f68a70"
+    },
+    {
+      "menuItemId": 50,
+      "name": "Bey Liz Colado",
+      "url": "/uploads/menu/catalog/bayleis-colada.jpg",
+      "file": "catalog/bayleis-colada.jpg",
+      "bytes": 17560,
+      "sha256": "9610e26bf5a6e735a98c7ae7a255a7f330f883d2c1b664ba678025e3b771f275"
+    },
+    {
+      "menuItemId": 51,
+      "name": "Sublime Mediano",
+      "url": "/uploads/menu/catalog/frappe-sublime.jpg",
+      "file": "catalog/frappe-sublime.jpg",
+      "bytes": 31150,
+      "sha256": "e1f26bbef9782cb0bb35531a2f4996f278240732a8f58bdf754be11dd2140342"
+    },
+    {
+      "menuItemId": 52,
+      "name": "Sublime Grande",
+      "url": "/uploads/menu/catalog/frappe-sublime.jpg",
+      "file": "catalog/frappe-sublime.jpg",
+      "bytes": 31150,
+      "sha256": "e1f26bbef9782cb0bb35531a2f4996f278240732a8f58bdf754be11dd2140342"
+    },
+    {
+      "menuItemId": 53,
+      "name": "Mocaccino Mediano",
+      "url": "/uploads/menu/catalog/frappe-mocacino.jpg",
+      "file": "catalog/frappe-mocacino.jpg",
+      "bytes": 35881,
+      "sha256": "7898f6f9584c269ed758ee9551ba4852899388de294df6c57232d012f44c9a75"
+    },
+    {
+      "menuItemId": 54,
+      "name": "Mocaccino Grande",
+      "url": "/uploads/menu/catalog/frappe-mocacino.jpg",
+      "file": "catalog/frappe-mocacino.jpg",
+      "bytes": 35881,
+      "sha256": "7898f6f9584c269ed758ee9551ba4852899388de294df6c57232d012f44c9a75"
+    },
+    {
+      "menuItemId": 55,
+      "name": "Fresa Mediano",
+      "url": "/uploads/menu/catalog/freappe-fresa.jpg",
+      "file": "catalog/freappe-fresa.jpg",
+      "bytes": 28776,
+      "sha256": "7f276d612301dd11910398e92e05d0d7051592cabde9b907aea116451ef3acc2"
+    },
+    {
+      "menuItemId": 56,
+      "name": "Fresa Grande",
+      "url": "/uploads/menu/catalog/freappe-fresa.jpg",
+      "file": "catalog/freappe-fresa.jpg",
+      "bytes": 28776,
+      "sha256": "7f276d612301dd11910398e92e05d0d7051592cabde9b907aea116451ef3acc2"
+    },
+    {
+      "menuItemId": 57,
+      "name": "Chicle Mediano",
+      "url": "/uploads/menu/catalog/frape-chicle.jpg",
+      "file": "catalog/frape-chicle.jpg",
+      "bytes": 16472,
+      "sha256": "6463c810259e1a770f89e0e30d87e5441786bf6935f90da202c74362bf41ff00"
+    },
+    {
+      "menuItemId": 58,
+      "name": "Chicle Grande",
+      "url": "/uploads/menu/catalog/frape-chicle.jpg",
+      "file": "catalog/frape-chicle.jpg",
+      "bytes": 16472,
+      "sha256": "6463c810259e1a770f89e0e30d87e5441786bf6935f90da202c74362bf41ff00"
+    },
+    {
+      "menuItemId": 59,
+      "name": "Capuchino Mediano",
+      "url": "/uploads/menu/catalog/frappe-capuchino.jpg",
+      "file": "catalog/frappe-capuchino.jpg",
+      "bytes": 10669,
+      "sha256": "40f23aece471e20be73652db29f6819f555d7e6ec1cdcf5252265420acc84428"
+    },
+    {
+      "menuItemId": 60,
+      "name": "Capuchino Grande",
+      "url": "/uploads/menu/catalog/frappe-capuchino.jpg",
+      "file": "catalog/frappe-capuchino.jpg",
+      "bytes": 10669,
+      "sha256": "40f23aece471e20be73652db29f6819f555d7e6ec1cdcf5252265420acc84428"
+    },
+    {
+      "menuItemId": 61,
+      "name": "Vainilla Mediano",
+      "url": "/uploads/menu/catalog/frappe-vainilla.jpg",
+      "file": "catalog/frappe-vainilla.jpg",
+      "bytes": 4389,
+      "sha256": "61c588c49acae5702c4fb5535ae261e10c9de61a044634774ee6b82366e02174"
+    },
+    {
+      "menuItemId": 62,
+      "name": "Vainilla Grande",
+      "url": "/uploads/menu/catalog/frappe-vainilla.jpg",
+      "file": "catalog/frappe-vainilla.jpg",
+      "bytes": 4389,
+      "sha256": "61c588c49acae5702c4fb5535ae261e10c9de61a044634774ee6b82366e02174"
+    },
+    {
+      "menuItemId": 63,
+      "name": "Oreo Mediano",
+      "url": "/uploads/menu/catalog/frappe-oreo.jpg",
+      "file": "catalog/frappe-oreo.jpg",
+      "bytes": 18574,
+      "sha256": "4da56d2858742d41684ad2791375786ff9661b0109dc6416134de22f87a279b6"
+    },
+    {
+      "menuItemId": 64,
+      "name": "Oreo Grande",
+      "url": "/uploads/menu/catalog/frappe-oreo.jpg",
+      "file": "catalog/frappe-oreo.jpg",
+      "bytes": 18574,
+      "sha256": "4da56d2858742d41684ad2791375786ff9661b0109dc6416134de22f87a279b6"
+    },
+    {
+      "menuItemId": 65,
+      "name": "Punch de Limón",
+      "url": "/uploads/menu/catalog/punch-limon.jpg",
+      "file": "catalog/punch-limon.jpg",
+      "bytes": 19837,
+      "sha256": "ec7728c1222f6ffa00096785264e3f66a88c2d3a04636b0030db00a636cdfa21"
+    },
+    {
+      "menuItemId": 66,
+      "name": "Piscina Park Plaza",
+      "url": "/uploads/menu/catalog/piscina-park-plaza.jpg",
+      "file": "catalog/piscina-park-plaza.jpg",
+      "bytes": 14554,
+      "sha256": "581c1ef9f7a6d403964b681308c138666cae91df715870ed7d8851e9be929b74",
+      "note": "Foto de piscina entregada y aprobada por el dueño para este cóctel el 2026-10-12"
+    },
+    {
+      "menuItemId": 67,
+      "name": "Café Pasado",
+      "url": "/uploads/menu/catalog/cafe-pasado.jpg",
+      "file": "catalog/cafe-pasado.jpg",
+      "bytes": 7990,
+      "sha256": "6975610c81013ce1916d0a63c76469f4acc774782f5348f84647c259092b966b"
+    },
+    {
+      "menuItemId": 68,
+      "name": "Café Americano",
+      "url": "/uploads/menu/catalog/cafe-americano.jpg",
+      "file": "catalog/cafe-americano.jpg",
+      "bytes": 19911,
+      "sha256": "5fb1f2a9288a70a354347b1f1d6a29772164ec6a9a3eb8961378c3bc3765904f"
+    },
+    {
+      "menuItemId": 69,
+      "name": "Mai Tai",
+      "url": "/uploads/menu/catalog/mai-tai.jpg",
+      "file": "catalog/mai-tai.jpg",
+      "bytes": 34667,
+      "sha256": "83b2e18b7b960d1172cad512bdcd35cbd6f2f709e78be019d2b56657325072ec"
+    },
+    {
+      "menuItemId": 70,
+      "name": "Pain Killer",
+      "url": "/uploads/menu/catalog/pain-killer.jpg",
+      "file": "catalog/pain-killer.jpg",
+      "bytes": 21108,
+      "sha256": "5a5dc1e9cc0580065042f05b094b85b880ee325ad2411e771102b620fe24c3da"
+    },
+    {
+      "menuItemId": 71,
+      "name": "San Juan",
+      "url": "/uploads/menu/catalog/cerveza-san-juan.jpg",
+      "file": "catalog/cerveza-san-juan.jpg",
+      "bytes": 65424,
+      "sha256": "f311b4a614fe29826ed22efc622831244eb9ef8bbb8c816b7fd868fac9cc4d3e"
+    },
+    {
+      "menuItemId": 72,
+      "name": "Trigo Lata Grande",
+      "url": "/uploads/menu/catalog/cerveza-trigo-lata.jpg",
+      "file": "catalog/cerveza-trigo-lata.jpg",
+      "bytes": 17523,
+      "sha256": "1f94de59d00d88e227e612790dc410c401e1037e884b927c30676e14da4adb38"
+    },
+    {
+      "menuItemId": 73,
+      "name": "Corona",
+      "url": "/uploads/menu/catalog/cerveza-corona.jpg",
+      "file": "catalog/cerveza-corona.jpg",
+      "bytes": 18070,
+      "sha256": "d7867adbb6a0d39eade0706ace86989ffff8e16cd9f2d16fe7768a19017b49a9"
+    },
+    {
+      "menuItemId": 74,
+      "name": "Mike Manzana",
+      "url": "/uploads/menu/catalog/make-manzana.jpg",
+      "file": "catalog/make-manzana.jpg",
+      "bytes": 5907,
+      "sha256": "5776e2d53e7e97e615f549e1ea2d65cafa2268523dd56afb73c05249b4cf6b2c"
+    },
+    {
+      "menuItemId": 75,
+      "name": "Mike Maracuyá",
+      "url": "/uploads/menu/catalog/mike-maracuya.jpg",
+      "file": "catalog/mike-maracuya.jpg",
+      "bytes": 19551,
+      "sha256": "764083bf7caf93d44f183f2bc4471ca8d247087c96aa378fe819be2e0c3a0119"
+    },
+    {
+      "menuItemId": 76,
+      "name": "Smirnoff",
+      "url": "/uploads/menu/catalog/smirnoff.jpg",
+      "file": "catalog/smirnoff.jpg",
+      "bytes": 14673,
+      "sha256": "752224dee1c6536a32ba15de0d6212b2f82855124739010d1ee515b52b7f3932"
+    },
+    {
+      "menuItemId": 77,
+      "name": "Pilsen Lata Grande",
+      "url": "/uploads/menu/catalog/pilsen-lata-grande.jpg",
+      "file": "catalog/pilsen-lata-grande.jpg",
+      "bytes": 22770,
+      "sha256": "6f31492064b800150a2f36a1ed21ebae8e34c9c5aa23452b2e194d9e09f0d331"
+    },
+    {
+      "menuItemId": 78,
+      "name": "Maracuyá Vaso",
+      "url": "/uploads/menu/catalog/refresco-maracuya.jpg",
+      "file": "catalog/refresco-maracuya.jpg",
+      "bytes": 20040,
+      "sha256": "be9b4ec1498730e893c9fbfa64816228fe4bb56206ff5048d3786929b2b708a8"
+    },
+    {
+      "menuItemId": 79,
+      "name": "Maracuyá Jarra",
+      "url": "/uploads/menu/catalog/refresco-maracuya.jpg",
+      "file": "catalog/refresco-maracuya.jpg",
+      "bytes": 20040,
+      "sha256": "be9b4ec1498730e893c9fbfa64816228fe4bb56206ff5048d3786929b2b708a8"
+    },
+    {
+      "menuItemId": 80,
+      "name": "Camu Camu Vaso",
+      "url": "/uploads/menu/catalog/refresco-camu-camu.jpg",
+      "file": "catalog/refresco-camu-camu.jpg",
+      "bytes": 25192,
+      "sha256": "1f0078c645d1493eba298e6e4b8d865896b5c96aad19f51dc7518ad6bc6ebf8e"
+    },
+    {
+      "menuItemId": 81,
+      "name": "Camu Camu Jarra",
+      "url": "/uploads/menu/catalog/refresco-camu-camu.jpg",
+      "file": "catalog/refresco-camu-camu.jpg",
+      "bytes": 25192,
+      "sha256": "1f0078c645d1493eba298e6e4b8d865896b5c96aad19f51dc7518ad6bc6ebf8e"
+    },
+    {
+      "menuItemId": 82,
+      "name": "Limonada Vaso",
+      "url": "/uploads/menu/catalog/refresco-limonada-frozen.jpg",
+      "file": "catalog/refresco-limonada-frozen.jpg",
+      "bytes": 48196,
+      "sha256": "3992b60ef664152c1882ba12fdfff2a36b0ea32688d786479d742b762748f927"
+    },
+    {
+      "menuItemId": 83,
+      "name": "Limonada Jarra",
+      "url": "/uploads/menu/catalog/refresco-limonada-frozen.jpg",
+      "file": "catalog/refresco-limonada-frozen.jpg",
+      "bytes": 48196,
+      "sha256": "3992b60ef664152c1882ba12fdfff2a36b0ea32688d786479d742b762748f927"
+    },
+    {
+      "menuItemId": 84,
+      "name": "San Luis",
+      "url": "/uploads/menu/catalog/agua-san-luis.jpg",
+      "file": "catalog/agua-san-luis.jpg",
+      "bytes": 7585,
+      "sha256": "7a25181e6e9de9560287631d1a5837dd5ca855a16b5270927a48e15058e7ae7b"
+    },
+    {
+      "menuItemId": 85,
+      "name": "Coca Cola",
+      "url": "/uploads/menu/catalog/coca-cola.jpg",
+      "file": "catalog/coca-cola.jpg",
+      "bytes": 10067,
+      "sha256": "056111192b76b5a44da6d6a39079cac09824aaeefa6d70162e5204ff937e3158"
+    },
+    {
+      "menuItemId": 86,
+      "name": "Inca Kola",
+      "url": "/uploads/menu/catalog/inka-kola.jpg",
+      "file": "catalog/inka-kola.jpg",
+      "bytes": 7500,
+      "sha256": "b99d5bc99f7d26959cb03a4eb520b6745bd6b8ea1e46853cb98f236f854d8778"
+    },
+    {
+      "menuItemId": 87,
+      "name": "Volt",
+      "url": "/uploads/menu/catalog/volt.jpg",
+      "file": "catalog/volt.jpg",
+      "bytes": 5426,
+      "sha256": "25fa95d5dc1b7d787774061954074187207538b76ab86597e360e19b258e2a47"
+    },
+    {
+      "menuItemId": 88,
+      "name": "Sporade",
+      "url": "/uploads/menu/catalog/sporade.jpg",
+      "file": "catalog/sporade.jpg",
+      "bytes": 3668,
+      "sha256": "6a0e417c38469e01ff6d6825f5c9ae31930188c606787d9ccb13700172af10b7"
+    },
+    {
+      "menuItemId": 89,
+      "name": "Bio",
+      "url": "/uploads/menu/catalog/bio.jpg",
+      "file": "catalog/bio.jpg",
+      "bytes": 3944,
+      "sha256": "546782c460312b748d1f7807d4906a71f2b0a741ab6d80abd06ad6df9167c107"
+    },
+    {
+      "menuItemId": 90,
+      "name": "Guaranita",
+      "url": "/uploads/menu/catalog/guaranita.jpg",
+      "file": "catalog/guaranita.jpg",
+      "bytes": 8291,
+      "sha256": "5475fe0648cf15bee50ab7344bae6df2553e32313f5ee3cf6bd1be046541f594"
+    },
+    {
+      "menuItemId": 91,
+      "name": "Agua Mineral con Gas",
+      "url": "/uploads/menu/catalog/agua-mineral-gas.jpg",
+      "file": "catalog/agua-mineral-gas.jpg",
+      "bytes": 5406,
+      "sha256": "70fcb9cae0015afe86a137f12d67c6136287c970bde598cd61d904bb560d71b5"
+    },
+    {
+      "menuItemId": 92,
+      "name": "Agua Mineral sin Gas",
+      "url": "/uploads/menu/catalog/agua-mineral-sin-gas.jpg",
+      "file": "catalog/agua-mineral-sin-gas.jpg",
+      "bytes": 5531,
+      "sha256": "5e1fa9731f9437030678d1b042b60357134ef6060422e0dd02df35c573cff220"
+    },
+    {
+      "menuItemId": 93,
+      "name": "Té Canela y Clavo",
+      "url": "/uploads/menu/catalog/te-canela-clavo.jpg",
+      "file": "catalog/te-canela-clavo.jpg",
+      "bytes": 7768,
+      "sha256": "fe7cf5b13b410c4564feb5a8df07f62b61507417c656164986db315f8b1a2c37"
+    },
+    {
+      "menuItemId": 94,
+      "name": "Té de Anís",
+      "url": "/uploads/menu/catalog/te-anis.jpg",
+      "file": "catalog/te-anis.jpg",
+      "bytes": 32237,
+      "sha256": "d2b0cdc078563eddebedfb2ef26fce7a7f40c84e158ccbba72741f9037d1c413"
+    },
+    {
+      "menuItemId": 95,
+      "name": "Té de Manzanilla",
+      "url": "/uploads/menu/catalog/te-manzanilla.jpg",
+      "file": "catalog/te-manzanilla.jpg",
+      "bytes": 28048,
+      "sha256": "16ea9e2eb8bb09fdf9dcaaa72046ceeaae586a154df6229d8dd313a3cb27e5b2"
+    },
+    {
+      "menuItemId": 96,
+      "name": "Pisco Sour",
+      "url": "/uploads/menu/catalog/pisco-sour.jpg",
+      "file": "catalog/pisco-sour.jpg",
+      "bytes": 20522,
+      "sha256": "a692ae9f62e29612912849a11c658c68036c604c5ba8a4ce2215aacd54c37c1f"
+    }
+  ],
+  "missing": [],
+  "source": "OneDrive/Pictures/catalog + faltantes; 96 archivos verificados, 13 duplicados, 83 archivos reunidos"
+}

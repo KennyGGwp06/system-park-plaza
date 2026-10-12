@@ -23,7 +23,7 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.goto(`${BASE}/login`, { waitUntil: "networkidle2" });
   await page.type("#erp-email", "superadmin"); await page.type("#erp-password", "superadmin");
   await Promise.all([page.waitForNavigation({ waitUntil: "networkidle2" }).catch(() => {}), page.keyboard.press("Enter")]);
-  const summary = [];
+  const summary = []; let failures = 0;
   for (const route of ROUTES.filter((r) => r.includes(filter))) {
     problems = [];
     await page.goto(`${BASE}${route}`, { waitUntil: "networkidle2" }).catch(() => {});
@@ -43,10 +43,13 @@ fs.mkdirSync(OUT, { recursive: true });
     });
     const name = route.replace(/^\/superadmin\/?/, "").replace(/\//g, "-") || "inicio";
     await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: !phone });
-    const flags = [info.crash && "PANTALLA CAÍDA", info.wide && "DESBORDE", info.bigText > 14 && `LETRA GRÁFICO ${info.bigText}px`, info.height > 3200 && `ALTA ${info.height}px`, info.submenus && "SUBMENÚ"].filter(Boolean);
+    // En celular las columnas se apilan; su altura no implica una pantalla rota.
+    const flags = [info.crash && "PANTALLA CAÍDA", info.wide && "DESBORDE", info.bigText > 14 && `LETRA GRÁFICO ${info.bigText}px`, !phone && info.height > 3200 && `ALTA ${info.height}px`, info.submenus && "SUBMENÚ"].filter(Boolean);
+    if (flags.length || problems.length) failures++;
     summary.push({ route, height: info.height, bigText: info.bigText });
     console.log(`${flags.length || problems.length ? "ERR" : "OK "} ${route} · ${info.h1} · ${info.height}px${info.tabs ? ` · ${info.tabs} pestañas` : ""}${flags.length ? ` · ${flags.join(" · ")}` : ""}${problems.length ? ` · ${problems.slice(0, 3).join(" | ")}` : ""}`);
   }
   console.log(`\n${summary.length} vistas · la más alta ${Math.max(...summary.map((s) => s.height))}px · letra de gráfico más grande ${Math.max(...summary.map((s) => s.bigText))}px`);
   await browser.close();
+  process.exitCode = failures ? 1 : 0;
 })();

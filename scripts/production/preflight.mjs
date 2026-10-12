@@ -42,7 +42,7 @@ if (env.DATABASE_URL) {
     if (database.protocol !== "postgresql:" && database.protocol !== "postgres:") errors.push("DATABASE_URL debe usar postgresql://.");
     if (database.hostname !== "postgres") errors.push("Dentro de Docker, DATABASE_URL debe usar el host postgres.");
     if (decodeURIComponent(database.username) !== env.POSTGRES_USER) errors.push("El usuario de DATABASE_URL no coincide con POSTGRES_USER.");
-    if (decodeURIComponent(database.password) !== env.POSTGRES_PASSWORD) warnings.push("La contraseña de DATABASE_URL no coincide con POSTGRES_PASSWORD. Revisa la codificación URL de símbolos.");
+    if (decodeURIComponent(database.password) !== env.POSTGRES_PASSWORD) errors.push("La contraseña de DATABASE_URL no coincide con POSTGRES_PASSWORD. Revisa la codificación URL de símbolos.");
     if (database.pathname.slice(1) !== env.POSTGRES_DB) errors.push("La base de DATABASE_URL no coincide con POSTGRES_DB.");
   } catch {
     errors.push("DATABASE_URL no es una URL PostgreSQL válida.");
