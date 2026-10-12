@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db.js";
+import { sealAudit } from "./audit-chain.js";
 
 const n = (value) => Number(value || 0);
 const round6 = (value) => Math.round((Number(value) + Number.EPSILON) * 1_000_000) / 1_000_000;
@@ -132,7 +133,7 @@ export async function createPurchaseOrder(payload, actorId) {
       legacyLines.push({ id: Number(line.id), productId: Number(item.row.product_id), relationalProductId: Number(item.row.product_id), presentationId: item.row.presentation_id ? Number(item.row.presentation_id) : null, quantity: item.quantity, orderedQuantity: item.quantity, cost: item.unitCost, theoreticalBaseQuantity: item.orderedBase });
     }
     state.compras.push({ id: legacyId, relationalId: Number(inserted.id), code, supplierId: supplier ? Number(supplier.legacy_id || supplier.id) : null, relationalSupplierId: supplier ? Number(supplier.id) : null, supplierName: supplier?.name || "Compra directa", items: legacyLines, total: round6(total), status: "PENDIENTE_RECEPCION", expectedAt: payload.expectedAt || null, notes: payload.notes || "", createdAt: new Date().toISOString() });
-    state.audit.unshift({ id: ++state.counters.audit, module: "COMPRAS", action: "CREAR_ORDEN", detail: code, userId: actorId, createdAt: new Date().toISOString() });
+    sealAudit(state,{ id: ++state.counters.audit, module: "COMPRAS", action: "CREAR_ORDEN", detail: code, userId: actorId, createdAt: new Date().toISOString() });
     await saveState(client, state);
     await audit(client, "CREATE", "PURCHASE_ORDER", inserted.id, actorId, "Orden creada y pendiente de recepción", null, { code, total });
     return inserted.id;
@@ -274,7 +275,7 @@ export async function postGoodsReceipt(id, actorId) {
       legacyOrder.receivedAt = new Date().toISOString();
       legacyOrder.receiptCode = receipt.code;
     }
-    state.audit.unshift({ id: ++state.counters.audit, module: "COMPRAS", action: "CONTABILIZAR_RECEPCION", detail: receipt.code, userId: actorId, createdAt: new Date().toISOString() });
+    sealAudit(state,{ id: ++state.counters.audit, module: "COMPRAS", action: "CONTABILIZAR_RECEPCION", detail: receipt.code, userId: actorId, createdAt: new Date().toISOString() });
     await saveState(client, state);
     await audit(client, "POST", "GOODS_RECEIPT", receipt.id, actorId, "Recepción ingresada a almacén, costo y kardex actualizados", { status: receipt.status }, { status: "POSTED", orderStatus }, receipt.code);
     return order.id;

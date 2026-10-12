@@ -1,13 +1,22 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { ShieldAlert } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { HOME_BY_ROLE as defaultRouteByRole } from "../constants/roles";
 
+// Acceso denegado: dentro de una estación se muestra en su contenido; en /403 ocupa la pantalla.
 export function Forbidden() {
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+  const home = defaultRouteByRole[user?.role] || "/login";
   return (
-    <div className="grid min-h-[70vh] place-items-center">
-      <div className="rounded-panel border border-slate-200 bg-white p-8 text-center shadow-soft">
-        <h1 className="text-4xl font-black text-park-danger">403</h1>
-        <p className="mt-2 font-bold text-park-dark">No tienes permisos para acceder a este modulo.</p>
-        <Link className="mt-5 inline-flex rounded-lg bg-park-green px-4 py-2 font-bold text-white" to="/dashboard">Volver al dashboard</Link>
-      </div>
+    <div className={`ax ${pathname === "/403" ? "ax-screen" : "ax-inline"}`}>
+      <section className="ax-box" role="alert">
+        <span className="is-crit"><ShieldAlert /></span>
+        <small>Acceso restringido</small>
+        <h1>Esta sección no corresponde a tu cuenta</h1>
+        <p>Si necesitas entrar, pide al administrador que revise los permisos de tu rol.</p>
+        <footer><Link className="ax-btn" to={home}>Volver a mi estación</Link></footer>
+      </section>
     </div>
   );
 }

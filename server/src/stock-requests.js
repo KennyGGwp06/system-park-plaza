@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db.js";
 import { createTransfer } from "./transfers.js";
+import { EXCESS_TOLERANCE, justificationFor } from "./daily-needs.js";
 
 const n = (value) => Number(value || 0);
 function fail(status, message) { const error = new Error(message); error.status = status; throw error; }
@@ -9,15 +10,15 @@ async function readRequests(client, filters = {}) {
   const params = []; const where = [];
   if (filters.area) { params.push(String(filters.area).toUpperCase()); where.push(`r.area_code=$${params.length}`); }
   if (filters.status) { params.push(String(filters.status).toUpperCase()); where.push(`r.status=$${params.length}`); }
-  const requests = (await client.query(`SELECT r.id,r.code,r.area_code "area",r.status,r.requested_by_legacy_user_id "requestedBy",r.reviewed_by_legacy_user_id "reviewedBy",r.transfer_id "transferId",r.observation,r.review_note "reviewNote",r.requested_at "requestedAt",r.reviewed_at "reviewedAt",t.code "transferCode",t.status "transferStatus"
+  const requests = (await client.query(`SELECT r.id,r.code,r.area_code "area",r.source,r.status,r.requested_by_legacy_user_id "requestedBy",r.reviewed_by_legacy_user_id "reviewedBy",r.transfer_id "transferId",r.observation,r.review_note "reviewNote",r.requested_at "requestedAt",r.reviewed_at "reviewedAt",t.code "transferCode",t.status "transferStatus"
     FROM inventory_stock_requests r LEFT JOIN inventory_transfers t ON t.id=r.transfer_id ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY r.requested_at DESC`, params)).rows;
   if (!requests.length) return [];
-  const lines = (await client.query(`SELECT l.id,l.request_id "requestId",l.product_id "productId",p.name "productName",l.unit_id "unitId",u.symbol "unitSymbol",l.requested_quantity "requestedQuantity",l.approved_quantity "approvedQuantity",l.observation,
+  const lines = (await client.query(`SELECT l.id,l.request_id "requestId",l.product_id "productId",p.name "productName",l.unit_id "unitId",u.symbol "unitSymbol",l.requested_quantity "requestedQuantity",l.approved_quantity "approvedQuantity",l.justified_quantity "justifiedQuantity",l.observation,
       COALESCE((SELECT SUM(b.on_hand-b.reserved) FROM inventory_stock_balances b JOIN inventory_warehouses w ON w.id=b.warehouse_id JOIN inventory_lots lot ON lot.id=b.lot_id WHERE b.product_id=p.id AND w.code='GENERAL' AND w.active AND lot.status='AVAILABLE'),0) "generalAvailable"
     FROM inventory_stock_request_lines l JOIN inventory_products p ON p.id=l.product_id JOIN inventory_units u ON u.id=l.unit_id WHERE l.request_id=ANY($1::bigint[]) ORDER BY l.id`, [requests.map((item) => item.id)])).rows;
   const state = (await client.query("SELECT data FROM app_state WHERE id=1")).rows[0].data;
   const person = (id) => { const user=(state.users||[]).find((item)=>n(item.id)===n(id)); return user ? `${user.firstName} ${user.lastName}`.trim() : null; };
-  return requests.map((request) => ({ ...request, requestedByName: person(request.requestedBy), reviewedByName: person(request.reviewedBy), lines: lines.filter((line) => n(line.requestId) === n(request.id)) }));
+  return requests.map((request) => ({ ...request, requestedByName: person(request.requestedBy), reviewedByName: person(request.reviewedBy), lines: lines.filter((line) => n(line.requestId) === n(request.id)).map((line) => ({ ...line, excess: line.justifiedQuantity != null && n(line.requestedQuantity) > n(line.justifiedQuantity) * (1 + EXCESS_TOLERANCE) + 0.000001 })) }));
 }
 
 export async function stockRequestReferences() {
@@ -43,15 +44,17 @@ export async function createStockRequest(payload, user) {
   const client = await db.connect();
   try {
     await client.query('BEGIN');
+    const source = String(payload.source || '').toUpperCase() === 'CIERRE' ? 'CIERRE' : 'EMERGENCIA';
+    const justified = await justificationFor(client, area);
     const code = `SOL-${area === 'RESTAURANTE' ? 'RES' : 'BAR'}-${randomUUID().slice(0,6).toUpperCase()}`;
-    const request = (await client.query(`INSERT INTO inventory_stock_requests(code,area_code,requested_by_legacy_user_id,observation) VALUES($1,$2,$3,$4) RETURNING id`, [code, area, user.id, String(payload.observation || '').trim() || null])).rows[0];
+    const request = (await client.query(`INSERT INTO inventory_stock_requests(code,area_code,requested_by_legacy_user_id,observation,source) VALUES($1,$2,$3,$4,$5) RETURNING id`, [code, area, user.id, String(payload.observation || '').trim() || null, source])).rows[0];
     const seen = new Set();
     for (const line of payload.lines) {
       const productId=n(line.productId), quantity=n(line.quantity); if (!productId || quantity<=0 || seen.has(productId)) fail(400,'Productos o cantidades de solicitud no válidos'); seen.add(productId);
       const product=(await client.query("SELECT id,base_unit_id FROM inventory_products WHERE id=$1 AND status='ACTIVE'",[productId])).rows[0]; if(!product) fail(404,'Uno de los productos no existe');
-      await client.query(`INSERT INTO inventory_stock_request_lines(request_id,product_id,unit_id,requested_quantity,observation) VALUES($1,$2,$3,$4,$5)`,[request.id,product.id,product.base_unit_id,quantity,String(line.observation||'').trim()||null]);
+      await client.query(`INSERT INTO inventory_stock_request_lines(request_id,product_id,unit_id,requested_quantity,justified_quantity,observation) VALUES($1,$2,$3,$4,$5,$6)`,[request.id,product.id,product.base_unit_id,quantity,justified.get(product.id)?.justifiedQuantity ?? 0,String(line.observation||'').trim()||null]);
     }
-    await client.query(`INSERT INTO inventory_audit_events(event_type,entity_type,entity_id,actor_legacy_user_id,reason,after_data,correlation_id) VALUES('CREATE','STOCK_REQUEST',$1,$2,$3,$4::jsonb,$5)`,[request.id,user.id,'Solicitud de stock creada',JSON.stringify({area,lines:payload.lines.length}),code]);
+    await client.query(`INSERT INTO inventory_audit_events(event_type,entity_type,entity_id,actor_legacy_user_id,reason,after_data,correlation_id) VALUES('CREATE','STOCK_REQUEST',$1,$2,$3,$4::jsonb,$5)`,[request.id,user.id,'Solicitud de stock creada',JSON.stringify({area,source,lines:payload.lines.length}),code]);
     await client.query('COMMIT'); return (await readRequests(client,{})).find((item)=>n(item.id)===n(request.id));
   } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
 }

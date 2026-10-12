@@ -1,0 +1,133 @@
+/* Pantallas de acceso y de sistema con la identidad de las estaciones (modules/recepcion/recepcion.css):
+   ingreso del personal (/login), reloj de asistencia (/reloj), acceso denegado, errores y carga.
+   Se cargan antes que cualquier estación, por eso repiten aquí los tokens de color. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+.ax {
+  --ink: #0B1020; --ink-2: #131B33; --ink-3: #1B2645; --deep: #0F4C9E; --blue: #1E6FD6; --sky: #7EC6FF;
+  --blue-soft: #EAF2FD; --paper: #F4F6FA; --line: #D8E1EE; --line-2: #E7ECF3;
+  --text: #0B1020; --muted: #5B6B82; --faint: #8A97AB;
+  --ok: #0A6B50; --ok-bg: #E3F5EF; --crit: #C83D46; --crit-bg: #F8E9EB;
+  --r: 8px; --r-s: 6px;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif; font-feature-settings: "tnum" 1, "cv11" 1;
+  color: var(--text); font-size: 14px; line-height: 1.45;
+}
+.ax *, .ax *::before, .ax *::after { box-sizing: border-box; }
+.ax button, .ax input { font: inherit; }
+
+/* ---------- piezas comunes ---------- */
+.ax-brand { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; }
+.ax-brand img { width: 38px; height: 38px; border-radius: 50%; flex: 0 0 38px; }
+.ax-brand b { display: block; font-size: 14px; font-weight: 700; letter-spacing: .16em; }
+.ax-brand small { display: block; color: #8A9BB6; font-size: 12px; margin-top: 1px; }
+.ax-label { display: grid; gap: 6px; color: var(--muted); font-size: 12.5px; font-weight: 500; }
+.ax-input { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-s); background: #fff; color: var(--muted); }
+.ax-input:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(30,111,214,.14); }
+.ax-input svg { width: 17px; height: 17px; flex: 0 0 17px; }
+.ax-input input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 14.5px; }
+.ax-input button { width: 32px; height: 32px; margin-right: -6px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; }
+.ax-input button:hover { background: var(--paper); color: var(--text); }
+.ax-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 18px; border: 1px solid var(--blue); border-radius: var(--r-s); background: var(--blue); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+.ax-btn:hover { background: var(--deep); border-color: var(--deep); }
+.ax-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ax-btn svg { width: 17px; height: 17px; }
+.ax-btn--line { background: #fff; border-color: var(--line); color: var(--text); }
+.ax-btn--line:hover { background: var(--paper); border-color: #C3CFE0; }
+.ax-btn--block { width: 100%; }
+.ax-alert { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-s); border: 1px solid #EBC5C9; background: var(--crit-bg); color: var(--crit); font-size: 13px; font-weight: 500; }
+.ax-alert svg { width: 17px; height: 17px; flex: 0 0 17px; margin-top: 1px; }
+.ax-alert--ok { border-color: #B9E2D4; background: var(--ok-bg); color: var(--ok); }
+
+/* ---------- ingreso del personal ---------- */
+.ax-login { min-height: 100dvh; display: grid; grid-template-columns: minmax(340px, 440px) 1fr; background: var(--paper); }
+.ax-login-side { display: flex; flex-direction: column; gap: 28px; padding: 32px 36px; background: var(--ink); color: #C9D3E3; }
+.ax-login-side h1 { margin: 36px 0 0; color: #fff; font-size: 26px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; }
+.ax-login-side > p { margin: -16px 0 0; color: #8A9BB6; font-size: 13.5px; }
+.ax-stations { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; border-top: 1px solid rgba(255,255,255,.08); }
+.ax-stations li { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.ax-stations li > span { width: 30px; height: 30px; border-radius: var(--r-s); background: rgba(30,111,214,.18); color: var(--sky); display: grid; place-items: center; flex: 0 0 30px; }
+.ax-stations li svg { width: 16px; height: 16px; }
+.ax-stations b { display: block; color: #fff; font-size: 13.5px; font-weight: 600; }
+.ax-stations small { display: block; color: #8A9BB6; font-size: 12px; }
+.ax-login-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
+.ax-login-foot time { color: #8A9BB6; font-size: 12.5px; }
+.ax-login-foot time b { display: block; color: #fff; font-size: 20px; font-weight: 600; letter-spacing: .02em; }
+.ax-login-foot a { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border: 1px solid rgba(255,255,255,.16); border-radius: var(--r-s); color: #fff; font-size: 13px; font-weight: 500; text-decoration: none; }
+.ax-login-foot a:hover { background: rgba(255,255,255,.07); }
+.ax-login-foot a svg { width: 15px; height: 15px; }
+.ax-login-main { display: grid; place-items: center; padding: 32px 20px; }
+.ax-form { width: min(400px, 100%); display: grid; gap: 16px; }
+.ax-form header small { display: block; color: var(--blue); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.ax-form header h2 { margin: 6px 0 0; font-size: 24px; font-weight: 600; letter-spacing: -.01em; }
+.ax-form header p { margin: 6px 0 0; color: var(--muted); font-size: 13.5px; }
+.ax-form-card { display: grid; gap: 16px; padding: 24px; border: 1px solid var(--line); border-radius: var(--r); background: #fff; }
+.ax-form-note { margin: 0; color: var(--faint); font-size: 12.5px; text-align: center; }
+.ax-form-note a { color: var(--deep); font-weight: 500; }
+
+/* ---------- reloj de asistencia (terminal compartida) ---------- */
+.ax-clock { min-height: 100dvh; display: flex; flex-direction: column; background: var(--paper); }
+.ax-clock-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding: 12px 28px; background: var(--ink); }
+.ax-clock-now { text-align: right; color: #8A9BB6; font-size: 12.5px; }
+.ax-clock-now b { display: block; color: #fff; font-size: 22px; font-weight: 600; letter-spacing: .02em; }
+.ax-clock-body { flex: 1; display: grid; place-items: center; padding: 28px 20px; }
+.ax-clock-card { width: min(860px, 100%); display: grid; grid-template-columns: 300px 1fr; border: 1px solid var(--line); border-radius: var(--r); background: #fff; overflow: hidden; }
+.ax-worker { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 28px 20px; border-right: 1px solid var(--line); background: #FAFBFD; text-align: center; }
+.ax-worker-photo { width: 112px; height: 112px; border-radius: 50%; border: 1px solid var(--line); background: var(--blue-soft); color: var(--deep); display: grid; place-items: center; overflow: hidden; font-size: 38px; font-weight: 600; }
+.ax-worker-photo img { width: 100%; height: 100%; object-fit: cover; }
+.ax-worker-photo svg { width: 44px; height: 44px; color: var(--blue); }
+.ax-worker strong { display: block; font-size: 17px; font-weight: 600; }
+.ax-worker span { display: block; color: var(--muted); font-size: 13px; }
+.ax-worker em { font-style: normal; display: inline-block; padding: 3px 9px; border-radius: 99px; background: var(--blue-soft); color: var(--deep); font-size: 12px; font-weight: 600; }
+.ax-clock-form { display: grid; gap: 14px; padding: 24px; align-content: start; }
+.ax-clock-form h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.ax-clock-form > p { margin: -8px 0 0; color: var(--muted); font-size: 13px; }
+.ax-codes { display: grid; grid-template-columns: 1fr 130px; gap: 12px; }
+.ax-code { height: 50px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-s); background: #fff; color: var(--text); font-size: 20px; font-weight: 600; letter-spacing: .18em; text-align: center; outline: 0; width: 100%; }
+.ax-code:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(30,111,214,.14); }
+.ax-code.is-active { border-color: var(--blue); }
+.ax-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ax-keypad button { height: 50px; border: 1px solid var(--line); border-radius: var(--r-s); background: #fff; color: var(--text); font-size: 19px; font-weight: 600; cursor: pointer; display: grid; place-items: center; }
+.ax-keypad button:hover { background: var(--paper); }
+.ax-keypad button:active { background: var(--blue-soft); border-color: var(--blue); }
+.ax-keypad button svg { width: 20px; height: 20px; }
+.ax-actions { display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
+.ax-actions .ax-btn { height: 50px; font-size: 15px; }
+.ax-times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; padding-top: 10px; border-top: 1px solid #B9E2D4; }
+.ax-times small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
+.ax-times b { display: block; margin-top: 2px; font-size: 14px; }
+.ax-clock-foot { padding: 14px 28px; color: var(--faint); font-size: 12px; text-align: center; }
+
+/* ---------- acceso denegado, errores y carga ---------- */
+.ax-screen { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--paper); }
+.ax-inline { min-height: 60vh; display: grid; place-items: center; padding: 24px 16px; }
+.ax-box { width: min(460px, 100%); padding: 28px 24px; border: 1px solid var(--line); border-radius: var(--r); background: #fff; text-align: center; }
+.ax-box > span { width: 44px; height: 44px; margin: 0 auto 12px; border-radius: 50%; background: var(--blue-soft); color: var(--deep); display: grid; place-items: center; }
+.ax-box > span.is-crit { background: var(--crit-bg); color: var(--crit); }
+.ax-box > span svg { width: 22px; height: 22px; }
+.ax-box small { display: block; color: var(--blue); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.ax-box h1, .ax-box h2 { margin: 6px 0 0; font-size: 19px; font-weight: 600; }
+.ax-box p { margin: 8px 0 0; color: var(--muted); font-size: 13.5px; }
+.ax-box footer { display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+.ax-box footer .ax-btn { height: 38px; font-size: 13.5px; }
+.ax-loading { min-height: 180px; display: grid; place-items: center; align-content: center; gap: 12px; padding: 32px 16px; color: #5B6B82; font: 500 13px Inter, "Segoe UI", system-ui, sans-serif; }
+.ax-loading i { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #EAF2FD; border-top-color: #1E6FD6; animation: ax-spin .8s linear infinite; }
+@keyframes ax-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 860px) {
+  .ax-login { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .ax-login-side { padding: 16px; gap: 0; }
+  .ax-login-side h1, .ax-login-side > p, .ax-stations { display: none; }
+  .ax-login-foot { margin-top: 14px; padding-top: 12px; }
+  .ax-login-foot time b { font-size: 16px; }
+  .ax-login-main { place-items: start center; padding: 24px 16px; }
+  .ax-form-card { padding: 18px 16px; }
+  .ax-clock-top { padding: 10px 16px; }
+  .ax-clock-now b { font-size: 18px; }
+  .ax-clock-body { padding: 16px; place-items: start center; }
+  .ax-clock-card { grid-template-columns: 1fr; }
+  .ax-worker { flex-direction: row; justify-content: flex-start; text-align: left; padding: 14px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .ax-worker-photo { width: 56px; height: 56px; font-size: 22px; flex: 0 0 56px; }
+  .ax-worker-photo svg { width: 26px; height: 26px; }
+  .ax-clock-form { padding: 16px; }
+  .ax-codes { grid-template-columns: 1fr 110px; }
+}

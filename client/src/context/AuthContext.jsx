@@ -31,6 +31,7 @@ export function AuthProvider({ children }) {
   function hasPermission(permission) {
     if (!permission) return true;
     if (user?.role === "SUPERADMIN") return true;
+    if (user?.role === "ADMINISTRADOR" && ["EMPLEADOS:VER", "TURNOS:VER"].includes(permission)) return true;
     return user?.permissions?.includes(permission);
   }
 

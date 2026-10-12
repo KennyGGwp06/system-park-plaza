@@ -1,0 +1,49 @@
+/* Estación de cocina: complementos de recepcion.css (misma paleta, tipografía y medidas).
+   Tablero de pedidos por etapas (tipo pantalla de cocina) y tickets legibles a distancia sin exagerar tamaños. */
+.kd-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.kd-board--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kd-col { background: #EEF2F8; border: 1px solid var(--line); border-radius: var(--r); min-width: 0; display: flex; flex-direction: column; max-height: calc(100dvh - 210px); }
+.kd-col > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 12px; border-bottom: 1px solid var(--line); background: #fff; border-radius: var(--r) var(--r) 0 0; }
+.kd-col > header b { font-size: 13.5px; font-weight: 600; }
+.kd-col > header small { display: block; color: var(--muted); font-size: 12px; }
+.kd-col > header i { font-style: normal; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 600; display: grid; place-items: center; }
+.kd-col-body { padding: 10px; display: grid; gap: 10px; overflow-y: auto; }
+.kd-col-empty { padding: 18px 8px; text-align: center; color: var(--faint); font-size: 12.5px; }
+.kd-ticket { background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--blue); border-radius: var(--r-s); padding: 10px 12px 12px; display: grid; gap: 8px; cursor: pointer; }
+.kd-ticket:hover { box-shadow: 0 4px 14px rgba(11, 16, 32, .08); }
+.kd-ticket.t-late { border-top-color: #D99A22; }
+.kd-ticket.t-crit { border-top-color: var(--crit); }
+.kd-ticket.t-ready { border-top-color: #12A07A; }
+.kd-ticket-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.kd-ticket-h b { display: block; font-size: 14px; font-weight: 600; }
+.kd-ticket-h small { display: block; color: var(--muted); font-size: 12px; }
+.kd-timer { font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; padding: 2px 7px; border-radius: 4px; background: var(--off-bg); color: var(--off); }
+.kd-timer.ok { background: var(--info-bg); color: var(--info); }
+.kd-timer.warn { background: var(--warn-bg); color: var(--warn); }
+.kd-timer.crit { background: var(--crit-bg); color: var(--crit); }
+.kd-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.kd-items li { display: grid; grid-template-columns: 28px 1fr; gap: 6px; font-size: 13.5px; line-height: 1.35; }
+.kd-items li b { font-weight: 600; color: var(--deep); }
+.kd-items li small { grid-column: 2; color: var(--warn); font-size: 12px; }
+.kd-note { font-size: 12.5px; background: var(--warn-bg); color: var(--warn); border-radius: 4px; padding: 5px 8px; }
+.kd-dest { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.kd-dest svg { width: 14px; height: 14px; color: var(--deep); }
+.kd-ticket .rx-btn { width: 100%; }
+.kd-weigh { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.kd-weigh > header { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 9px 12px; background: #F7F9FC; border-bottom: 1px solid var(--line-2); }
+.kd-weigh > header b { font-size: 13.5px; font-weight: 600; }
+.kd-weigh > header small { color: var(--muted); font-size: 12px; }
+.kd-weigh > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line-2); font-size: 13px; align-items: center; }
+.kd-weigh > div:last-child { border-bottom: 0; }
+.kd-weigh > div small { display: block; color: var(--muted); font-size: 12px; }
+.kd-weigh > div strong { font-weight: 600; color: var(--deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kd-recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; padding: 12px; }
+.kd-recipe { text-align: left; background: #fff; border: 1px solid var(--line); border-radius: var(--r-s); padding: 11px 12px; display: grid; gap: 4px; cursor: pointer; font: inherit; color: inherit; }
+.kd-recipe:hover { border-color: var(--blue); }
+.kd-recipe b { font-size: 13.5px; font-weight: 600; }
+.kd-recipe small { color: var(--muted); font-size: 12px; }
+.kd-recipe .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; }
+.kd-count-input { width: 110px; text-align: right; }
+@media (max-width: 1280px) { .kd-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kd-board.kd-board--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .kd-col { max-height: none; } }
+@media (max-width: 1000px) { .kd-board.kd-board--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .kd-board, .kd-board.kd-board--3 { grid-template-columns: 1fr; } }

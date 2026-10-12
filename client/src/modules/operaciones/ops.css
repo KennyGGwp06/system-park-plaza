@@ -1,0 +1,36 @@
+/* Estaciones de Limpieza y Mantenimiento: complementos de recepcion.css (misma paleta, tipografía y medidas).
+   Tarjetas de trabajo grandes y tocables (se usan desde el celular) y casillas de foto por zona o etapa. */
+.op-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.op-card { background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--blue); border-radius: var(--r); padding: 12px 14px 14px; display: grid; gap: 8px; cursor: pointer; }
+.op-card:hover { box-shadow: 0 4px 14px rgba(11, 16, 32, .08); }
+.op-card.is-warn { border-top-color: #D99A22; }
+.op-card.is-crit { border-top-color: var(--crit); }
+.op-card > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.op-card > header small { display: block; color: var(--muted); font-size: 12px; }
+.op-card > header b { display: block; font-size: 15px; font-weight: 600; margin-top: 2px; }
+.op-card > p { margin: 0; font-size: 13.5px; line-height: 1.4; color: var(--ink); }
+.op-card .rx-btn { width: 100%; height: 40px; }
+.op-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12.5px; color: var(--muted); }
+.op-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.op-meta .crit { color: var(--crit); }
+.op-wait { font-size: 12.5px; background: var(--off-bg); color: var(--off); border-radius: 4px; padding: 9px 10px; text-align: center; }
+.op-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.op-photo { display: grid; gap: 6px; }
+.op-photo > span { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.op-photo.is-done > span { color: #0E7C5F; }
+.op-photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-s); border: 1px solid var(--line); display: block; background: #F2F5FA; }
+.op-shot { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; aspect-ratio: 4 / 3; border: 1.5px dashed #9FB3D1; border-radius: var(--r-s); background: #F5F8FD; color: var(--blue); font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; padding: 8px; }
+.op-shot svg { width: 22px; height: 22px; }
+.op-shot:hover { background: #EAF1FC; }
+.op-shot input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.op-shot.is-off { color: var(--faint); border-color: var(--line); background: #FAFBFD; cursor: not-allowed; }
+.op-shot.is-off input { cursor: not-allowed; }
+.op-shot.op-shot--inline { aspect-ratio: auto; flex-direction: row; padding: 9px 14px; }
+.op-check { list-style: none; margin: 0; padding: 4px 16px 14px; display: grid; }
+.op-check li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line-2); align-items: start; }
+.op-check li:last-child { border-bottom: 0; }
+.op-check li > svg { width: 20px; height: 20px; color: var(--faint); margin-top: 1px; }
+.op-check li.done > svg { color: #12A07A; }
+.op-check b { display: block; font-size: 13.5px; font-weight: 600; }
+.op-check small { color: var(--muted); font-size: 12.5px; }
+@media (max-width: 700px) { .op-cards { grid-template-columns: 1fr; } .op-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

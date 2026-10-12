@@ -2,8 +2,11 @@ const n = (value) => Number(value || 0);
 const round = (value) => Math.round((n(value) + Number.EPSILON) * 1_000_000) / 1_000_000;
 const TERMINAL = new Set(["ENTREGADO", "CANCELADO"]);
 
+// Completa los plazos del pedido. Sobre el estado que se está guardando (mutateState) los escribe en el pedido;
+// sobre la copia compartida de lectura (congelada) devuelve una copia con los plazos, sin tocar el original.
 export function ensureOrderDeadlines(order) {
   if (!order || TERMINAL.has(order.status)) return order;
+  if (Object.isFrozen(order)) order = { ...order };
   const created = new Date(order.createdAt || Date.now());
   const estimatedMinutes = Math.max(1, n(order.estimatedMinutes) || 15);
   const dueAt = new Date(created.getTime() + estimatedMinutes * 60000);
@@ -16,7 +19,7 @@ export function ensureOrderDeadlines(order) {
 }
 
 export function orderTiming(order, at = new Date()) {
-  ensureOrderDeadlines(order);
+  order = ensureOrderDeadlines(order);
   if (TERMINAL.has(order?.status)) return { operationalBucket: "COMPLETED", escalationLevel: 0, isLate: false, isAbandoned: false, remainingMinutes: 0 };
   const now = at instanceof Date ? at : new Date(at);
   const created = new Date(order.createdAt || now);
@@ -39,7 +42,8 @@ export function orderTiming(order, at = new Date()) {
 }
 
 export function withOrderTiming(order, at = new Date()) {
-  return { ...order, ...orderTiming(order, at) };
+  const full = ensureOrderDeadlines(order);
+  return { ...full, ...orderTiming(full, at) };
 }
 
 export function totalsByUnit(lines = []) {

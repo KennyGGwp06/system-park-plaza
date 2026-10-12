@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { TriangleAlert } from "lucide-react";
 
 export class ModuleErrorBoundary extends Component {
   state = { error: null };
@@ -19,11 +20,14 @@ export class ModuleErrorBoundary extends Component {
 
   render() {
     if (!this.state.error) return this.props.children;
-    return <section className="rounded-card border border-red-200 bg-white p-6 shadow-card" role="alert">
-      <p className="text-xs font-black uppercase text-park-danger">Error aislado en este módulo</p>
-      <h2 className="mt-2 text-xl font-black text-park-dark">Puedes continuar usando el menú</h2>
-      <p className="mt-2 text-sm text-park-muted">Tu sesión y los datos ya guardados se mantienen. Intenta recargar solo esta vista.</p>
-      <button className="mt-5 rounded-button bg-park-green px-4 py-2 font-black text-white" onClick={() => this.setState({ error: null })}>Reintentar módulo</button>
-    </section>;
+    return <div className="ax ax-inline">
+      <section className="ax-box" role="alert">
+        <span className="is-crit"><TriangleAlert /></span>
+        <small>Error aislado en esta vista</small>
+        <h2>Puedes seguir usando el menú</h2>
+        <p>Tu sesión y los datos ya guardados se mantienen. Intenta cargar solo esta vista otra vez.</p>
+        <footer><button className="ax-btn" onClick={() => this.setState({ error: null })}>Reintentar</button></footer>
+      </section>
+    </div>;
   }
 }

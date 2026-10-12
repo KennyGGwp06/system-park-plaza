@@ -1,0 +1,121 @@
+/* Módulo Clientes — reutiliza los tokens y componentes de OwnerHome.css (.oh, .oh-card, .oh-kpis, .oh-table…). */
+.ch-toast{position:fixed;top:16px;right:16px;z-index:120;display:flex;align-items:center;gap:8px;background:var(--ink);color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 6px 18px rgba(11,16,32,.18)}
+
+/* etiquetas de segmento y estado */
+.ch-seg{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600}
+.ch-seg--new{background:var(--soft);color:var(--deep)}
+.ch-seg--rec{background:#DCE9FB;color:#0B3B7A}
+.ch-seg--vip{background:#0B3B7A;color:#fff}
+.ch-seg--ina{background:var(--cloud);color:var(--muted)}
+.ch-seg--blk{background:#F8E9EB;color:var(--red);margin-left:4px}
+
+/* buscador y chips de filtro */
+.ch-fbar{display:flex;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.ch-sbox{flex:1;min-width:260px;height:34px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--muted);background:#fff}
+.ch-sbox input{border:0;outline:none;font:inherit;font-size:13px;flex:1;color:var(--ink);background:transparent}
+.ch-chips{display:flex;gap:6px;flex-wrap:wrap}
+.ch-chips button{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:15px;font-size:12.5px;font-weight:500;color:var(--muted);background:#fff}
+.ch-chips button.on{background:var(--soft);border-color:#BBD3F3;color:var(--deep);font-weight:600}
+
+/* tabla genérica del módulo (directorio y libro de consumo) */
+.ch-table{width:100%;border-collapse:collapse}
+.ch-table th{font-size:12px;font-weight:600;color:var(--muted);text-align:left;padding:9px 16px;background:#FAFBFD;border-bottom:1px solid var(--line);white-space:nowrap}
+.ch-table td{padding:0 16px;height:52px;border-bottom:1px solid var(--line2);font-size:13.5px;vertical-align:middle}
+.ch-table th.n,.ch-table td.n{text-align:right;font-variant-numeric:tabular-nums}
+.ch-table tr:last-child td{border-bottom:0}
+.ch-table .mut{color:var(--muted)}.ch-table .neg{color:var(--red);font-weight:600}
+.more{color:var(--blue);font-weight:500;white-space:nowrap;cursor:pointer}
+
+.ch-person{display:flex;align-items:center;gap:10px}
+.ch-av{width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--deep);font-weight:700;font-size:12px;display:grid;place-items:center;flex:none}
+.ch-person b{font-weight:600;display:block;line-height:1.2}
+.ch-person small{color:var(--muted);font-size:12px}
+.ch-svc{display:flex;gap:6px;color:var(--deep);font-size:11px;font-weight:700}
+.ch-svc span{width:24px;height:24px;border-radius:6px;background:var(--soft);display:grid;place-items:center}
+.ch-svc em{color:var(--muted);font-style:normal;font-size:12.5px}
+.ch-visits{display:block;font-weight:600}
+
+/* paginación */
+.pager{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line2)}
+.pager div{display:flex;gap:6px;align-items:center}
+.pager button{width:30px;height:30px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+.pager button:disabled{opacity:.4}
+.pager .pb{width:30px;height:30px;border:1px solid var(--line);border-radius:6px;display:grid;place-items:center}
+.pager .pb.on{background:var(--soft);border-color:#BBD3F3;color:var(--deep);font-weight:600}
+
+/* cabecera del perfil */
+.ch-hdr{display:flex;gap:18px;align-items:center;padding:18px 20px;flex-wrap:wrap}
+.ch-big{width:64px;height:64px;border-radius:50%;background:var(--soft);color:var(--deep);font-weight:700;font-size:22px;display:grid;place-items:center;flex:none}
+.ch-hdr h1{font-size:22px;font-weight:700;line-height:1.2}
+.ch-name-row{display:flex;align-items:center;gap:12px;position:relative}
+.ch-switch{display:flex;align-items:center;gap:6px;border:0;background:none;color:var(--blue);font-size:12.5px;font-weight:500;padding:0;cursor:pointer}
+.ch-picker-bg{position:fixed;inset:0;z-index:140}
+.ch-picker{position:absolute;top:36px;left:0;width:320px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 34px rgba(11,16,32,.18);padding:10px;z-index:141}
+.ch-picker .ch-sbox{margin-bottom:6px}
+.ch-picker-row{display:flex;align-items:center;gap:10px;width:100%;padding:8px 6px;border:0;background:none;border-radius:6px;text-align:left;cursor:pointer}
+.ch-picker-row:hover{background:var(--soft)}
+.ch-picker-row b{display:block;font-weight:600;font-size:13px}
+.ch-picker-row small{color:var(--muted);font-size:12px}
+.ch-picker-row .ch-seg{margin-left:auto}
+.ch-picker-empty{padding:10px 6px;color:var(--muted);font-size:13px}
+.ch-tagrow{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ch-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:13px}
+.ch-meta b{color:var(--ink);font-weight:500}
+.ch-acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.oh-btn.warn{color:var(--red);border-color:#E7B7BC}
+.oh-btn.warn:hover{background:#FBEEF0}
+
+.k6{grid-template-columns:repeat(6,1fr)}
+
+/* pases QR */
+.ch-pass{padding-top:4px}
+.ch-pass-row{display:flex;align-items:center;gap:10px;height:38px;border-bottom:1px solid var(--line2);font-size:13.5px}
+.ch-pass-row:last-child{border:0}
+.ch-pass-st{margin-left:auto;font-size:12px;font-weight:600;color:var(--muted)}
+.ch-pass-st.ready{color:var(--deep)}
+.ch-pass-st.used{color:var(--muted)}
+.ch-warnbox{margin-top:10px;padding:10px 12px;background:#FFF4DC;border-radius:8px;font-size:13px;color:#8A5A12}
+.ch-warnbox--dup{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* actividad reciente */
+.ch-tabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--line);overflow-x:auto}
+.ch-tabs b{padding:10px 10px;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.ch-tabs b.on{color:var(--deep);border-color:var(--blue);font-weight:600}
+.ch-tl{padding:4px 16px 12px}
+.ch-tl>div{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
+.ch-tl>div:last-child{border:0}
+.ch-tl-ic{width:30px;height:30px;border-radius:8px;background:var(--soft);color:var(--deep);display:grid;place-items:center;flex:none}
+.ch-tl b{font-weight:600;display:block}
+.ch-tl small{display:block;color:var(--muted);font-size:12px}
+.ch-tl-amt{font-weight:600;font-variant-numeric:tabular-nums;min-width:70px;text-align:right}
+.ch-tl time{margin-left:auto;color:var(--muted);font-size:12.5px;white-space:nowrap}
+
+/* notas */
+.ch-note{padding:10px 12px;background:#FAFBFD;border:1px solid var(--line2);border-radius:8px;font-size:13px;margin-bottom:8px}
+.ch-note small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.ch-note-form{display:flex;gap:8px;align-items:flex-end}
+.ch-note-form textarea{flex:1;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font:inherit;font-size:13px;resize:vertical;min-height:40px}
+
+/* calidad de los datos */
+.ch-checklist{display:grid;gap:0}
+.ch-check{display:flex;align-items:center;height:32px;border-bottom:1px solid var(--line2);font-size:13.5px}
+.ch-check:last-child{border:0}
+.ch-check b{margin-left:auto;font-size:12.5px;font-weight:600}
+.ch-check b.ok{color:var(--ok)}
+.ch-check b.warn{color:#8A5A12}
+.ch-check b.mut{color:var(--muted)}
+
+/* modal de crear/editar cliente */
+.ch-modal-bg{position:fixed;inset:0;z-index:150;background:rgba(11,16,32,.4);display:grid;place-items:center;padding:16px}
+.ch-modal{width:100%;max-width:560px;background:#fff;border-radius:10px;box-shadow:0 20px 50px rgba(11,16,32,.3);max-height:90vh;overflow-y:auto}
+.ch-modal header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line2)}
+.ch-modal header h2{font-size:16px;font-weight:700}
+.ch-modal header button{border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer}
+.ch-modal .ch-warnbox{margin:16px 20px 0}
+.ch-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:20px}
+.ch-form-grid label{display:grid;gap:5px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.ch-form-grid label.wide{grid-column:1/-1}
+.ch-form-grid input,.ch-form-grid select{height:36px;border:1px solid var(--line);border-radius:6px;padding:0 10px;font:inherit;font-size:13.5px;color:var(--ink)}
+.ch-modal footer{display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid var(--line2)}
+
+@media(max-width:760px){.ch-form-grid{grid-template-columns:1fr}.ch-acts{margin-left:0}.k6{grid-template-columns:1fr 1fr}}

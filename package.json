@@ -5,22 +5,18 @@
   "workspaces": [
     "client",
     "customer",
-    "operations",
     "server"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace server\" \"npm run dev --workspace client\" \"npm run dev --workspace customer\" \"npm run dev --workspace operations\"",
-    "build": "npm run build --workspace client && npm run build --workspace customer && npm run build --workspace operations",
+    "dev": "concurrently \"npm run dev --workspace server\" \"npm run dev --workspace client\" \"npm run dev --workspace customer\"",
+    "build": "npm run build --workspace client && npm run build --workspace customer",
     "install:all": "npm install",
     "db:migrate": "npm run migrate --workspace server -- up",
     "db:rollback": "npm run migrate --workspace server -- down",
-    "db:reset-demo": "node server/scripts/reset-demo.js",
-    "test:demo": "npm run test:connectivity && npm run test:pilot-flow",
-    "test:demo-legacy": "node scripts/demo-integral.mjs",
-    "test:pilot-flow": "node scripts/pilot-flow.mjs",
-    "test:checkin-cleaning": "node scripts/checkin-cleaning-flow.mjs",
-    "test:connectivity": "node scripts/system-connectivity.mjs",
-    "test:performance-mobile": "node scripts/mobile-performance.mjs",
+    "db:limpiar-operacion": "node server/scripts/clean-operational-demo.js",
+    "test:shift-ui": "node scripts/shift-ui-contract.mjs",
+    "test:navigation": "node scripts/navigation-contract.mjs",
+    "test:acceptance": "npm run test:navigation && npm run test:shift-ui && npm run test:access-contract --workspace client && npm run test:stock-requests --workspace server && npm run test:operational-inventory --workspace server && npm run test:order-inventory --workspace server && npm run test:phase2-operations --workspace server && npm run test:rbac-security --workspace server && npm run test:electronic-billing --workspace server && npm run test:realtime --workspace server",
     "test:inventory-phase1": "npm run test:inventory-phase1 --workspace server",
     "test:product-catalog": "npm run test:product-catalog --workspace server",
     "test:operational-inventory": "npm run test:operational-inventory --workspace server",
@@ -34,9 +30,23 @@
     "test:electronic-billing": "npm run test:electronic-billing --workspace server",
     "prod:preflight": "node scripts/production/preflight.mjs .env.production",
     "prod:config": "docker compose --env-file .env.production -f docker-compose.production.yml config --quiet",
-    "prod:build": "docker compose --env-file .env.production -f docker-compose.production.yml build"
+    "prod:build": "docker compose --env-file .env.production -f docker-compose.production.yml build",
+    "prueba:flujo-completo": "node scripts/pruebas/flujo-completo.cjs",
+    "prueba:pantallas-dueno": "node scripts/pruebas/capturas-dueno.cjs",
+    "prueba:estaciones": "node scripts/pruebas/estaciones.cjs",
+    "prueba:tiempo-real": "node scripts/pruebas/tiempo-real.cjs",
+    "prueba:lecturas": "node scripts/carga/recorrido-lecturas.mjs",
+    "prueba:carga": "node scripts/carga/carga.mjs lectura 10",
+    "demo:preparar": "node server/scripts/preparar-demo.mjs",
+    "prueba:negocio": "node scripts/pruebas/recorrido-negocio.mjs",
+    "prueba:botones": "node scripts/pruebas/botones.cjs",
+    "aapanel:preflight": "node scripts/production/preflight.mjs .env.aapanel aapanel",
+    "aapanel:up": "docker compose -f docker-compose.aapanel.yml --env-file .env.aapanel up -d --build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }

@@ -1,0 +1,4389 @@
+{
+  "source": "park_plaza_before_day_zero_2026-09-01.dump",
+  "originalCount": 91,
+  "menuItems": [
+    {
+      "id": 6,
+      "area": "RESTAURANTE",
+      "code": "MENU-6",
+      "name": "Chaufa Amazónica",
+      "tags": [
+        "Amazónico",
+        "Cecina",
+        "Chorizo",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097008504-1040a23d-d45f-4340-b3c0-da073f2e01a5.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 0.035,
+          "inventoryId": 2
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 43
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 44
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 7.5,
+          "inventoryId": 47
+        }
+      ],
+      "category": "Saltados y chaufas",
+      "description": "Arroz salteado al estilo amazónico con cecina, chorizo regional y plátano maduro.",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Arroz cocido",
+        "Cecina",
+        "Chorizo amazónico",
+        "Sillao",
+        "Salsa de ostión",
+        "Kión",
+        "Aceite de ajonjolí",
+        "Plátano maduro",
+        "Cebolla china (por confirmar con cocina)",
+        "Huevo (por confirmar con cocina)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 7,
+      "area": "RESTAURANTE",
+      "code": "MENU-7",
+      "name": "Chaufa de Pollo",
+      "tags": [
+        "Chifa",
+        "Pollo",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097158053-5dd818ea-3093-4d58-9b49-a1484b285e50.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 0.035,
+          "inventoryId": 2
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 7.5,
+          "inventoryId": 47
+        }
+      ],
+      "category": "Saltados y chaufas",
+      "description": "Arroz salteado estilo chifa con pollo, sillao, kión y cebolla china.",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Arroz cocido",
+        "Pechuga de pollo",
+        "Sillao",
+        "Salsa de ostión",
+        "Kión",
+        "Aceite de ajonjolí",
+        "Cebolla china",
+        "Huevo",
+        "Ajo"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 8,
+      "area": "RESTAURANTE",
+      "code": "MENU-8",
+      "name": "Chaufa de Res",
+      "tags": [
+        "Chifa",
+        "Res",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097237681-c1d76439-bb09-4b2d-ac83-37e5ffe5908d.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 0.035,
+          "inventoryId": 2
+        },
+        {
+          "quantity": 0.03,
+          "inventoryId": 3
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 7.5,
+          "inventoryId": 47
+        }
+      ],
+      "category": "Saltados y chaufas",
+      "description": "Arroz salteado estilo chifa con carne de res, sillao, kión y cebolla china.",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Arroz cocido",
+        "Carne de res (bistec)",
+        "Sillao",
+        "Salsa de ostión",
+        "Kión",
+        "Aceite de ajonjolí",
+        "Cebolla china",
+        "Huevo",
+        "Ajo"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 9,
+      "area": "RESTAURANTE",
+      "code": "MENU-9",
+      "name": "Lomo Saltado de Res",
+      "tags": [
+        "Criollo",
+        "Res",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097285466-c81f4911-91a9-4796-9ced-38f282caaa04.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 0.05,
+          "inventoryId": 3
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        }
+      ],
+      "category": "Saltados y chaufas",
+      "description": "Bistec de res salteado con cebolla morada y tomate, acompañado de papas fritas y arroz.",
+      "prepMinutes": 5,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Carne de res tipo bistec",
+        "Cebolla morada",
+        "Tomate",
+        "Culantro",
+        "Papa",
+        "Arroz cocido",
+        "Sillao",
+        "Salsa de ostión",
+        "Vinagre",
+        "Kión",
+        "Aceite",
+        "Sal y condimentos"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 10,
+      "area": "RESTAURANTE",
+      "code": "MENU-10",
+      "name": "Lomo Saltado de Pollo",
+      "tags": [
+        "Criollo",
+        "Pollo",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097347805-62f9247d-d76b-4541-9038-94438119b54d.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        }
+      ],
+      "category": "Saltados y chaufas",
+      "description": "Pollo salteado con cebolla morada y tomate, acompañado de papas fritas y arroz.",
+      "prepMinutes": 5,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pechuga de pollo",
+        "Cebolla morada",
+        "Tomate",
+        "Culantro",
+        "Papa",
+        "Arroz cocido",
+        "Sillao",
+        "Salsa de ostión",
+        "Vinagre",
+        "Kión",
+        "Aceite",
+        "Sal y condimentos"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 11,
+      "area": "RESTAURANTE",
+      "code": "MENU-11",
+      "name": "Lomo Saltado Amazónico",
+      "tags": [
+        "Amazónico",
+        "Cecina",
+        "Chorizo",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097403196-ddacca9c-9138-441e-b3e0-4d5ab7dc9c9b.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 30,
+          "inventoryId": 43
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 44
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        }
+      ],
+      "category": "Saltados y chaufas",
+      "description": "Salteado amazónico de cecina y chorizo regional con vegetales, arroz y guarnición de plátano.",
+      "prepMinutes": 5,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Cecina",
+        "Chorizo amazónico",
+        "Cebolla morada",
+        "Tomate",
+        "Culantro",
+        "Sillao",
+        "Salsa de ostión",
+        "Vinagre",
+        "Kión",
+        "Aceite",
+        "Arroz cocido",
+        "Plátano verde / patacones (confirmar guarnición)",
+        "Sal y condimentos"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 12,
+      "area": "RESTAURANTE",
+      "code": "MENU-12",
+      "name": "Aeropuerto Taypa",
+      "tags": [
+        "Chifa",
+        "Taypa",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097441909-d6ee2775-4ef6-45f4-a3df-d8f728cd7b41.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 0.035,
+          "inventoryId": 2
+        },
+        {
+          "quantity": 50,
+          "inventoryId": 49
+        },
+        {
+          "quantity": 50,
+          "inventoryId": 48
+        }
+      ],
+      "category": "Saltados y chaufas",
+      "description": "Combinación taypa de arroz chaufa y fideo chino salteado con proteínas y vegetales.",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Arroz cocido",
+        "Fideo chino precocido",
+        "Frijol chino",
+        "Pechuga de pollo",
+        "Carne de res (por confirmar con cocina)",
+        "Cerdo (por confirmar con cocina)",
+        "Huevo",
+        "Cebolla china",
+        "Sillao",
+        "Salsa de ostión",
+        "Kión",
+        "Ajo",
+        "Aceite",
+        "Sal y condimentos"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 13,
+      "area": "RESTAURANTE",
+      "code": "MENU-13",
+      "name": "Tacacho con Cecina",
+      "tags": [
+        "Amazónico",
+        "Cecina",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097476017-513fef75-52e4-4c12-891e-09db93f90026.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 2,
+          "inventoryId": 50
+        },
+        {
+          "quantity": 40,
+          "inventoryId": 43
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 52
+        }
+      ],
+      "category": "Platos amazónicos",
+      "description": "Plátano verde machacado en bolas de tacacho, servido con cecina regional.",
+      "prepMinutes": 15,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Plátano verde o bellaco",
+        "Cecina",
+        "Manteca de cerdo o aceite (confirmar con cocina)",
+        "Chicharrón de cerdo (confirmar si se usa)",
+        "Sal",
+        "Ajinomoto o sazonador"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 14,
+      "area": "RESTAURANTE",
+      "code": "MENU-14",
+      "name": "Tacacho con Chorizo",
+      "tags": [
+        "Amazónico",
+        "Chorizo regional",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097509153-57652d2d-2530-4a30-9186-c88780027e0a.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 2,
+          "inventoryId": 50
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 44
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 52
+        }
+      ],
+      "category": "Platos amazónicos",
+      "description": "Plátano verde machacado en tacacho, servido con chorizo regional amazónico.",
+      "prepMinutes": 15,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Plátano verde o bellaco",
+        "Chorizo amazónico",
+        "Manteca de cerdo o aceite (confirmar con cocina)",
+        "Chicharrón de cerdo (confirmar si se usa)",
+        "Sal",
+        "Ajinomoto o sazonador",
+        "Salsa de cocona o ají regional (opcional, confirmar)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 15,
+      "area": "RESTAURANTE",
+      "code": "MENU-15",
+      "name": "Parrilla con Patacones",
+      "tags": [
+        "Parrilla",
+        "Amazónico",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097672712-54280943-65df-4a21-9560-29c92023546f.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 1,
+          "inventoryId": 50
+        }
+      ],
+      "category": "Platos amazónicos",
+      "description": "Pollo a la parrilla acompañado de patacones de plátano verde y ensalada fresca.",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pollo para parrilla (corte por confirmar)",
+        "Plátano verde",
+        "Aceite para fritura",
+        "Ajo",
+        "Ají panca o aderezo de parrilla (confirmar con cocina)",
+        "Sal y condimentos",
+        "Lechuga",
+        "Tomate",
+        "Pepino (confirmar ensalada)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 16,
+      "area": "RESTAURANTE",
+      "code": "MENU-16",
+      "name": "Ceviche de Doncella",
+      "tags": [
+        "Amazónico",
+        "Fresco",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097711949-91dc6571-149f-487a-a584-30c00319d251.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 130,
+          "inventoryId": 53
+        },
+        {
+          "quantity": 0.5,
+          "inventoryId": 54
+        },
+        {
+          "quantity": 5,
+          "inventoryId": 5
+        }
+      ],
+      "category": "Ceviches",
+      "description": "Doncella fresca marinada al momento con limón, ají limo, cebolla morada y culantro.",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Filete de doncella fresca",
+        "Limón",
+        "Ají limo",
+        "Culantro",
+        "Cebolla morada",
+        "Sal y condimentos",
+        "Choclo (confirmar guarnición)",
+        "Cancha tostada (confirmar guarnición)",
+        "Chifles o camote (confirmar guarnición)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 17,
+      "area": "RESTAURANTE",
+      "code": "MENU-17",
+      "name": "Tallarín Criollo de Pollo",
+      "tags": [
+        "Criollo",
+        "Pollo",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097855542-29219cc0-c158-483d-81de-8508c384f7fc.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 70,
+          "inventoryId": 48
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        }
+      ],
+      "category": "Platos Criollos",
+      "description": "Tallarines salteados al wok con pollo y vegetales frescos, al estilo criollo.",
+      "prepMinutes": 20,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Tallarín / fideo largo",
+        "Pechuga de pollo",
+        "Cebolla morada",
+        "Tomate",
+        "Cebolla china",
+        "Pimiento rojo",
+        "Zanahoria (confirmar)",
+        "Culantro o perejil",
+        "Sillao",
+        "Salsa de ostión (confirmar)",
+        "Kión",
+        "Ajo",
+        "Aceite",
+        "Sal y condimentos"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 18,
+      "area": "RESTAURANTE",
+      "code": "MENU-18",
+      "name": "Tallarín Criollo de Res",
+      "tags": [
+        "Criollo",
+        "Res",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788097976462-c30889e6-9a4c-49a2-a25a-d9e631224961.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 0.05,
+          "inventoryId": 3
+        },
+        {
+          "quantity": 70,
+          "inventoryId": 48
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        }
+      ],
+      "category": "Platos Criollos",
+      "description": "Tallarines salteados al wok con tiras de res y vegetales frescos, al estilo criollo.",
+      "prepMinutes": 20,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Tallarín / fideo largo",
+        "Carne de res en tiras",
+        "Cebolla morada",
+        "Tomate",
+        "Cebolla china",
+        "Pimiento rojo",
+        "Culantro o perejil",
+        "Sillao",
+        "Vinagre",
+        "Salsa de ostión (confirmar)",
+        "Kión",
+        "Ajo",
+        "Aceite",
+        "Sal y condimentos"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 19,
+      "area": "RESTAURANTE",
+      "code": "MENU-19",
+      "name": "Tallarín Amazónico",
+      "tags": [
+        "Amazónico",
+        "Cecina",
+        "Chorizo regional",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098022249-8ceb981b-51a0-499b-a93e-9567765fcc81.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 30,
+          "inventoryId": 43
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 44
+        },
+        {
+          "quantity": 70,
+          "inventoryId": 48
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 46
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 45
+        }
+      ],
+      "category": "Platos Criollos",
+      "description": "Tallarines salteados con cecina y chorizo regional, con el sabor de la Amazonía.",
+      "prepMinutes": 20,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Tallarín / fideo largo",
+        "Cecina",
+        "Chorizo amazónico",
+        "Cebolla morada",
+        "Tomate",
+        "Cebolla china",
+        "Pimiento rojo (confirmar)",
+        "Culantro o perejil",
+        "Sillao",
+        "Salsa de ostión (confirmar)",
+        "Kión",
+        "Ajo",
+        "Aceite",
+        "Ají de cocona o charapita (confirmar)",
+        "Sal y condimentos"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 20,
+      "area": "RESTAURANTE",
+      "code": "MENU-20",
+      "name": "Chicharrón de Chancho",
+      "tags": [
+        "Frituras",
+        "Cerdo",
+        "Criollo",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098069507-a872601e-e6ea-48a8-b315-b623b5926ad6.jpg",
+      "price": 30,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 100,
+          "inventoryId": 55
+        }
+      ],
+      "category": "Frituras",
+      "description": "Trozos crocantes de cerdo acompañados de camote frito y zarza criolla.",
+      "prepMinutes": 30,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Panceta o costilla de cerdo (confirmar corte)",
+        "Grasa de cerdo o aceite",
+        "Ajo",
+        "Sal",
+        "Pimienta y comino",
+        "Camote",
+        "Cebolla morada",
+        "Limón",
+        "Ají (confirmar tipo)",
+        "Culantro o hierbabuena",
+        "Sal para zarza criolla"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 21,
+      "area": "RESTAURANTE",
+      "code": "MENU-21",
+      "name": "Chicharrón de Doncella",
+      "tags": [
+        "Amazónico",
+        "Pescado",
+        "Frituras",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098105768-4301df59-268e-4b1e-835a-26399f1d75df.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 130,
+          "inventoryId": 53
+        },
+        {
+          "quantity": 50,
+          "inventoryId": 56
+        }
+      ],
+      "category": "Frituras",
+      "description": "Trozo de doncella crocante, acompañado de patacones y zarza fresca.",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Filete de doncella",
+        "Harina o rebozado (confirmar)",
+        "Huevo (confirmar)",
+        "Aceite para fritura",
+        "Sal y condimentos",
+        "Plátano verde / patacones",
+        "Cebolla morada",
+        "Limón",
+        "Ají (confirmar tipo)",
+        "Culantro o hierbabuena",
+        "Sal para zarza"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 22,
+      "area": "RESTAURANTE",
+      "code": "MENU-22",
+      "name": "Chicharrón de Pollo",
+      "tags": [
+        "Frituras",
+        "Pollo",
+        "Criollo",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098151195-6856bd1b-ba89-4e38-97ad-328045b7ba7d.jpg",
+      "price": 30,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 50,
+          "inventoryId": 56
+        }
+      ],
+      "category": "Frituras",
+      "description": "Trozos de pollo sazonados y crocantes, preparados al momento.",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pollo (corte por confirmar)",
+        "Harina o rebozado (confirmar)",
+        "Huevo (confirmar)",
+        "Ajo",
+        "Limón",
+        "Sal",
+        "Pimienta y comino",
+        "Aceite para fritura",
+        "Lechuga (confirmar guarnición)",
+        "Papa o camote (confirmar guarnición)",
+        "Salsa o ají (confirmar)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 23,
+      "area": "RESTAURANTE",
+      "code": "MENU-23",
+      "name": "Pachamanca a la Piedra",
+      "tags": [],
+      "image": "/catalog/restaurant-menu-placeholder.png",
+      "price": 35,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 100,
+          "inventoryId": 66
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 67
+        },
+        {
+          "quantity": 50,
+          "inventoryId": 68
+        },
+        {
+          "quantity": 4,
+          "inventoryId": 69
+        },
+        {
+          "quantity": 4,
+          "inventoryId": 70
+        }
+      ],
+      "category": "Frituras",
+      "description": "",
+      "prepMinutes": 25,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 24,
+      "area": "RESTAURANTE",
+      "code": "MENU-24",
+      "name": "Broaster - Alitas",
+      "tags": [
+        "Frituras",
+        "Pollo",
+        "Alitas",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098196499-8a508bc4-6beb-4d0e-86a8-ee307eacba96.jpg",
+      "price": 10,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 4,
+          "inventoryId": 57
+        },
+        {
+          "quantity": 50,
+          "inventoryId": 56
+        }
+      ],
+      "category": "Frituras",
+      "description": "Porción de alitas de pollo broaster, crujientes y preparadas al momento.",
+      "prepMinutes": 20,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Alitas de pollo",
+        "Harina de trigo o mezcla broaster (confirmar)",
+        "Maicena o chuño (confirmar)",
+        "Huevo o leche para rebozado (confirmar)",
+        "Ajo",
+        "Mostaza (confirmar)",
+        "Sillao (confirmar)",
+        "Sal, pimienta y comino",
+        "Aceite para fritura",
+        "Papas fritas (confirmar guarnición)",
+        "Ensalada o salsa (confirmar)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 25,
+      "area": "RESTAURANTE",
+      "code": "MENU-25",
+      "name": "Broaster - Pierna",
+      "tags": [
+        "Frituras",
+        "Pollo",
+        "Pierna",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098217114-311ce623-1a1f-4b93-a27f-b00dc83c7514.jpg",
+      "price": 15,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 1,
+          "inventoryId": 58
+        },
+        {
+          "quantity": 50,
+          "inventoryId": 56
+        }
+      ],
+      "category": "Frituras",
+      "description": "Pierna de pollo broaster, crujiente y preparada al momento.",
+      "prepMinutes": 20,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pierna de pollo",
+        "Harina de trigo o mezcla broaster (confirmar)",
+        "Maicena o chuño (confirmar)",
+        "Huevo o leche para rebozado (confirmar)",
+        "Ajo",
+        "Mostaza (confirmar)",
+        "Sillao (confirmar)",
+        "Sal, pimienta y comino",
+        "Aceite para fritura",
+        "Papas fritas (confirmar guarnición)",
+        "Ensalada o salsa (confirmar)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 26,
+      "area": "RESTAURANTE",
+      "code": "MENU-26",
+      "name": "Broaster - Pecho",
+      "tags": [
+        "Frituras",
+        "Pollo",
+        "Pecho",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098237361-e6d55f61-8d4a-4261-8c11-de6d99fc594c.jpg",
+      "price": 15,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 1,
+          "inventoryId": 59
+        },
+        {
+          "quantity": 50,
+          "inventoryId": 56
+        }
+      ],
+      "category": "Frituras",
+      "description": "Pecho de pollo broaster, crujiente y preparado al momento.",
+      "prepMinutes": 20,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pecho de pollo",
+        "Harina de trigo o mezcla broaster (confirmar)",
+        "Maicena o chuño (confirmar)",
+        "Huevo o leche para rebozado (confirmar)",
+        "Ajo",
+        "Mostaza (confirmar)",
+        "Sillao (confirmar)",
+        "Sal, pimienta y comino",
+        "Aceite para fritura",
+        "Papas fritas (confirmar guarnición)",
+        "Ensalada o salsa (confirmar)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 27,
+      "area": "RESTAURANTE",
+      "code": "MENU-27",
+      "name": "Porción de Arroz",
+      "tags": [
+        "Guarnición",
+        "Arroz",
+        "Preparación diaria"
+      ],
+      "image": "/uploads/menu/1788098271107-717f3e69-3b9e-4c9e-bd4d-9c50c534f1ea.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 0.05,
+          "inventoryId": 2
+        }
+      ],
+      "category": "Guarniciones",
+      "description": "Porción individual de arroz blanco graneado.",
+      "prepMinutes": 5,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Arroz",
+        "Agua",
+        "Aceite",
+        "Ajo (confirmar)",
+        "Sal"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 28,
+      "area": "RESTAURANTE",
+      "code": "MENU-28",
+      "name": "Porción de Patacones",
+      "tags": [
+        "Guarnición",
+        "Amazónico",
+        "Plátano verde",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098344401-79750373-35cc-42a1-b0cb-447059b68301.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 1,
+          "inventoryId": 50
+        }
+      ],
+      "category": "Guarniciones",
+      "description": "Porción de patacones de plátano verde, crujientes y recién preparados.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Plátano verde",
+        "Aceite para fritura",
+        "Sal"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 29,
+      "area": "RESTAURANTE",
+      "code": "MENU-29",
+      "name": "Porción de Maduro",
+      "tags": [
+        "Guarnición",
+        "Amazónico",
+        "Plátano maduro",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098439720-fa29c971-2fe0-43b9-b38d-5025e02f175a.jpg",
+      "price": 8,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 1,
+          "inventoryId": 51
+        }
+      ],
+      "category": "Guarniciones",
+      "description": "Porción de plátano maduro frito, dulce y recién preparado.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Plátano maduro",
+        "Aceite para fritura",
+        "Sal (confirmar)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 30,
+      "area": "RESTAURANTE",
+      "code": "MENU-30",
+      "name": "Porción de Yuca Frita",
+      "tags": [
+        "Guarnición",
+        "Amazónico",
+        "Yuca",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098479504-fa975683-2180-48d5-b4b1-9ba352afeda5.jpg",
+      "price": 8,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 250,
+          "inventoryId": 65
+        }
+      ],
+      "category": "Guarniciones",
+      "description": "Porción de yuca cocida y frita, dorada y crocante.",
+      "prepMinutes": 15,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Yuca",
+        "Agua para cocción",
+        "Aceite para fritura",
+        "Sal"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 31,
+      "area": "RESTAURANTE",
+      "code": "MENU-31",
+      "name": "Porción de Ensalada Fresca",
+      "tags": [
+        "Guarnición",
+        "Fresco",
+        "Vegetales",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098519776-7fc0bf6b-c02c-4d9e-b90c-d28c1e39cb8d.jpg",
+      "price": 6,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 100,
+          "inventoryId": 64
+        },
+        {
+          "quantity": 80,
+          "inventoryId": 63
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 5
+        }
+      ],
+      "category": "Guarniciones",
+      "description": "Porción de vegetales frescos para acompañar los platos de la carta.",
+      "prepMinutes": 5,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Lechuga",
+        "Tomate",
+        "Zanahoria",
+        "Pepino (confirmar)",
+        "Cebolla morada (confirmar)",
+        "Limón o vinagreta (confirmar)",
+        "Sal"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 32,
+      "area": "RESTAURANTE",
+      "code": "MENU-32",
+      "name": "Tequeños Clásicos",
+      "tags": [
+        "Piqueo",
+        "Queso",
+        "Frituras",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098643239-9ac9171a-7d0b-4158-b1f2-b9d91fd73883.jpg",
+      "price": 8,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 6,
+          "inventoryId": 60
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 61
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 62
+        }
+      ],
+      "category": "Guarniciones",
+      "description": "Tequeños crocantes rellenos de queso, preparados al momento.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Masa wantán",
+        "Queso (tipo por confirmar)",
+        "Clara de huevo o agua para sellar (confirmar)",
+        "Aceite para fritura",
+        "Salsa de acompañamiento (confirmar)",
+        "Cantidad de unidades por porción (confirmar)"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 33,
+      "area": "RESTAURANTE",
+      "code": "MENU-33",
+      "name": "Tequeños Amazónicos",
+      "tags": [
+        "Piqueo",
+        "Amazónico",
+        "Frituras",
+        "Preparación al momento"
+      ],
+      "image": "/uploads/menu/1788098673249-a57c6600-85df-4ade-91cf-a743e4c125fd.jpg",
+      "price": 8,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 6,
+          "inventoryId": 60
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 43
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 61
+        }
+      ],
+      "category": "Guarniciones",
+      "description": "Tequeños crocantes de cecina y queso con inspiración amazónica.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia externa: validar con cocina",
+        "Masa wantán",
+        "Cecina",
+        "Queso",
+        "Clara de huevo o agua para sellar",
+        "Aceite para fritura",
+        "Salsa de acompañamiento: confirmar",
+        "Unidades por porción: confirmar"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 34,
+      "area": "RESTAURANTE",
+      "code": "MENU-34",
+      "name": "Tequeños Rellenos",
+      "tags": [
+        "Piqueo",
+        "Frituras",
+        "Preparación al momento",
+        "Relleno por confirmar"
+      ],
+      "image": "/uploads/menu/1788098696142-066a7985-ef70-44cf-b7be-2b704487d117.jpg",
+      "price": 8,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 6,
+          "inventoryId": 60
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 61
+        }
+      ],
+      "category": "Guarniciones",
+      "description": "Tequeños crocantes rellenos de jamón y queso.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia externa: validar con cocina",
+        "Masa wantán",
+        "Jamón",
+        "Queso",
+        "Clara de huevo o agua para sellar",
+        "Aceite para fritura",
+        "Salsa de acompañamiento: confirmar",
+        "Unidades por porción: confirmar"
+      ],
+      "recipeStatus": "RECETA_VIGENTE"
+    },
+    {
+      "id": 35,
+      "area": "BARTENDER",
+      "code": "MENU-35",
+      "name": "Chilcano Clásico",
+      "tags": [],
+      "image": "/uploads/menu/1788100075276-94d69739-8c10-41b8-9dbe-91fd9c8ffa10.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 4
+        },
+        {
+          "quantity": 120,
+          "inventoryId": 40
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pisco: 2 oz",
+        "Limón: 1 oz",
+        "Jarabe: 1 oz",
+        "Hielo",
+        "Evervess: completar"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 36,
+      "area": "BARTENDER",
+      "code": "MENU-36",
+      "name": "Machu Pichu",
+      "tags": [],
+      "image": "/uploads/menu/1788100198261-1edc0906-bc40-45f6-baf0-84f505e9eebb.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 4
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 9
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 7
+        },
+        {
+          "quantity": 180,
+          "inventoryId": 8
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Granadina: 1/2 oz",
+        "Tampico: 80% de la bebida",
+        "Pisco: 2 oz",
+        "Menta: 1 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 37,
+      "area": "BARTENDER",
+      "code": "MENU-37",
+      "name": "Mojito Clásico",
+      "tags": [],
+      "image": "/uploads/menu/1788100242723-eb734194-fb5a-4e26-874a-23b7c6fe58e4.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 4,
+          "inventoryId": 10
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 11
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Hierbabuena: 6 a 8 hojas",
+        "Limón: 1 oz",
+        "Jarabe: 1 oz",
+        "Ron blanco: 2 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 38,
+      "area": "BARTENDER",
+      "code": "MENU-38",
+      "name": "Cuba Libre",
+      "tags": [],
+      "image": "/uploads/menu/1788100285930-2113ea63-30b6-4200-9cce-250f4e97f02b.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 12
+        },
+        {
+          "quantity": 150,
+          "inventoryId": 13
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Ron Black: 2 oz",
+        "Limón: 1/2 unidad",
+        "Angostura: gotas",
+        "Coca Cola: completar"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 39,
+      "area": "BARTENDER",
+      "code": "MENU-39",
+      "name": "Piña Colada",
+      "tags": [],
+      "image": "/uploads/menu/1788100337458-07a7141e-6b73-4b0d-a98b-d4a91ece8d82.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 130,
+          "inventoryId": 14
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 16
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 11
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Piña congelada: 130 g",
+        "Leche: 1 oz",
+        "Crema de coco: 1 oz",
+        "Jarabe: 1 oz",
+        "Ron blanco: 2 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 40,
+      "area": "BARTENDER",
+      "code": "MENU-40",
+      "name": "Algarrobina",
+      "tags": [],
+      "image": "/uploads/menu/1788100733747-808e13bb-bb5f-4f5f-b596-289bbb5843a5.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 4
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 0.5,
+          "inventoryId": 24
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 22
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pisco: 2 oz",
+        "Leche: 2 oz",
+        "Vainilla: 1/2 oz",
+        "Canela en polvo",
+        "Jarabe: 1 oz",
+        "Algarrobina: 4 tiempos"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 41,
+      "area": "BARTENDER",
+      "code": "MENU-41",
+      "name": "Pantera Rosa",
+      "tags": [],
+      "image": "/uploads/menu/1788100806454-7b35af56-0776-4e98-9369-bfb9690ac3dc.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 130,
+          "inventoryId": 14
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 7
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 16
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 17
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Piña congelada: 130 g",
+        "Granadina: 1/2 oz",
+        "Leche: 1 oz",
+        "Crema de coco: 1 oz",
+        "Vodka: 2 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 42,
+      "area": "BARTENDER",
+      "code": "MENU-42",
+      "name": "Fresa Colada",
+      "tags": [],
+      "image": "/uploads/menu/1788100956890-e2520a89-258d-4c50-a683-0cb8c4cfc8e2.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 130,
+          "inventoryId": 31
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 16
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 11
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "Cóctel frozen de fresa, piña, coco y ron blanco.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia externa: validar con bartender",
+        "Fresas o pulpa de fresa: 130 g (referencia)",
+        "Ron blanco: 2 oz",
+        "Crema de coco: 2 oz",
+        "Leche evaporada o leche: 1 oz (confirmar)",
+        "Jugo de piña: 2 oz (confirmar)",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 43,
+      "area": "BARTENDER",
+      "code": "MENU-43",
+      "name": "Laguna Azul",
+      "tags": [],
+      "image": "/uploads/menu/1788101051543-8c2b8f50-9953-4f65-833a-f2c26a94cd74.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 17
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 19
+        },
+        {
+          "quantity": 120,
+          "inventoryId": 40
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Vodka: 2 oz",
+        "Limón: 1 oz",
+        "Jarabe: 1/2 oz",
+        "Blue Curaçao: 1 oz",
+        "Evervess: completar"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 44,
+      "area": "BARTENDER",
+      "code": "MENU-44",
+      "name": "Tequila Sunrie",
+      "tags": [],
+      "image": "/uploads/menu/1788101294502-7ac4cdf9-a82d-4ece-b5c4-e4b25d0c3dfe.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 18
+        },
+        {
+          "quantity": 180,
+          "inventoryId": 8
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 7
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Tequila: 2 oz",
+        "Tampico: 80% de la bebida",
+        "Granadina: 1/2 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 45,
+      "area": "BARTENDER",
+      "code": "MENU-45",
+      "name": "Margarita Clásica",
+      "tags": [],
+      "image": "/uploads/menu/1788101397935-63364674-1dee-4185-8c85-87d349cc2865.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 18
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 20
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Tequila: 2 oz",
+        "Limón: 1 oz",
+        "Jarabe: 1/2 oz",
+        "Triple sec: 1 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 46,
+      "area": "BARTENDER",
+      "code": "MENU-46",
+      "name": "Margarita Blue",
+      "tags": [],
+      "image": "/uploads/menu/1788101398142-bb6cc423-6898-461d-89c1-edecddd4d5c0.jpg",
+      "price": 20,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 18
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 20
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 19
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Tequila: 2 oz",
+        "Limón: 1 oz",
+        "Jarabe: 1/2 oz",
+        "Triple sec: 1 oz",
+        "Blue Curaçao: 1/2 oz adicional"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 47,
+      "area": "BARTENDER",
+      "code": "MENU-47",
+      "name": "Caipirinha",
+      "tags": [],
+      "image": "/uploads/menu/1788101453325-7ffe8858-7d0b-450f-ba86-3392207d9446.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 1.5,
+          "inventoryId": 5
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 21
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Limón cortado: 1 1/2 unidades",
+        "Jarabe: 1 oz",
+        "Cachaça: 2 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 48,
+      "area": "BARTENDER",
+      "code": "MENU-48",
+      "name": "Blue Hawaii",
+      "tags": [],
+      "image": "/uploads/menu/1788101497331-a84e67ef-0fdd-4bc8-b19b-f0ddffe97ce9.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 148,
+          "inventoryId": 41
+        },
+        {
+          "quantity": 45,
+          "inventoryId": 12
+        },
+        {
+          "quantity": 45,
+          "inventoryId": 17
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 16
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 19
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Piña: 5 oz",
+        "Ron Black: 1 1/2 oz",
+        "Vodka: 1 1/2 oz",
+        "Crema de coco: 1 oz",
+        "Blue Curaçao: 1 oz",
+        "Jarabe: 1/2 oz",
+        "Limón: 1/2 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 49,
+      "area": "BARTENDER",
+      "code": "MENU-49",
+      "name": "Moscow Mule",
+      "tags": [],
+      "image": "/uploads/menu/1788101592407-346ef2a9-bf0d-485a-9279-37f19d606714.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 17
+        },
+        {
+          "quantity": 120,
+          "inventoryId": 40
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Vodka: 2 oz",
+        "Limón: 1 oz",
+        "Jarabe: 1/2 oz",
+        "Evervess: completar"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 50,
+      "area": "BARTENDER",
+      "code": "MENU-50",
+      "name": "Bey Liz Colado",
+      "tags": [],
+      "image": "/uploads/menu/1788103365405-8a14350e-4e2d-44df-bae4-7c8d13ffc8a4.jpg",
+      "price": 22,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 4
+        },
+        {
+          "quantity": 90,
+          "inventoryId": 25
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 16
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 26
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 15
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pisco: 2 oz",
+        "Baileys: 3 oz",
+        "Jarabe: 3/4 oz",
+        "Crema de coco: 1 oz",
+        "Kahlúa: 1 oz",
+        "Leche: 1 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 51,
+      "area": "BARTENDER",
+      "code": "MENU-51",
+      "name": "Sublime Mediano",
+      "tags": [],
+      "image": "/uploads/menu/1788103400227-5cb5768a-a664-47b1-a02d-05ae03d215be.jpg",
+      "price": 12,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 8,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 10,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 2,
+          "inventoryId": 39
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Sublime, tamaño mediano.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Receta del bartender: tamaño mediano",
+        "Leche: 2 oz",
+        "Leche en polvo: 1 cucharada",
+        "Vainilla: 1 dash",
+        "Azúcar",
+        "Sublime: 2 unidades",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 52,
+      "area": "BARTENDER",
+      "code": "MENU-52",
+      "name": "Sublime Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788103400397-f47a1ca7-924f-452a-94db-ad2a8959d94a.jpg",
+      "price": 14,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 90,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 12,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 1.5,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 3,
+          "inventoryId": 39
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Sublime, tamaño grande.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia proporcional: 1.5× receta mediana; validar con bartender",
+        "Leche: 3 oz",
+        "Leche en polvo: 1 1/2 cucharadas",
+        "Vainilla: 1 a 2 dash",
+        "Azúcar",
+        "Sublime: 3 unidades",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 53,
+      "area": "BARTENDER",
+      "code": "MENU-53",
+      "name": "Mocaccino Mediano",
+      "tags": [],
+      "image": "/uploads/menu/1788103469118-cfdd1c4b-0795-49f4-b998-ce6f5777b91f.jpg",
+      "price": 12,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 20,
+          "inventoryId": 35
+        },
+        {
+          "quantity": 20,
+          "inventoryId": 36
+        },
+        {
+          "quantity": 8,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 10,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 23
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Mocaccino, tamaño mediano.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Receta del bartender: tamaño mediano",
+        "Leche: 2 oz",
+        "Chocolate en polvo: 4 cucharadas",
+        "Café instantáneo: 4 cucharadas",
+        "Leche en polvo: 1 cucharada",
+        "Azúcar",
+        "Vainilla: 1 dash",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 54,
+      "area": "BARTENDER",
+      "code": "MENU-54",
+      "name": "Mocaccino Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788103469293-41a3835d-2bca-428f-941d-e2bc65d90e3a.jpg",
+      "price": 14,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 90,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 35
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 36
+        },
+        {
+          "quantity": 12,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 1.5,
+          "inventoryId": 23
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Mocaccino, tamaño grande.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia proporcional: 1.5× receta mediana; validar con bartender",
+        "Leche: 3 oz",
+        "Chocolate en polvo: 6 cucharadas",
+        "Café instantáneo: 6 cucharadas",
+        "Leche en polvo: 1 1/2 cucharadas",
+        "Azúcar",
+        "Vainilla: 1 a 2 dash",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 55,
+      "area": "BARTENDER",
+      "code": "MENU-55",
+      "name": "Fresa Mediano",
+      "tags": [],
+      "image": "/uploads/menu/1788103503707-b3f64c57-39f2-4ca1-818e-53b534457dc2.jpg",
+      "price": 12,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 8,
+          "inventoryId": 42
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 8,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 10,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 2,
+          "inventoryId": 37
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Fresa, tamaño mediano.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Receta del bartender: tamaño mediano",
+        "Fresas congeladas: 8 unidades",
+        "Leche: 2 oz",
+        "Leche en polvo: 1 cucharada",
+        "Azúcar",
+        "Esencia de fresa: 2 gotas",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 56,
+      "area": "BARTENDER",
+      "code": "MENU-56",
+      "name": "Fresa Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788103503936-b0dbef2c-1b60-4e3a-b2a1-547e6ada9799.jpg",
+      "price": 14,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 12,
+          "inventoryId": 42
+        },
+        {
+          "quantity": 90,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 12,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 3,
+          "inventoryId": 37
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Fresa, tamaño grande.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia proporcional: 1.5× receta mediana; validar con bartender",
+        "Fresas congeladas: 12 unidades",
+        "Leche: 3 oz",
+        "Leche en polvo: 1 1/2 cucharadas",
+        "Azúcar",
+        "Esencia de fresa: 3 gotas",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 57,
+      "area": "BARTENDER",
+      "code": "MENU-57",
+      "name": "Chicle Mediano",
+      "tags": [],
+      "image": "/uploads/menu/1788103552516-41ae7763-daea-4217-89b9-29b714c60065.jpg",
+      "price": 12,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 8,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 10,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 1.5,
+          "inventoryId": 38
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Chicle, tamaño mediano.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Receta del bartender: tamaño mediano",
+        "Leche: 2 oz",
+        "Leche en polvo: 1 cucharada",
+        "Vainilla: 1 dash",
+        "Azúcar",
+        "Esencia de chicle: 1 1/2 medidas",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 58,
+      "area": "BARTENDER",
+      "code": "MENU-58",
+      "name": "Chicle Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788103552683-70770949-f1ba-45a6-801e-d7d999dedce2.jpg",
+      "price": 14,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 90,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 12,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 1.5,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 2.25,
+          "inventoryId": 38
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Chicle, tamaño grande.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia proporcional: 1.5× receta mediana; validar con bartender",
+        "Leche: 3 oz",
+        "Leche en polvo: 1 1/2 cucharadas",
+        "Vainilla: 1 a 2 dash",
+        "Azúcar",
+        "Esencia de chicle: 2 1/4 medidas",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 59,
+      "area": "BARTENDER",
+      "code": "MENU-59",
+      "name": "Capuchino Mediano",
+      "tags": [],
+      "image": "/uploads/menu/1788103600765-a3b1925b-95ab-46c6-8537-56269b5cd037.jpg",
+      "price": 12,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 8,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 10,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 20,
+          "inventoryId": 36
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Capuchino, tamaño mediano.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Receta del bartender: tamaño mediano",
+        "Leche: 2 oz",
+        "Leche en polvo: 1 cucharada",
+        "Azúcar",
+        "Vainilla: 1 dash",
+        "Café instantáneo: 4 cucharadas",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 60,
+      "area": "BARTENDER",
+      "code": "MENU-60",
+      "name": "Capuchino Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788103600965-c81ca453-76de-4b16-b020-9468d30079e6.jpg",
+      "price": 14,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 90,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 12,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 1.5,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 36
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Capuchino, tamaño grande.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia proporcional: 1.5× receta mediana; validar con bartender",
+        "Leche: 3 oz",
+        "Leche en polvo: 1 1/2 cucharadas",
+        "Azúcar",
+        "Vainilla: 1 a 2 dash",
+        "Café instantáneo: 6 cucharadas",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 61,
+      "area": "BARTENDER",
+      "code": "MENU-61",
+      "name": "Vainilla Mediano",
+      "tags": [],
+      "image": "/uploads/menu/1788103638381-58164109-e7b6-4f0c-9436-887a996c7f2c.jpg",
+      "price": 12,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 16,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 10,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 44.36,
+          "inventoryId": 23
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Vainilla, tamaño mediano.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Receta del bartender: tamaño mediano",
+        "Leche: 2 oz",
+        "Leche en polvo: 2 cucharadas",
+        "Azúcar",
+        "Vainilla: 1 1/2 oz",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 62,
+      "area": "BARTENDER",
+      "code": "MENU-62",
+      "name": "Vainilla Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788103638537-02dd24e7-a9a1-4447-853d-3e9b14c6c61b.jpg",
+      "price": 14,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 90,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 24,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 66.54,
+          "inventoryId": 23
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Vainilla, tamaño grande.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia proporcional: 1.5× receta mediana; validar con bartender",
+        "Leche: 3 oz",
+        "Leche en polvo: 3 cucharadas",
+        "Azúcar",
+        "Vainilla: 2 1/4 oz",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 63,
+      "area": "BARTENDER",
+      "code": "MENU-63",
+      "name": "Oreo Mediano",
+      "tags": [],
+      "image": "/uploads/menu/1788103708072-53c7c00c-64b5-424a-ac63-b7bc81ff9e68.jpg",
+      "price": 12,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 10,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 1,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 8,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 6,
+          "inventoryId": 34
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Oreo, tamaño mediano.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Receta del bartender: tamaño mediano",
+        "Leche: 2 oz",
+        "Azúcar",
+        "Vainilla: 1 dash",
+        "Leche en polvo: 1 cucharada",
+        "Galleta Oreo: 6 unidades; 2 para decoración",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 64,
+      "area": "BARTENDER",
+      "code": "MENU-64",
+      "name": "Oreo Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788103708235-d819b200-12c3-480f-869a-9eddcafb5ec6.jpg",
+      "price": 14,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 90,
+          "inventoryId": 15
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 1.5,
+          "inventoryId": 23
+        },
+        {
+          "quantity": 12,
+          "inventoryId": 32
+        },
+        {
+          "quantity": 9,
+          "inventoryId": 34
+        }
+      ],
+      "category": "Frappés",
+      "description": "Frappé Oreo, tamaño grande.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Referencia proporcional: 1.5× receta mediana; validar con bartender",
+        "Leche: 3 oz",
+        "Azúcar",
+        "Vainilla: 1 a 2 dash",
+        "Leche en polvo: 1 1/2 cucharadas",
+        "Galleta Oreo: 9 unidades; 3 para decoración",
+        "Hielo: hasta textura"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 65,
+      "area": "BARTENDER",
+      "code": "MENU-65",
+      "name": "Punch de Limón",
+      "tags": [],
+      "image": "/uploads/menu/1788103805621-d14e5473-322c-45f3-8bec-2768118d8655.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 1.5,
+          "inventoryId": 5
+        },
+        {
+          "quantity": 90,
+          "inventoryId": 4
+        }
+      ],
+      "category": "Cocteles de autor",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Limón cortado: 1 1/2 unidades",
+        "Pisco: 3 oz",
+        "Jarabe: 1 oz",
+        "Clara de huevo: 1 unidad"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 66,
+      "area": "BARTENDER",
+      "code": "MENU-66",
+      "name": "Piscina Park Plaza",
+      "tags": [],
+      "image": "/catalog/bar-menu-placeholder.png",
+      "price": 22,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 30,
+          "inventoryId": 4
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 11
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 17
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 18
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 19
+        },
+        {
+          "quantity": 120,
+          "inventoryId": 40
+        }
+      ],
+      "category": "Cocteles de autor",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pisco: 1 oz",
+        "Ron: 1 oz",
+        "Vodka: 1 oz",
+        "Tequila: 1 oz",
+        "Limón: 1 oz",
+        "Jarabe: 1 oz",
+        "Blue Curaçao: 1 oz",
+        "Evervess: completar"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 67,
+      "area": "BARTENDER",
+      "code": "MENU-67",
+      "name": "Café Pasado",
+      "tags": [],
+      "image": "/uploads/menu/1788103875291-b5856dc5-23eb-41ca-a5ff-a1b677d2e832.jpg",
+      "price": 7,
+      "active": true,
+      "recipe": [],
+      "category": "Café",
+      "description": "Café filtrado al estilo peruano, preparado al momento.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Café molido",
+        "Agua caliente",
+        "Azúcar (opcional)"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 68,
+      "area": "BARTENDER",
+      "code": "MENU-68",
+      "name": "Café Americano",
+      "tags": [],
+      "image": "/uploads/menu/1788103908997-b99ac9ba-1d52-4ae2-8263-1e108c694a4c.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [],
+      "category": "Café",
+      "description": "Café americano preparado al momento.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Café o espresso (confirmar método)",
+        "Agua caliente",
+        "Azúcar (opcional)"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 69,
+      "area": "BARTENDER",
+      "code": "MENU-69",
+      "name": "Mai Tai",
+      "tags": [],
+      "image": "/uploads/menu/1788103939928-0018ec9e-128c-405d-a550-bfa0a36f82f7.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 45,
+          "inventoryId": 11
+        },
+        {
+          "quantity": 45,
+          "inventoryId": 12
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 20
+        },
+        {
+          "quantity": 22.5,
+          "inventoryId": 27
+        }
+      ],
+      "category": "Tikis",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Ron blanco: 1 1/2 oz",
+        "Ron Black: 1 1/2 oz",
+        "Limón: 3/4 oz",
+        "Jarabe: 1/2 oz",
+        "Triple sec: 1 oz",
+        "Amaretto: 3/4 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 70,
+      "area": "BARTENDER",
+      "code": "MENU-70",
+      "name": "Pain Killer",
+      "tags": [],
+      "image": "/uploads/menu/1788103972817-4804af49-b56d-42c8-bf12-943bcc45c721.jpg",
+      "price": 25,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 90,
+          "inventoryId": 41
+        },
+        {
+          "quantity": 60,
+          "inventoryId": 12
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 16
+        },
+        {
+          "quantity": 30,
+          "inventoryId": 28
+        }
+      ],
+      "category": "Tikis",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Piña: 3 oz",
+        "Ron Black: 2 oz",
+        "Limón: 1/2 oz",
+        "Crema de coco: 1 oz",
+        "Jugo de naranja: 1 oz"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 71,
+      "area": "BARTENDER",
+      "code": "MENU-71",
+      "name": "San Juan",
+      "tags": [],
+      "image": "/uploads/menu/1788104089534-f827bbad-5772-4ee7-a30a-53ded8a1e9a3.jpg",
+      "price": 8,
+      "active": true,
+      "recipe": [],
+      "category": "Cervezas",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 72,
+      "area": "BARTENDER",
+      "code": "MENU-72",
+      "name": "Trigo Lata Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788104140582-673761e7-0fcf-48e5-aa04-fd84307576cf.jpg",
+      "price": 10,
+      "active": true,
+      "recipe": [],
+      "category": "Cervezas",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 73,
+      "area": "BARTENDER",
+      "code": "MENU-73",
+      "name": "Corona",
+      "tags": [],
+      "image": "/uploads/menu/1788104164984-2ab72611-cf85-49f1-8e5f-9986cc97c1c9.jpg",
+      "price": 10,
+      "active": true,
+      "recipe": [],
+      "category": "Cervezas",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 74,
+      "area": "BARTENDER",
+      "code": "MENU-74",
+      "name": "Mike Manzana",
+      "tags": [],
+      "image": "/uploads/menu/1788149357727-2d6ecd50-89f8-4aec-a306-46f2cd5e1d86.jpg",
+      "price": 10,
+      "active": true,
+      "recipe": [],
+      "category": "Cervezas",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 75,
+      "area": "BARTENDER",
+      "code": "MENU-75",
+      "name": "Mike Maracuyá",
+      "tags": [],
+      "image": "/uploads/menu/1788149381810-aa6f2495-fe6b-4b1b-8e7c-696840324052.jpg",
+      "price": 10,
+      "active": true,
+      "recipe": [],
+      "category": "Cervezas",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 76,
+      "area": "BARTENDER",
+      "code": "MENU-76",
+      "name": "Smirnoff",
+      "tags": [],
+      "image": "/uploads/menu/1788149442304-4820c0a2-450c-4eab-af9f-1f02909d9f87.jpg",
+      "price": 10,
+      "active": true,
+      "recipe": [],
+      "category": "Cervezas",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 77,
+      "area": "BARTENDER",
+      "code": "MENU-77",
+      "name": "Pilsen Lata Grande",
+      "tags": [],
+      "image": "/uploads/menu/1788149484653-46b6c956-8a72-4d1b-a9ef-01d0d53645f5.jpg",
+      "price": 10,
+      "active": true,
+      "recipe": [],
+      "category": "Cervezas",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 78,
+      "area": "BARTENDER",
+      "code": "MENU-78",
+      "name": "Maracuyá Vaso",
+      "tags": [],
+      "image": "/uploads/menu/1788149535903-3a330b7b-dd12-421b-9b61-8bd1995c3e54.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 30
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        }
+      ],
+      "category": "Refrescos",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Esencia de maracuyá: 2 oz",
+        "Azúcar",
+        "Agua y hielo según sea refresco o frozen"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 79,
+      "area": "BARTENDER",
+      "code": "MENU-79",
+      "name": "Maracuyá Jarra",
+      "tags": [],
+      "image": "/uploads/menu/1788149536322-ec17bc17-db06-4a7e-a881-b1ba8404bea2.jpg",
+      "price": 15,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 148,
+          "inventoryId": 30
+        },
+        {
+          "quantity": 40,
+          "inventoryId": 33
+        }
+      ],
+      "category": "Refrescos",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Esencia de maracuyá: 5 oz",
+        "Azúcar",
+        "Agua y hielo según sea refresco o frozen"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 80,
+      "area": "BARTENDER",
+      "code": "MENU-80",
+      "name": "Camu Camu Vaso",
+      "tags": [],
+      "image": "/uploads/menu/1788149579239-f4977bef-056d-4278-85ce-165120c7db83.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 60,
+          "inventoryId": 29
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        }
+      ],
+      "category": "Refrescos",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Esencia de camu camu: 2 oz",
+        "Azúcar",
+        "Agua y hielo según sea refresco o frozen"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 81,
+      "area": "BARTENDER",
+      "code": "MENU-81",
+      "name": "Camu Camu Jarra",
+      "tags": [],
+      "image": "/uploads/menu/1788149579626-0170e1ad-93cc-4bb5-bdfe-e8c301f81d42.jpg",
+      "price": 15,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 148,
+          "inventoryId": 29
+        },
+        {
+          "quantity": 40,
+          "inventoryId": 33
+        }
+      ],
+      "category": "Refrescos",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Esencia de camu camu: 5 oz",
+        "Azúcar",
+        "Agua y hielo según sea refresco o frozen"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 82,
+      "area": "BARTENDER",
+      "code": "MENU-82",
+      "name": "Limonada Vaso",
+      "tags": [],
+      "image": "/uploads/menu/1788149633990-2c897730-1529-4c92-8753-02aab8ef64b7.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 2,
+          "inventoryId": 5
+        },
+        {
+          "quantity": 15,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 2,
+          "inventoryId": 10
+        }
+      ],
+      "category": "Refrescos",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Limón: 2 unidades",
+        "Azúcar",
+        "Menta: gotas",
+        "Agua y hielo según sea refresco o frozen"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 83,
+      "area": "BARTENDER",
+      "code": "MENU-83",
+      "name": "Limonada Jarra",
+      "tags": [],
+      "image": "/uploads/menu/1788149634549-dff77f89-a2ed-4cd1-9c7d-fb442acc868e.jpg",
+      "price": 15,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 5,
+          "inventoryId": 5
+        },
+        {
+          "quantity": 40,
+          "inventoryId": 33
+        },
+        {
+          "quantity": 5,
+          "inventoryId": 10
+        }
+      ],
+      "category": "Refrescos",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Limón: 5 unidades",
+        "Azúcar",
+        "Menta: gotas",
+        "Agua y hielo según sea refresco o frozen"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 84,
+      "area": "BARTENDER",
+      "code": "MENU-84",
+      "name": "San Luis",
+      "tags": [],
+      "image": "/uploads/menu/1788149878166-2df9ebcf-5c35-4d0c-bc28-a7c27da2ce34.jpg",
+      "price": 3,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 85,
+      "area": "BARTENDER",
+      "code": "MENU-85",
+      "name": "Coca Cola",
+      "tags": [],
+      "image": "/uploads/menu/1788149910681-acfae98b-9122-48db-b567-3eb36a86f4dd.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 86,
+      "area": "BARTENDER",
+      "code": "MENU-86",
+      "name": "Inca Kola",
+      "tags": [],
+      "image": "/uploads/menu/1788149880082-d8b59962-1045-4b44-ba26-699586614fe9.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 87,
+      "area": "BARTENDER",
+      "code": "MENU-87",
+      "name": "Volt",
+      "tags": [],
+      "image": "/uploads/menu/1788149881053-a0dd67a8-083d-40c6-ad51-bcf85b76c1e4.jpg",
+      "price": 3,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 88,
+      "area": "BARTENDER",
+      "code": "MENU-88",
+      "name": "Sporade",
+      "tags": [],
+      "image": "/uploads/menu/1788149882262-0f5165d8-5d5a-4076-993d-50e785aa3565.jpg",
+      "price": 3,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 89,
+      "area": "BARTENDER",
+      "code": "MENU-89",
+      "name": "Bio",
+      "tags": [],
+      "image": "/uploads/menu/1788149883108-fa6c80d0-809d-472e-815a-96216b586369.jpg",
+      "price": 3,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 90,
+      "area": "BARTENDER",
+      "code": "MENU-90",
+      "name": "Guaranita",
+      "tags": [],
+      "image": "/uploads/menu/1788149885336-6caa8555-18c5-438d-8595-e252862db05f.png",
+      "price": 2,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 91,
+      "area": "BARTENDER",
+      "code": "MENU-91",
+      "name": "Agua Mineral con Gas",
+      "tags": [],
+      "image": "/uploads/menu/1788149886973-3294ba70-ed4f-49e6-aaaf-e4461dd9fd8b.png",
+      "price": 3,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 92,
+      "area": "BARTENDER",
+      "code": "MENU-92",
+      "name": "Agua Mineral sin Gas",
+      "tags": [],
+      "image": "/uploads/menu/1788149887815-9cd27cec-90c1-4e19-b483-1114362445ce.jpg",
+      "price": 2,
+      "active": true,
+      "recipe": [],
+      "category": "Gaseosas y agua",
+      "description": "",
+      "prepMinutes": 8,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ]
+    },
+    {
+      "id": 93,
+      "area": "BARTENDER",
+      "code": "MENU-93",
+      "name": "Té Canela y Clavo",
+      "tags": [],
+      "image": "/uploads/menu/1788149889405-e9939252-f207-4760-b9de-4ea8f8cc31af.webp",
+      "price": 5,
+      "active": true,
+      "recipe": [],
+      "category": "Infusiones",
+      "description": "Infusión caliente de canela y clavo.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Canela",
+        "Clavo de olor",
+        "Agua caliente",
+        "Azúcar (opcional)"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 94,
+      "area": "BARTENDER",
+      "code": "MENU-94",
+      "name": "Té de Anís",
+      "tags": [],
+      "image": "/uploads/menu/1788149891456-ce98b536-1698-45cc-a2ef-0572367de4bf.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [],
+      "category": "Infusiones",
+      "description": "Infusión caliente de anís.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Anís",
+        "Agua caliente",
+        "Azúcar (opcional)"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 95,
+      "area": "BARTENDER",
+      "code": "MENU-95",
+      "name": "Té de Manzanilla",
+      "tags": [],
+      "image": "/uploads/menu/1788149893311-8e4b18fc-0032-410c-82ab-b3436c75c856.jpg",
+      "price": 5,
+      "active": true,
+      "recipe": [],
+      "category": "Infusiones",
+      "description": "Infusión caliente de manzanilla.",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Manzanilla",
+        "Agua caliente",
+        "Azúcar (opcional)"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    },
+    {
+      "id": 96,
+      "area": "BARTENDER",
+      "code": "MENU-96",
+      "name": "Pisco Sour",
+      "tags": [],
+      "image": "/uploads/menu/1788100157395-05326c4f-76e0-444a-9596-51cb2c32d414.jpg",
+      "price": 18,
+      "active": true,
+      "recipe": [
+        {
+          "quantity": 90,
+          "inventoryId": 4
+        }
+      ],
+      "category": "Clásicos del bar",
+      "description": "",
+      "prepMinutes": 10,
+      "availableFor": [
+        "HOSPEDAJE",
+        "PISCINA",
+        "MIRADOR",
+        "EVENTOS"
+      ],
+      "draftIngredients": [
+        "Pisco: 3 oz",
+        "Limón: 1 oz",
+        "Jarabe: 1 oz",
+        "Clara de huevo: 1 unidad"
+      ],
+      "recipeStatus": "PENDIENTE_GRAMAJES"
+    }
+  ],
+  "inventory": [
+    {
+      "id": 2,
+      "name": "Arroz",
+      "unit": "kg",
+      "baseUnit": "kg",
+      "area": "RESTAURANTE",
+      "cost": 5,
+      "minStock": 10,
+      "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=300&q=80"
+    },
+    {
+      "id": 3,
+      "name": "Lomo",
+      "unit": "kg",
+      "baseUnit": "kg",
+      "area": "RESTAURANTE",
+      "cost": 30,
+      "minStock": 6,
+      "imageUrl": "https://images.unsplash.com/photo-1603048297172-c92544798d5e?auto=format&fit=crop&w=300&q=80"
+    },
+    {
+      "id": 4,
+      "name": "Pisco",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "cost": 0.04,
+      "minStock": 3000,
+      "imageUrl": "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?auto=format&fit=crop&w=300&q=80"
+    },
+    {
+      "id": 5,
+      "name": "Limón",
+      "unit": "unidad",
+      "baseUnit": "unidad",
+      "area": "BARTENDER",
+      "cost": 0.5,
+      "minStock": 25,
+      "imageUrl": "https://images.unsplash.com/photo-1590502593747-422e118f1bc2?auto=format&fit=crop&w=300&q=80"
+    },
+    {
+      "id": 7,
+      "name": "Granadina",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_GRANADINA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 8,
+      "name": "Tampico",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_TAMPICO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 9,
+      "name": "Licor de menta",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_LICOR_DE_MENTA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 10,
+      "name": "Hierbabuena",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "BARTENDER",
+      "code": "BAR_HIERBABUENA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 11,
+      "name": "Ron blanco",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_RON_BLANCO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 12,
+      "name": "Ron black",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_RON_BLACK",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 13,
+      "name": "Coca Cola",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_COCA_COLA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 14,
+      "name": "Piña congelada",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "BARTENDER",
+      "code": "BAR_PINA_CONGELADA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 15,
+      "name": "Leche",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_LECHE",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 16,
+      "name": "Crema de coco",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_CREMA_DE_COCO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 17,
+      "name": "Vodka",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_VODKA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 18,
+      "name": "Tequila",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_TEQUILA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 19,
+      "name": "Blue curaçao",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_BLUE_CURACAO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 20,
+      "name": "Triple sec",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_TRIPLE_SEC",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 21,
+      "name": "Cachaça",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_CACHACA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 22,
+      "name": "Algarrobina",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_ALGARROBINA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 23,
+      "name": "Esencia de vainilla",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_ESENCIA_DE_VAINILLA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 24,
+      "name": "Canela en polvo",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "BARTENDER",
+      "code": "BAR_CANELA_EN_POLVO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 25,
+      "name": "Baileys",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_BAILEYS",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 26,
+      "name": "Kahlúa",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_KAHLUA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 27,
+      "name": "Amaretto",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_AMARETTO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 28,
+      "name": "Jugo de naranja",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_JUGO_DE_NARANJA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 29,
+      "name": "Esencia de camu camu",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_ESENCIA_DE_CAMU_CAMU",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 30,
+      "name": "Esencia de maracuyá",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_ESENCIA_DE_MARACUYA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 31,
+      "name": "Fresa congelada",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "BARTENDER",
+      "code": "BAR_FRESA_CONGELADA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 32,
+      "name": "Leche en polvo",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "BARTENDER",
+      "code": "BAR_LECHE_EN_POLVO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 33,
+      "name": "Azúcar",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "BARTENDER",
+      "code": "BAR_AZUCAR",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 34,
+      "name": "Galleta Oreo",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "BARTENDER",
+      "code": "BAR_GALLETA_OREO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 35,
+      "name": "Chocolate en polvo",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "BARTENDER",
+      "code": "BAR_CHOCOLATE_EN_POLVO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 36,
+      "name": "Café instantáneo",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "BARTENDER",
+      "code": "BAR_CAFE_INSTANTANEO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 37,
+      "name": "Esencia de fresa",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_ESENCIA_DE_FRESA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 38,
+      "name": "Esencia de chicle",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_ESENCIA_DE_CHICLE",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 39,
+      "name": "Chocolate Sublime",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "BARTENDER",
+      "code": "BAR_CHOCOLATE_SUBLIME",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 40,
+      "name": "Evervess",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_EVERVESS",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 41,
+      "name": "Jugo de piña",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "BARTENDER",
+      "code": "BAR_JUGO_PINA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 42,
+      "name": "Fresa congelada (unidad)",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "BARTENDER",
+      "code": "BAR_FRESA_UN",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 43,
+      "name": "Cecina",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_CECINA",
+      "cost": 12.5,
+      "minStock": 0
+    },
+    {
+      "id": 44,
+      "name": "Chorizo amazónico",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_CHORIZO_AMAZ_NICO",
+      "cost": 10,
+      "minStock": 0
+    },
+    {
+      "id": 45,
+      "name": "Salsa de ostión",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "RESTAURANTE",
+      "code": "RES_SALSA_DE_OSTI_N",
+      "cost": 10,
+      "minStock": 0
+    },
+    {
+      "id": 46,
+      "name": "Kión fresco",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_KI_N_FRESCO",
+      "cost": 10,
+      "minStock": 0
+    },
+    {
+      "id": 47,
+      "name": "Aceite de ajonjolí",
+      "unit": "ml",
+      "baseUnit": "ml",
+      "area": "RESTAURANTE",
+      "code": "RES_ACEITE_DE_AJONJOL",
+      "cost": 10,
+      "minStock": 0
+    },
+    {
+      "id": 48,
+      "name": "Fideo chino",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_FIDEO_CHINO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 49,
+      "name": "Frijol chino",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_FRIJOL_CHINO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 50,
+      "name": "Plátano verde",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "RESTAURANTE",
+      "code": "RES_PL_TANO_VERDE",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 51,
+      "name": "Plátano maduro",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "RESTAURANTE",
+      "code": "RES_PL_TANO_MADURO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 52,
+      "name": "Ajinomoto",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_AJINOMOTO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 53,
+      "name": "Doncella fresca",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_DONCELLA_FRESCA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 54,
+      "name": "Ají limo",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "RESTAURANTE",
+      "code": "RES_AJ_LIMO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 55,
+      "name": "Cerdo para chicharrón",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_CERDO_PARA_CHICHARR_N",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 56,
+      "name": "Harina de trigo",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_HARINA_DE_TRIGO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 57,
+      "name": "Alita de pollo",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "RESTAURANTE",
+      "code": "RES_ALITA_DE_POLLO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 58,
+      "name": "Pierna de pollo",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "RESTAURANTE",
+      "code": "RES_PIERNA_DE_POLLO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 59,
+      "name": "Pecho de pollo",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "RESTAURANTE",
+      "code": "RES_PECHO_DE_POLLO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 60,
+      "name": "Lámina de wantán",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "RESTAURANTE",
+      "code": "RES_L_MINA_DE_WANT_N",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 61,
+      "name": "Queso fresco",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_QUESO_FRESCO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 62,
+      "name": "Jamón",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_JAM_N",
+      "cost": 10,
+      "minStock": 0
+    },
+    {
+      "id": 63,
+      "name": "Pepino",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_PEPINO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 64,
+      "name": "Lechuga",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_LECHUGA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 65,
+      "name": "Yuca fresca",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_YUCA_FRESCA",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 66,
+      "name": "Camote",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_CAMOTE",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 67,
+      "name": "Choclo",
+      "unit": "un",
+      "baseUnit": "un",
+      "area": "RESTAURANTE",
+      "code": "RES_CHOCLO",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 68,
+      "name": "Habas",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_HABAS",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 69,
+      "name": "Huacatay",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_HUACATAY",
+      "cost": 0,
+      "minStock": 0
+    },
+    {
+      "id": 70,
+      "name": "Chincho",
+      "unit": "g",
+      "baseUnit": "g",
+      "area": "RESTAURANTE",
+      "code": "RES_CHINCHO",
+      "cost": 0,
+      "minStock": 0
+    }
+  ],
+  "archivedDemo": [
+    {
+      "id": 1,
+      "name": "Ceviche amazónico",
+      "area": "RESTAURANTE"
+    },
+    {
+      "id": 2,
+      "name": "Lomo saltado",
+      "area": "RESTAURANTE"
+    },
+    {
+      "id": 3,
+      "name": "Juane regional",
+      "area": "RESTAURANTE"
+    },
+    {
+      "id": 4,
+      "name": "Pisco sour",
+      "area": "BARTENDER"
+    },
+    {
+      "id": 5,
+      "name": "Selva tropical",
+      "area": "BARTENDER"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db.js";
+import { sealAudit } from "./audit-chain.js";
 
 const PRODUCT_TYPES = new Set(["RAW_MATERIAL", "PROCESSED", "INTERMEDIATE", "PORTION", "BEVERAGE", "SUPPLY", "FINISHED"]);
 const PRODUCT_STATUSES = new Set(["ACTIVE", "INACTIVE", "ARCHIVED"]);
@@ -133,7 +134,7 @@ async function addLegacyProjection(client, productId, payload, baseUnit, categor
     createdAt: new Date().toISOString()
   };
   state.inventory.push(legacy);
-  state.audit.unshift({ id: ++state.counters.audit, module: "INVENTARIO", action: "CREAR_PRODUCTO_MAESTRO", detail: legacy.name, userId: payload.actorId, createdAt: legacy.createdAt });
+  sealAudit(state,{ id: ++state.counters.audit, module: "INVENTARIO", action: "CREAR_PRODUCTO_MAESTRO", detail: legacy.name, userId: payload.actorId, createdAt: legacy.createdAt });
   await client.query("UPDATE app_state SET data=$1::jsonb, updated_at=NOW() WHERE id=1", [JSON.stringify(state)]);
   await client.query("UPDATE inventory_products SET legacy_id=$2 WHERE id=$1", [productId, legacyId]);
   return legacyId;
@@ -153,7 +154,7 @@ async function updateLegacyProjection(client, legacyId, payload, baseUnit, categ
     active: (payload.status || "ACTIVE") === "ACTIVE", trackLots: Boolean(payload.trackLots),
     trackExpiry: Boolean(payload.trackExpiry), tolerancePercent: number(payload.tolerancePercent), updatedAt: new Date().toISOString()
   });
-  state.audit.unshift({ id: ++state.counters.audit, module: "INVENTARIO", action, detail: legacy.name, userId: actorId, createdAt: legacy.updatedAt });
+  sealAudit(state,{ id: ++state.counters.audit, module: "INVENTARIO", action, detail: legacy.name, userId: actorId, createdAt: legacy.updatedAt });
   await client.query("UPDATE app_state SET data=$1::jsonb, updated_at=NOW() WHERE id=1", [JSON.stringify(state)]);
 }
 

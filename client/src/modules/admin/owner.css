@@ -1,0 +1,69 @@
+/* Centro de dirección del dueño: complementos de recepcion.css (misma paleta, tipografía y medidas).
+   v3 (2026-09-28): menú plano, pestañas dentro de la página, tablero en vivo y tablas de alto acotado. */
+.rx-chip.ow-chip-hot { border-color: var(--blue-line); background: var(--blue-soft); color: var(--deep); }
+.rx-chip b { font-weight: 700; }
+.rx-chip svg { flex: 0 0 auto; }
+
+/* Pantallas azules v3 (Inicio, Clientes, Reservas, Rentabilidad…): conservan su diseño y variables, sin el relleno del
+   armazón anterior porque .rx-page ya da los márgenes. */
+.ow-page .oh { padding: 0; background: transparent; min-height: 0; }
+
+/* Bloques propios de las pantallas del dueño */
+.ow-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.ow-split { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.ow-group { margin-bottom: 14px; }
+.ow-group > .rx-card-h h2 { display: flex; align-items: center; gap: 8px; }
+.ow-count { min-width: 22px; height: 20px; padding: 0 7px; border-radius: 10px; font-size: 12px; font-weight: 700; display: inline-grid; place-items: center; background: var(--off-bg); color: var(--off); }
+.ow-count.crit { background: var(--crit-bg); color: var(--crit); }
+.ow-count.warn { background: var(--warn-bg); color: var(--warn); }
+.ow-count.info { background: var(--info-bg); color: var(--info); }
+.ow-amount { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ow-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ow-bar { height: 8px; border-radius: 4px; background: var(--line-2); overflow: hidden; }
+.ow-bar > span { display: block; height: 100%; background: var(--blue); border-radius: 4px; }
+.ow-bar.warn > span { background: #D99A22; }
+.ow-bar.crit > span { background: var(--crit); }
+.ow-mini { font-size: 12px; color: var(--muted); }
+.ow-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ow-form .full { grid-column: 1 / -1; }
+.ow-thumb { width: 44px; height: 34px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); background: var(--paper); display: block; }
+.ow-thumb-lg { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--paper); display: block; }
+.ow-switch { position: relative; width: 36px; height: 20px; border-radius: 10px; background: #C9D3E2; border: 0; cursor: pointer; flex: 0 0 auto; transition: background .15s; }
+.ow-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .15s; }
+.ow-switch.is-on { background: #12A07A; }
+.ow-switch.is-on::after { left: 18px; }
+.ow-switch:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 1100px) { .ow-split { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .ow-form { grid-template-columns: 1fr; } }
+
+/* ---------- v3: pestañas del tema activo (en la página, no en el menú) ---------- */
+.ow-tabs { display: flex; gap: 2px; margin: -4px 0 16px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.ow-tabs::-webkit-scrollbar { display: none; }
+.ow-tabs a { flex: 0 0 auto; padding: 9px 14px 10px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 13px; font-weight: 500; text-decoration: none; white-space: nowrap; }
+.ow-tabs a:hover { color: var(--text); }
+.ow-tabs a.is-on { color: var(--text); font-weight: 600; border-bottom-color: var(--blue); }
+
+/* ---------- v3: tablero ---------- */
+.ow-day .rx-day-actions { align-items: center; }
+.ow-day-right { display: grid; gap: 12px; justify-items: end; }
+.ow-day-seg { margin-left: 0; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); }
+.ow-day-seg button { color: #AAB7CD; }
+.ow-day-seg button:hover { color: #fff; background: rgba(255,255,255,.08); }
+.ow-day-seg button.is-on { background: #fff; color: var(--ink); }
+.ow-day small { display: inline-flex; align-items: center; gap: 6px; }
+.ow-live { color: #34D399; animation: ow-pulse 1.6s ease-in-out infinite; }
+@keyframes ow-pulse { 50% { opacity: .35; } }
+.ow-time { flex: 0 0 44px; font-size: 12.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rx-card-b.oh { padding: 12px 16px 14px; }
+.oh-fit { width: 100%; min-width: 0; }
+@media (prefers-reduced-motion: reduce) { .ow-live { animation: none; } }
+
+/* ---------- v3: tablas de alto acotado con encabezado fijo (ninguna lista larga estira la página) ---------- */
+.ow-page .rx-table-wrap { max-height: 560px; overflow: auto; }
+.ow-page .rx-table-wrap thead th { position: sticky; top: 0; z-index: 1; background: #F8FAFC; box-shadow: inset 0 -1px 0 var(--line); }
+/* Listas largas dentro de una tarjeta (alertas, verificaciones…): alto acotado con desplazamiento propio, para que
+   una lista de 40 no estire la fila ni deje vacía la tarjeta vecina. */
+.ow-page .rx-card > .rx-list, .ow-page .rx-card > .rx-card-b > .rx-list { max-height: 440px; overflow-y: auto; }
+.ow-sub { margin: 18px 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.rx-card-b.oh > .ow-sub:first-child { margin-top: 0; }
+@media (max-width: 900px) { .ow-day-right { justify-items: start; } }

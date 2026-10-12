@@ -19,7 +19,7 @@ try {
   try {
     await setup.query(`CREATE SCHEMA ${schema}`);
     await setup.query(`SET search_path TO ${schema}`);
-    for (const migration of ["001_inventory_intelligent.up.sql", "002_product_master_catalog.up.sql", "003_purchasing_receiving.up.sql", "004_warehouses_transfers.up.sql", "016_stock_requisitions.up.sql"]) {
+    for (const migration of ["001_inventory_intelligent.up.sql", "002_product_master_catalog.up.sql", "003_purchasing_receiving.up.sql", "004_warehouses_transfers.up.sql", "006_versioned_technical_recipes.up.sql", "016_stock_requisitions.up.sql", "017_stock_request_closing.up.sql"]) {
       await setup.query(await readFile(join(migrationRoot, migration), "utf8"));
     }
     await setup.query("CREATE TABLE app_state(id INTEGER PRIMARY KEY,data JSONB NOT NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");

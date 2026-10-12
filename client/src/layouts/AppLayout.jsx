@@ -1,31 +1,24 @@
-import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
-import { Sidebar } from "./Sidebar";
-import { Navbar } from "./Navbar";
-import { TrainingAssistant } from "../components/TrainingAssistant";
+// Cada rol trabaja en su estación, todas con la misma identidad (recepcion.css): el dueño en su centro de dirección
+// (lo monta la ruta /superadmin), Recepción, Cocina y Bar, Limpieza y Mantenimiento. El dueño puede abrir la estación de
+// Recepción en /admin-panel para verla como la ve el personal. El diseño antiguo (Sidebar/Navbar) se retiró el 2026-09-27.
+import { lazy } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { ModuleErrorBoundary } from "../components/ModuleErrorBoundary";
 import { useAuth } from "../context/AuthContext";
 
+const KitchenShell = lazy(() => import("../modules/cocina/KitchenShell").then((module) => ({ default: module.KitchenShell })));
+const OpsShell = lazy(() => import("../modules/operaciones/OpsShell").then((module) => ({ default: module.OpsShell })));
+const ReceptionShell = lazy(() => import("../modules/recepcion/ReceptionShell").then((module) => ({ default: module.ReceptionShell })));
+
 export function AppLayout() {
-  const [open, setOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
-  const isV6Role = ["SUPERADMIN", "ADMINISTRADOR", "RESTAURANTE", "BARTENDER"].includes(user?.role);
-  const roleTheme = user?.role === "RESTAURANTE" ? "theme-restaurant" : user?.role === "BARTENDER" ? "theme-bar" : "theme-hotel";
-
-  return (
-    <div className={`min-h-screen min-w-0 overflow-x-hidden bg-park-bg text-park-black selection:bg-park-green selection:text-white ${isV6Role ? `erp-v6-shell ${roleTheme}` : ""}`}>
-      <Sidebar open={open} onClose={() => setOpen(false)} />
-      {open ? <button className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden transition-opacity" onClick={() => setOpen(false)} type="button" aria-label="Cerrar menu" /> : null}
-      <div className="min-w-0 overflow-x-hidden transition-all duration-200 lg:pl-[14.75rem]">
-        <Navbar onMenu={() => setOpen(true)} />
-        <main className="min-w-0 overflow-x-hidden px-4 pb-8 pt-2 sm:px-6 lg:px-8 lg:pt-0 animate-in fade-in duration-500">
-          {!isV6Role ? <TrainingAssistant /> : null}
-          <div className="mx-auto max-w-[1600px]">
-            <ModuleErrorBoundary resetKey={location.pathname}><Outlet /></ModuleErrorBoundary>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
+  const role = user?.role;
+  if (role === "SUPERADMIN" && location.pathname.startsWith("/superadmin")) return <ModuleErrorBoundary resetKey={location.pathname}><Outlet /></ModuleErrorBoundary>;
+  if (role === "ADMINISTRADOR" || (role === "SUPERADMIN" && location.pathname.startsWith("/admin-panel"))) return <ReceptionShell />;
+  if (role === "RESTAURANTE") return <KitchenShell />;
+  if (role === "BARTENDER") return <KitchenShell area="BARTENDER" />;
+  if (role === "LIMPIEZA" || role === "MANTENIMIENTO") return <OpsShell area={role} />;
+  if (role === "SUPERADMIN") return <Navigate to="/superadmin" replace />;
+  return <Navigate to="/403" replace />;
 }

@@ -324,6 +324,31 @@ async function buildRelationalCatalog(client, state) {
   return products;
 }
 
+// Existencias sin lote → lote de apertura trazable (misma regla que la migración 008). En una base NUEVA la migración
+// corre antes de cargar el stock inicial y no lo alcanzaba: los pedidos fallaban por "stock insuficiente" (la reserva
+// FEFO solo usa stock con lote) aunque la carta mostraba porciones disponibles. Es idempotente y no cambia cantidades.
+export async function assignOpeningLots(client) {
+  const pending = await one(client, "SELECT COUNT(*)::int AS total FROM inventory_stock_balances WHERE lot_id IS NULL AND on_hand>0");
+  if (!pending?.total) return 0;
+  await client.query(`INSERT INTO inventory_lots(product_id,lot_code,unit_cost,status,created_at)
+    SELECT DISTINCT b.product_id,'LEGACY-OPENING-'||b.product_id,p.average_cost,'AVAILABLE',NOW()
+    FROM inventory_stock_balances b JOIN inventory_products p ON p.id=b.product_id
+    WHERE b.lot_id IS NULL AND b.on_hand>0 ON CONFLICT(product_id,lot_code) DO NOTHING`);
+  await client.query(`INSERT INTO inventory_audit_events(event_type,entity_type,entity_id,reason,after_data,correlation_id)
+    SELECT 'MIGRATE','OPENING_LOT',l.id,'Existencia inicial vinculada a lote de apertura sin cambiar cantidad',
+      jsonb_build_object('productId',b.product_id,'warehouseId',b.warehouse_id,'quantity',b.on_hand,'reserved',b.reserved),'opening-lot:'||b.product_id||':'||b.warehouse_id
+    FROM inventory_stock_balances b JOIN inventory_lots l ON l.product_id=b.product_id AND l.lot_code='LEGACY-OPENING-'||b.product_id
+    WHERE b.lot_id IS NULL AND b.on_hand>0`);
+  await client.query(`INSERT INTO inventory_stock_balances(product_id,warehouse_id,lot_id,on_hand,reserved,version,updated_at)
+    SELECT b.product_id,b.warehouse_id,l.id,b.on_hand,b.reserved,b.version,NOW()
+    FROM inventory_stock_balances b JOIN inventory_lots l ON l.product_id=b.product_id AND l.lot_code='LEGACY-OPENING-'||b.product_id
+    WHERE b.lot_id IS NULL AND b.on_hand>0
+    ON CONFLICT(product_id,warehouse_id,lot_id) DO UPDATE SET on_hand=inventory_stock_balances.on_hand+EXCLUDED.on_hand,
+      reserved=inventory_stock_balances.reserved+EXCLUDED.reserved,version=GREATEST(inventory_stock_balances.version,EXCLUDED.version),updated_at=NOW()`);
+  await client.query("DELETE FROM inventory_stock_balances WHERE lot_id IS NULL AND on_hand>0");
+  return pending.total;
+}
+
 export async function migrateLegacyInventory(client, state) {
   const checksum = createHash("sha256").update(JSON.stringify({ inventory: state.inventory, recipes: state.menuItems, movements: state.inventoryMovements, purchases: state.compras })).digest("hex");
   const run = await one(client, `
@@ -339,6 +364,7 @@ export async function migrateLegacyInventory(client, state) {
   await importLegacyMovementReferences(client, state, products);
   await importProductionWasteAndClosings(client, state, products);
   await importRecipeSales(client, state);
+  await assignOpeningLots(client);
   const counts = await one(client, `SELECT
     (SELECT COUNT(*) FROM inventory_products) AS products,
     (SELECT COUNT(*) FROM inventory_recipes) AS recipes,
@@ -353,7 +379,8 @@ export async function synchronizeLegacyInventory(client, beforeState, state, con
   if (tracked.every((key) => JSON.stringify(beforeState[key] || []) === JSON.stringify(state[key] || []))) return;
   const products = await buildRelationalCatalog(client, state);
   const previousProducts = new Map((beforeState.inventory || []).map((item) => [Number(item.id), item]));
-  const addedMovements = (state.inventoryMovements || []).filter((movement) => !(beforeState.inventoryMovements || []).some((old) => old.id === movement.id));
+  const previousMovementIds = new Set((beforeState.inventoryMovements || []).map((old) => old.id));
+  const addedMovements = (state.inventoryMovements || []).filter((movement) => !previousMovementIds.has(movement.id));
   for (const product of state.inventory || []) {
     const before = previousProducts.get(Number(product.id));
     const changed = !before || decimal(before.stock) !== decimal(product.stock) || decimal(before.reserved) !== decimal(product.reserved);
@@ -369,6 +396,7 @@ export async function synchronizeLegacyInventory(client, beforeState, state, con
   }
   await importLegacyMovementReferences(client, state, products);
   await importProductionWasteAndClosings(client, state, products);
+  await assignOpeningLots(client);
 }
 
 export async function relationalInventoryStatus(client) {

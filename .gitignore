@@ -34,3 +34,9 @@ client/src/modules/admin/BiometricSetupPage.jsx
 client/public/images/demo/demo_avatar_female.jpg
 client/public/images/demo/demo_avatar_male.jpg
 client/public/images/demo/hotel_lobby_background.jpg
+
+# Capturas que generan las pruebas (scripts/pruebas)
+scripts/pruebas/capturas/
+
+# Documentos personales del dueño (tesina): no se publican en el repositorio
+docs/tesina/

@@ -28,6 +28,7 @@ export function useFetch(path, options = {}) {
   const mountedRef = useRef(false);
   const requestSequenceRef = useRef(0);
   const hasValidDataRef = useRef(hasExpectedShape(initialData, shape));
+  const lastLoadRef = useRef(0);
 
   const setData = useCallback((nextValue) => {
     setDataState((currentValue) => {
@@ -43,6 +44,7 @@ export function useFetch(path, options = {}) {
   const load = useCallback(async () => {
     if (!enabled) return undefined;
     const requestSequence = ++requestSequenceRef.current;
+    lastLoadRef.current = Date.now();
     if (!hasValidDataRef.current) setLoading(true);
     try {
       const result = await api(path);
@@ -75,26 +77,35 @@ export function useFetch(path, options = {}) {
   useEffect(() => {
     if (!enabled || !realtimeEnabled) return undefined;
     let timer;
+    // Un cambio en el servidor llega a todas las pantallas a la vez: cada una espera un poco al azar
+    // (0,3 a 0,8 s) para no pedir todas en el mismo instante.
     const refresh = () => {
       if (document.visibilityState !== "visible") return;
       clearTimeout(timer);
-      timer = setTimeout(load, 100);
+      timer = setTimeout(load, 300 + Math.random() * 500);
     };
     const refreshOnReturn = () => {
       if (document.visibilityState === "visible") refresh();
     };
     realtime.on("state:changed", refresh);
+    // El botón "Actualizar" de la cabecera pide a todas las pantallas abiertas que vuelvan a leer.
+    window.addEventListener("parkplaza:refresh", load);
     realtime.on("connect", refresh);
     document.addEventListener("visibilitychange", refreshOnReturn);
     // Socket.IO gives the immediate update. This lightweight background check
     // guarantees convergence even when a proxy/firewall silently drops events.
     // It never clears the current data or shows a loading screen.
-    const fallback = window.setInterval(refresh, pollInterval);
+    // Con el tiempo real conectado, el respaldo pregunta como mucho cada 30 s (escalabilidad, Fase 0).
+    const fallback = window.setInterval(() => {
+      if (realtime.connected && Date.now() - lastLoadRef.current < Math.max(pollInterval, 30000)) return;
+      refresh();
+    }, pollInterval);
     return () => {
       clearTimeout(timer);
       clearInterval(fallback);
       document.removeEventListener("visibilitychange", refreshOnReturn);
       realtime.off("state:changed", refresh);
+      window.removeEventListener("parkplaza:refresh", load);
       realtime.off("connect", refresh);
     };
   }, [enabled, load, pollInterval, realtimeEnabled]);

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db.js";
+import { sealAudit } from "./audit-chain.js";
 
 const n = (value) => Number(value || 0);
 const round6 = (value) => Math.round((Number(value) + Number.EPSILON) * 1_000_000) / 1_000_000;
@@ -152,7 +153,7 @@ export async function createTransfer(payload, actorId) {
       products.push(Number(balance.product_id));
     }
     await syncLegacyProducts(client,state,products);
-    state.audit.unshift({id:++state.counters.audit,module:"INVENTARIO",action:"TRANSFERENCIA_BORRADOR",detail:code,userId:actorId,createdAt:new Date().toISOString()});
+    sealAudit(state,{id:++state.counters.audit,module:"INVENTARIO",action:"TRANSFERENCIA_BORRADOR",detail:code,userId:actorId,createdAt:new Date().toISOString()});
     await saveState(client,state); await audit(client,"CREATE",transfer.id,actorId,"Transferencia creada; stock comprometido",null,{code,status:"DRAFT"},code); return transfer.id;
   });
   return getTransfer(id);
@@ -174,7 +175,7 @@ export async function sendTransfer(id,payload,actorId){
       await postTransferMovement(client,state,{idempotencyKey:`transfer-send:${line.id}`,type:"TRANSFER_DISPATCH",productId:line.product_id,legacyProductId:line.legacy_id,quantity:n(line.requested_quantity),fromWarehouseId:transfer.from_warehouse_id,toWarehouseId:transit.id,lotId:line.lot_id,unitCost:n(line.average_cost),reason:`Despacho ${transfer.code}`,actorId,transferId:transfer.id,lineId:line.id,code:transfer.code});
     }
     await client.query("UPDATE inventory_transfers SET status='SENT',sent_by_legacy_user_id=$2,sent_shift_code=$3,sent_at=NOW(),observation=COALESCE($4,observation),updated_at=NOW() WHERE id=$1",[transfer.id,actorId,shiftCode(state,actorId,payload?.shiftCode),payload?.observation||null]);
-    await syncLegacyProducts(client,state,lines.map((line)=>line.product_id)); state.audit.unshift({id:++state.counters.audit,module:"INVENTARIO",action:"TRANSFERENCIA_ENVIADA",detail:transfer.code,userId:actorId,createdAt:new Date().toISOString()}); await saveState(client,state);
+    await syncLegacyProducts(client,state,lines.map((line)=>line.product_id)); sealAudit(state,{id:++state.counters.audit,module:"INVENTARIO",action:"TRANSFERENCIA_ENVIADA",detail:transfer.code,userId:actorId,createdAt:new Date().toISOString()}); await saveState(client,state);
     await audit(client,"SEND",transfer.id,actorId,"Stock retirado del origen e ingresado a tránsito",{status:"DRAFT"},{status:"SENT"},transfer.code);
   }); return getTransfer(id);
 }
@@ -201,7 +202,7 @@ export async function receiveTransfer(id,payload,actorId){
     }
     const finalStatus=hasDifference?"RECEIVED_WITH_DIFFERENCE":"RECEIVED";
     await client.query("UPDATE inventory_transfers SET status=$2,received_by_legacy_user_id=$3,received_shift_code=$4,received_at=NOW(),observation=COALESCE($5,observation),updated_at=NOW() WHERE id=$1",[transfer.id,finalStatus,actorId,shiftCode(state,actorId,payload?.shiftCode),payload?.observation||null]);
-    await syncLegacyProducts(client,state,lines.map((line)=>line.product_id)); state.audit.unshift({id:++state.counters.audit,module:"INVENTARIO",action:finalStatus,detail:transfer.code,userId:actorId,createdAt:new Date().toISOString()}); await saveState(client,state);
+    await syncLegacyProducts(client,state,lines.map((line)=>line.product_id)); sealAudit(state,{id:++state.counters.audit,module:"INVENTARIO",action:finalStatus,detail:transfer.code,userId:actorId,createdAt:new Date().toISOString()}); await saveState(client,state);
     await audit(client,"RECEIVE",transfer.id,actorId,hasDifference?"Recepción confirmada con diferencia y alerta":"Recepción conforme",{status:"SENT"},{status:finalStatus},transfer.code);
   }); return getTransfer(id);
 }
@@ -215,7 +216,7 @@ export async function rejectTransfer(id,payload,actorId){
     const transit=(await client.query("SELECT id FROM inventory_warehouses WHERE code='TRANSIT'")).rows[0]; const lines=(await client.query("SELECT tl.*,p.average_cost,p.legacy_id FROM inventory_transfer_lines tl JOIN inventory_products p ON p.id=tl.product_id WHERE tl.transfer_id=$1 ORDER BY tl.id FOR UPDATE OF tl",[transfer.id])).rows;
     for(const line of lines){await client.query("UPDATE inventory_transfer_lines SET received_quantity=0,difference_quantity=-sent_quantity,observation=$2 WHERE id=$1",[line.id,payload.observation]); await postTransferMovement(client,state,{idempotencyKey:`transfer-reject:${line.id}`,type:"TRANSFER_REJECT_RETURN",productId:line.product_id,legacyProductId:line.legacy_id,quantity:n(line.sent_quantity),fromWarehouseId:transit.id,toWarehouseId:transfer.from_warehouse_id,lotId:line.lot_id,unitCost:n(line.average_cost),reason:`Rechazo ${transfer.code}: ${payload.observation}`,actorId,transferId:transfer.id,lineId:line.id,code:transfer.code});}
     await client.query("UPDATE inventory_transfers SET status='REJECTED',rejected_by_legacy_user_id=$2,rejected_at=NOW(),received_by_legacy_user_id=$2,received_shift_code=$3,observation=$4,updated_at=NOW() WHERE id=$1",[transfer.id,actorId,shiftCode(state,actorId,payload.shiftCode),payload.observation]);
-    await syncLegacyProducts(client,state,lines.map((line)=>line.product_id)); state.audit.unshift({id:++state.counters.audit,module:"INVENTARIO",action:"TRANSFERENCIA_RECHAZADA",detail:transfer.code,userId:actorId,createdAt:new Date().toISOString()}); await saveState(client,state); await audit(client,"REJECT",transfer.id,actorId,payload.observation,{status:"SENT"},{status:"REJECTED"},transfer.code);
+    await syncLegacyProducts(client,state,lines.map((line)=>line.product_id)); sealAudit(state,{id:++state.counters.audit,module:"INVENTARIO",action:"TRANSFERENCIA_RECHAZADA",detail:transfer.code,userId:actorId,createdAt:new Date().toISOString()}); await saveState(client,state); await audit(client,"REJECT",transfer.id,actorId,payload.observation,{status:"SENT"},{status:"REJECTED"},transfer.code);
   }); return getTransfer(id);
 }
 
@@ -226,6 +227,6 @@ export async function cancelTransfer(id,payload,actorId){
     const lines=(await client.query("SELECT * FROM inventory_transfer_lines WHERE transfer_id=$1 FOR UPDATE",[transfer.id])).rows;
     for(const line of lines){await client.query("UPDATE inventory_stock_balances SET reserved=GREATEST(0,reserved-$4),version=version+1,updated_at=NOW() WHERE product_id=$1 AND warehouse_id=$2 AND lot_id IS NOT DISTINCT FROM $3",[line.product_id,transfer.from_warehouse_id,line.lot_id,line.requested_quantity]); await client.query("UPDATE inventory_reservations SET status='RELEASED',released_at=NOW() WHERE source_type='TRANSFER' AND source_legacy_id=$1 AND status='ACTIVE'",[line.id]);}
     await client.query("UPDATE inventory_transfers SET status='CANCELLED',cancelled_by_legacy_user_id=$2,cancelled_at=NOW(),observation=COALESCE($3,observation),updated_at=NOW() WHERE id=$1",[transfer.id,actorId,payload?.observation||null]);
-    await syncLegacyProducts(client,state,lines.map((line)=>line.product_id)); state.audit.unshift({id:++state.counters.audit,module:"INVENTARIO",action:"TRANSFERENCIA_CANCELADA",detail:transfer.code,userId:actorId,createdAt:new Date().toISOString()}); await saveState(client,state); await audit(client,"CANCEL",transfer.id,actorId,payload?.observation||"Borrador cancelado; reserva liberada",{status:"DRAFT"},{status:"CANCELLED"},transfer.code);
+    await syncLegacyProducts(client,state,lines.map((line)=>line.product_id)); sealAudit(state,{id:++state.counters.audit,module:"INVENTARIO",action:"TRANSFERENCIA_CANCELADA",detail:transfer.code,userId:actorId,createdAt:new Date().toISOString()}); await saveState(client,state); await audit(client,"CANCEL",transfer.id,actorId,payload?.observation||"Borrador cancelado; reserva liberada",{status:"DRAFT"},{status:"CANCELLED"},transfer.code);
   }); return getTransfer(id);
 }

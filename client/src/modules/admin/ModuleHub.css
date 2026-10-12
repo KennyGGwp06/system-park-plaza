@@ -1,0 +1,43 @@
+/* Panel de módulo (Superadmin) y unificación visual de las vistas heredadas: una sola familia azul, sin serifa ni verde. */
+.mh{display:grid;gap:16px;padding:2px 0 24px;color:#0B1020}
+.mh-hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;background:linear-gradient(130deg,#0B1020,#0F4C9E);color:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 14px 34px rgba(15,76,158,.25)}
+.mh-hero p{font-size:11px;letter-spacing:.2em;font-weight:800;color:#7EC6FF;margin:0}.mh-hero h2{font-size:26px;letter-spacing:-.03em;margin:6px 0 6px;font-family:inherit}.mh-hero span{color:#D5E6F8;font-size:14px;max-width:720px;display:block}
+.mh-hero button{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.4);color:#fff;background:rgba(255,255,255,.08);border-radius:10px;padding:9px 13px;font-weight:700;font-size:13px;cursor:pointer;flex:none}
+.mh-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.mh-kpis article{background:#fff;border:1px solid #D8E1EE;border-radius:14px;padding:16px;display:grid;gap:2px}
+.mh-kpis small{color:#5B6B82;font-size:12px;font-weight:700}.mh-kpis b{font-size:28px;letter-spacing:-.03em}.mh-kpis span{color:#5B6B82;font-size:12px}
+.mh-kpis .is-amber{border-color:#E8C36A;background:#FFFAEC}.mh-kpis .is-red{border-color:#F0A8A0;background:#FFF3F1}.mh-kpis .is-red b{color:#B42318}
+.mh-alerts{display:grid;gap:8px}
+.mh-alert{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid #D8E1EE;border-radius:12px;padding:12px 14px;background:#EAF2FD;color:#123A6B;font-weight:650;font-size:14px;cursor:default}
+button.mh-alert{cursor:pointer}.mh-alert span{flex:1}.mh-alert.is-amber{background:#FFF4DC;border-color:#E8C36A;color:#8A5A12}.mh-alert.is-red{background:#FDE4E1;border-color:#F0A8A0;color:#B42318}.mh-alert.is-ok{background:#E3F5EF;border-color:#9AD6C0;color:#0A6B50}
+.mh-flow{background:#fff;border:1px solid #D8E1EE;border-radius:14px;padding:16px 18px}.mh-flow h3,.mh-subs h3{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#0F4C9E;margin:0 0 10px;font-family:inherit}
+.mh-flow ol{list-style:none;display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0}.mh-flow li{display:flex;align-items:center;gap:8px;background:#F5F8FC;border:1px solid #D8E1EE;border-radius:999px;padding:7px 14px 7px 8px;font-size:13px;font-weight:650}
+.mh-flow li i{width:22px;height:22px;border-radius:50%;background:#1E6FD6;color:#fff;font-style:normal;font-size:12px;display:grid;place-items:center;font-weight:800}
+.mh-flow p{margin:12px 0 0;display:flex;align-items:center;gap:6px;color:#5B6B82;font-size:13px}
+.mh-subs>div{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.mh-subs article{background:#fff;border:1px solid #D8E1EE;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s,transform .15s}
+.mh-subs article:hover{border-color:#9EC2F0;transform:translateY(-2px)}.mh-subs article.is-amber{border-color:#E8C36A}.mh-subs article.is-red{border-color:#F0A8A0}
+.mh-sub-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.mh-sub-top h4{font-size:16px;margin:0;font-family:inherit}.mh-sub-top span{font-size:12px;font-weight:800;background:#EAF2FD;color:#0F4C9E;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.mh-subs .is-amber .mh-sub-top span{background:#FFF4DC;color:#8A5A12}.mh-subs .is-red .mh-sub-top span{background:#FDE4E1;color:#B42318}
+.mh-subs em{font-style:normal;color:#5B6B82;font-size:12.5px}.mh-subs ul{list-style:disc;margin:0 0 4px 18px;padding:0 0 0 2px;display:grid;gap:4px;font-size:13.5px;color:#2A3550;flex:1}
+.mh-subs article>button{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:#EAF2FD;color:#0F4C9E;font-weight:800;font-size:13.5px;border-radius:10px;padding:10px 12px;cursor:pointer}
+.mh-subs article>button:hover{background:#DCEBFF}
+
+/* Cabecera única de módulo: una barra de pestañas entre submódulos y la guía compacta */
+.sa-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}.sa-tabs::-webkit-scrollbar{display:none}
+.sa-tabs button{flex:none;border:1px solid #D8E1EE;background:#fff;border-radius:999px;padding:8px 14px;font-weight:700;font-size:13px;color:#405169;cursor:pointer}
+.sa-tabs button[aria-current=page]{background:#0B1020;border-color:#0B1020;color:#fff}
+
+/* Vistas heredadas: se llevan a la misma familia visual (azul plano, sin serifa ni verde/dorado) */
+.sa-connected__view :where(h1,h2,h3,h4){font-family:inherit!important;letter-spacing:-.02em}
+.sa-connected__view :where([class*="eyebrow"],[class*="kicker"]){color:#0F4C9E!important}
+.sa-connected__view{--park-green:#0F4C9E;--park-green-soft:#EAF2FD;--park-gold:#1E6FD6;--park-gold-soft:#EAF2FD;--park-dark:#0B1020}
+.sa-connected__view :where(.text-park-green){color:#0F4C9E!important}
+.sa-connected__view :where(.bg-park-green){background:#0F4C9E!important}
+.sa-connected__view :where(.text-park-gold){color:#0F4C9E!important}
+@media(max-width:700px){.mh-hero{flex-direction:column;padding:18px}.mh-hero h2{font-size:22px}}
+
+/* Las vistas heredadas no traían margen lateral: el borde redondeado del contenedor cortaba la primera letra */
+.sa-connected__view{padding:16px clamp(14px,1.6vw,22px)!important}
+.sa-connected__view>*{border-radius:0!important}
+.sa-connected__view :where(p.text-park-gold){color:#0F4C9E!important}

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { migrateLegacyInventory, relationalInventoryStatus, synchronizeLegacyInventory } from "./inventory-relational.js";
+import { assignOpeningLots, migrateLegacyInventory, relationalInventoryStatus, synchronizeLegacyInventory } from "./inventory-relational.js";
 import { migrateUp } from "./migrations.js";
 import { stabilizeLegacyState } from "./state-stabilization.js";
 
@@ -70,7 +70,13 @@ function synchronizeHotelRoomCatalog(state) {
   });
 }
 
+/* Con varias copias del servidor arrancando a la vez, solo una migra y prepara la base por vez (candado). */
 export async function initializeDatabase() {
+  const lock = await db.connect();
+  try { await lock.query("SELECT pg_advisory_lock(727100)"); await initializeDatabaseLocked(); }
+  finally { await lock.query("SELECT pg_advisory_unlock(727100)").catch(() => {}); lock.release(); }
+}
+async function initializeDatabaseLocked() {
   await db.query(`CREATE TABLE IF NOT EXISTS app_state (id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   const existing = await db.query("SELECT id FROM app_state WHERE id = 1");
   if (!existing.rowCount) await db.query("INSERT INTO app_state (id, data) VALUES (1, $1::jsonb)", [JSON.stringify(createDemoState())]);
@@ -87,6 +93,8 @@ export async function initializeDatabase() {
     // necesariamente se ejecuta antes de que exista el catálogo de demostración.
     await client.query(await readFile(operationalFoodSeed, "utf8"));
     await client.query(await readFile(operationalPhase2Seed, "utf8"));
+    // Las semillas pueden dejar existencias sin lote: se pasan a lote de apertura para que los pedidos puedan reservarlas.
+    await assignOpeningLots(client);
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -96,40 +104,91 @@ export async function initializeDatabase() {
   }
 }
 
+/* ---------- Lectura del estado (Fase 0 de escalabilidad, ver ESCALABILIDAD_AUDITORIA_2026-09-28.md) ----------
+   Antes cada lectura bloqueaba la fila (FOR UPDATE) y descargaba el JSON completo: todo el hotel hacía fila
+   hasta para mirar. Ahora:
+   - La lectura no bloquea. Se consulta solo `version` (un número que el disparador de la migración 018 sube
+     en cada escritura, venga de mutateState o de compras, traslados, recetas…).
+   - Si la versión no cambió, se responde con la copia en memoria; si cambió, se descarga una sola vez aunque
+     lleguen muchos pedidos juntos.
+   - La copia se congela (Object.freeze profundo): quien la lee no puede modificarla por accidente, porque la
+     comparten todos los pedidos. Para cambiar datos se usa mutateState, que trabaja sobre su propia copia. */
+let cache = null;
+let inflight = null;
+let versioned = null; // null = aún no se sabe si la base tiene la migración 018
+function deepFreeze(value) {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const key of Object.keys(value)) deepFreeze(value[key]);
+  }
+  return value;
+}
+const isMissingColumn = (error) => error?.code === "42703";
+function loadState() {
+  inflight ||= db.query("SELECT data, version FROM app_state WHERE id = 1")
+    .then(({ rows }) => {
+      // Lo que acaba de leerse de la base es la verdad, aunque su versión sea MENOR que la de la copia en
+      // memoria (pasa al restaurar un respaldo): nunca se sigue mostrando algo que la base ya no tiene.
+      cache = { version: Number(rows[0].version), state: deepFreeze(rows[0].data) };
+      return cache;
+    })
+    .finally(() => { inflight = null; });
+  return inflight;
+}
+async function currentVersion() {
+  try { const version = Number((await db.query("SELECT version FROM app_state WHERE id = 1")).rows[0].version); versioned = true; return version; }
+  catch (error) { if (!isMissingColumn(error)) throw error; versioned = false; return null; }
+}
 export async function readState() {
-  const client = await db.connect();
-  try {
-    await client.query("BEGIN");
-    const result = await client.query("SELECT data FROM app_state WHERE id = 1 FOR UPDATE");
-    const state = result.rows[0].data;
-    if (closePreviousDayAttendance(state)) {
-      await client.query("UPDATE app_state SET data = $1::jsonb, updated_at = NOW() WHERE id = 1", [JSON.stringify(state)]);
-    }
-    await client.query("COMMIT");
-    return state;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally { client.release(); }
+  // Bases sin la migración 018 (esquemas de prueba): lectura directa, sin copia en memoria.
+  if (versioned === false) return (await db.query("SELECT data FROM app_state WHERE id = 1")).rows[0].data;
+  const version = await currentVersion();
+  if (version === null) return readState();
+  if (cache && cache.version === version) return cache.state;
+  let loaded = await loadState();
+  // Si la descarga en curso empezó antes de la última escritura, se pide otra.
+  if (loaded.version < version) loaded = await loadState();
+  return loaded.state;
 }
 
+/* Cierre automático de la jornada de ayer (marcaciones sin salida). Antes lo hacía cada lectura; ahora lo
+   revisa el vigilante que corre cada minuto y solo escribe si de verdad hay algo que cerrar. */
 export async function synchronizeDailyAttendance() {
-  await readState();
+  const state = await readState();
+  if (!closePreviousDayAttendance(structuredClone(state))) return;
+  await mutateState(() => null);
 }
 
 export async function mutateState(mutator) {
+  if (versioned === null) await currentVersion();
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query("SELECT data FROM app_state WHERE id = 1 FOR UPDATE");
-    const state = result.rows[0].data;
+    // Bloquea la fila y, si la copia en memoria es de esta misma versión, trabaja sobre un clon de ella en vez
+    // de descargar el JSON otra vez.
+    // La copia congelada sirve además como "foto anterior" (solo se compara, nunca se modifica).
+    let state, frozenBefore = null;
+    if (versioned) {
+      const locked = await client.query("SELECT version FROM app_state WHERE id = 1 FOR UPDATE");
+      if (cache && cache.version === Number(locked.rows[0].version)) { frozenBefore = cache.state; state = structuredClone(frozenBefore); }
+    }
+    if (!state) state = (await client.query("SELECT data FROM app_state WHERE id = 1 FOR UPDATE")).rows[0].data;
     closePreviousDayAttendance(state);
-    const beforeState = structuredClone(state);
+    const beforeState = frozenBefore || structuredClone(state);
     const mutationId = randomUUID();
     const value = await mutator(state, client, beforeState, mutationId);
     await synchronizeLegacyInventory(client, beforeState, state, { mutationId });
-    await client.query("UPDATE app_state SET data = $1::jsonb, updated_at = NOW() WHERE id = 1", [JSON.stringify(state)]);
+    const json = JSON.stringify(state);
+    const saved = await client.query(`UPDATE app_state SET data = $1::jsonb, updated_at = NOW() WHERE id = 1${versioned ? " RETURNING version" : ""}`, [json]);
     await client.query("COMMIT");
+    // Lo recién guardado queda como copia en memoria, así el siguiente lector no vuelve a descargarlo. Es una
+    // copia aparte (la ruta puede seguir usando lo que devolvió el mutador) con el mismo recorte de auditoría
+    // que hace el disparador en la base.
+    if (versioned) {
+      const version = Number(saved.rows[0].version), fresh = JSON.parse(json);
+      if (Array.isArray(fresh.audit) && fresh.audit.length > 250) fresh.audit.length = 200;
+      if (!cache || version > cache.version) cache = { version, state: deepFreeze(fresh) };
+    }
     return value;
   } catch (error) {
     await client.query("ROLLBACK");
@@ -211,6 +270,12 @@ function createDemoState() {
   const users = userRows.map(([id, firstName, lastName, email, role, dailyRate, pin]) => ({ id, firstName, lastName, email, role, status: "ACTIVO", permissions, dailyRate, pin, documentNumber: `7000000${id}`, phone: `99910000${id}` }));
   const receptionUser = users.find((user) => user.email === "recepcion@parkplaza.com");
   if (receptionUser) Object.assign(receptionUser, { position: "ADMIN_RECEPCION", operationalArea: "RECEPCION" });
+  // DNI del dueño y del técnico iguales a los del README y a la base de trabajo (70000000 y 70000007), así una instalación
+  // nueva en la nube se prueba con los mismos datos de acceso del reloj.
+  const ownerUser = users.find((user) => user.email === "superadmin@parkplaza.com");
+  if (ownerUser) ownerUser.documentNumber = "70000000";
+  const maintenanceUser = users.find((user) => user.email === "mantenimiento@parkplaza.com");
+  if (maintenanceUser) Object.assign(maintenanceUser, { documentNumber: "70000007", pin: "6666", position: "MANTENIMIENTO", operationalArea: "MANTENIMIENTO" });
   const employees = users.map((user) => ({ ...user, baseRole: user.role, attendanceStatus: "FUERA_DE_TURNO", currentAssignment: null }));
   const inventory = [
     { id: 1, name: "Pescado fresco", unit: "kg", stock: 18, reserved: 0, minStock: 8, cost: 24, area: "RESTAURANTE", imageUrl: "https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?auto=format&fit=crop&w=300&q=80" },
@@ -239,9 +304,37 @@ function upgradeState(state) {
   for (const key of collections) state[key] ||= [];
   synchronizeHotelRoomCatalog(state);
   state.settings = { hotelName: "Hotel Park Plaza", currency: "PEN", timezone: "America/Lima", taxRate: 18, parkingRates: { MOTO: 0, AUTO: 15, CAMIONETA: 20, MINIVAN: 25 }, ...state.settings, today, tomorrow };
+  // El lector de huellas fue retirado: se eliminan la clave del puente y los identificadores guardados.
+  delete state.settings.biometric;
+  for (const person of [...(state.users || []), ...(state.employees || [])]) delete person.biometric;
+  state.services ||= [];
+  if (!state.services.some((service) => service.code === "TERRAZA")) {
+    state.services.push({
+      id: Math.max(0, ...state.services.map((service) => Number(service.id) || 0)) + 1,
+      code: "TERRAZA",
+      name: "Terraza",
+      description: "Reserva tu mesa y pide platos o bebidas para disfrutarlos en la terraza",
+      price: 0,
+      capacity: 48,
+      icon: "utensils",
+      active: true
+    });
+  }
+  if (!state.services.some((service) => service.code === "BAR")) {
+    state.services.push({
+      id: Math.max(0, ...state.services.map((service) => Number(service.id) || 0)) + 1,
+      code: "BAR",
+      name: "Bar",
+      description: "Reserva una mesa y deja listas tus bebidas o cócteles favoritos",
+      price: 0,
+      capacity: 36,
+      icon: "wine",
+      active: true
+    });
+  }
   state.counters ||= {};
-  const counterCollections = { client: "clients", booking: "bookings", payment: "payments", pass: "passes", entitlement: "entitlements", access: "accessLogs", order: "orders", request: "requests", shift: "shifts", attendance: "attendance", task: "tasks", audit: "audit", stay: "stays", movement: "inventoryMovements", event: "events", invoice: "facturacion", purchase: "compras", supplier: "proveedores", production: "productions", waste: "wasteRecords", closing: "inventoryClosings", dailyBox: "dailyInventoryBoxes" };
-  for (const [counter, key] of Object.entries(counterCollections)) state.counters[counter] = Math.max(Number(state.counters[counter] || 0), ...state[key].map((item) => Number(item.id) || 0));
+  const counterCollections = { client: "clients", booking: "bookings", payment: "payments", pass: "passes", entitlement: "entitlements", access: "accessLogs", order: "orders", request: "requests", shift: "shifts", attendance: "attendance", task: "tasks", audit: "audit", stay: "stays", movement: "inventoryMovements", event: "events", invoice: "facturacion", purchase: "compras", supplier: "proveedores", production: "productions", waste: "wasteRecords", closing: "inventoryClosings", dailyBox: "dailyInventoryBoxes", cashSession: "cashSessions", cashClosing: "cashClosings" };
+  for (const [counter, key] of Object.entries(counterCollections)) state.counters[counter] = Math.max(Number(state.counters[counter] || 0), ...(state[key] || []).map((item) => Number(item.id) || 0).filter((id) => id < 1e12));
 
   const menuPresentation = {
     CEVICHE: { category: "Platos regionales", image: "https://images.unsplash.com/photo-1535400255456-984241443b29?auto=format&fit=crop&w=900&q=85", tags: ["Fresco", "Regional"] },
@@ -294,6 +387,15 @@ function upgradeState(state) {
   if (!state.users.some((user) => String(user.email || "").toLowerCase() === "mantenimiento@parkplaza.com")) {
     const id = Math.max(0, ...state.users.map((user) => Number(user.id) || 0)) + 1;
     state.users.push({ id, firstName: "Jorge", lastName: "Mantenimiento", email: "mantenimiento@parkplaza.com", role: "MANTENIMIENTO", status: "ACTIVO", dailyRate: 70, pin: "6666", documentNumber: `7000000${id}`, phone: `99910000${id}`, position: "MANTENIMIENTO", operationalArea: "MANTENIMIENTO" });
+    if (!state.users.some((user) => user.documentNumber === "70000007")) state.users[state.users.length - 1].documentNumber = "70000007";
+  }
+  // Todo usuario del personal necesita su ficha de trabajador (reloj, turnos, planilla). En una base nueva el técnico de
+  // Mantenimiento se creaba solo como usuario y el reloj respondía "No existe un trabajador activo con este DNI".
+  for (const user of state.users) {
+    const role = user.role?.name || user.role;
+    if (role === "SUPERADMIN" || state.employees.some((employee) => Number(employee.id) === Number(user.id))) continue;
+    const { passwordHash: _passwordHash, ...profile } = user;
+    state.employees.push({ ...profile, baseRole: role, attendanceStatus: "FUERA_DE_TURNO", currentAssignment: null });
   }
   state.shifts = state.shifts.filter((shift) => state.employees.some((employee) => employee.id === shift.employeeId));
   state.roles.forEach((role) => { role.permissions = catalog.filter((permission) => (allowed[role.name] || []).includes(permission.module)); });
@@ -407,7 +509,7 @@ function upgradeState(state) {
   stabilizeLegacyState(state, isoNow);
   state.requests.forEach((request) => { if (request.requiresMaintenance && request.status === "PENDIENTE") request.status = "ABIERTO"; request.evidences ||= []; });
   state.tasks.forEach((task) => { task.room ||= state.rooms.find((room) => room.id === task.roomId); task.evidences ||= []; task.operationalReports ||= []; });
-  for (const [counter, key] of Object.entries(counterCollections)) state.counters[counter] = Math.max(Number(state.counters[counter] || 0), ...state[key].map((item) => Number(item.id) || 0));
+  for (const [counter, key] of Object.entries(counterCollections)) state.counters[counter] = Math.max(Number(state.counters[counter] || 0), ...(state[key] || []).map((item) => Number(item.id) || 0).filter((id) => id < 1e12));
   return state;
 }
   

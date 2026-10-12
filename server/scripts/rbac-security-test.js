@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 
 const baseUrl = process.env.API_URL || "http://localhost:3000/api";
-const password = process.env.DEMO_STAFF_PASSWORD || "ParkPlaza123*";
+const CREDENTIAL = { "superadmin@parkplaza.com": "superadmin", "recepcion@parkplaza.com": "recepcion", "restaurante@parkplaza.com": "cocina", "bartender@parkplaza.com": "bar", "limpieza@parkplaza.com": "limpieza", "mantenimiento@parkplaza.com": "mantenimiento" };
+// Cada cuenta entra con su usuario y la clave es el mismo usuario (2026-10-12).
+const passwordOf = (email) => CREDENTIAL[email] || String(email).split("@")[0];
 const results = [];
 const pass = (name, detail) => results.push({ name, detail });
 
 async function login(email) {
-  const response = await fetch(`${baseUrl}/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }) });
+  const response = await fetch(`${baseUrl}/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password: passwordOf(email) }) });
   assert.equal(response.status, 200, `No se pudo iniciar sesión como ${email}`);
   return (await response.json()).token;
 }

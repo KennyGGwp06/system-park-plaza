@@ -2,7 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const file = resolve(process.argv[2] || ".env.production");
-const requiredFiles = ["docker-compose.production.yml", "Caddyfile", "server/Dockerfile", "client/Dockerfile", "customer/Dockerfile", "operations/Dockerfile", ".dockerignore"];
+// Modo "aapanel": el Nginx del panel hace el SSL y el proxy (docker-compose.aapanel.yml, sin Caddy).
+const aapanel = process.argv[3] === "aapanel";
+const requiredFiles = aapanel
+  ? ["docker-compose.aapanel.yml", "deploy/aapanel/nginx-sitio.conf", "server/Dockerfile", "client/Dockerfile", "customer/Dockerfile", ".dockerignore"]
+  : ["docker-compose.production.yml", "Caddyfile", "server/Dockerfile", "client/Dockerfile", "customer/Dockerfile", ".dockerignore"];
 const errors = [];
 const warnings = [];
 
@@ -18,7 +22,7 @@ if (!existsSync(file)) {
 }
 
 const env = existsSync(file) ? parseEnv(readFileSync(file, "utf8")) : {};
-const required = ["ERP_DOMAIN", "CUSTOMER_DOMAIN", "OPERATIONS_DOMAIN", "POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "DATABASE_URL", "JWT_SECRET", "DEMO_STAFF_PASSWORD"];
+const required = ["ERP_DOMAIN", "CUSTOMER_DOMAIN", "POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "DATABASE_URL", "JWT_SECRET", "DEMO_STAFF_PASSWORD"];
 for (const key of required) {
   if (!env[key]) errors.push(`Falta ${key}.`);
   if (/REEMPLAZAR|tudominio\.com/i.test(env[key] || "")) errors.push(`${key} todavía contiene el valor de ejemplo.`);
@@ -28,8 +32,8 @@ if ((env.JWT_SECRET || "").length < 32) errors.push("JWT_SECRET debe tener al me
 if ((env.POSTGRES_PASSWORD || "").length < 16) errors.push("POSTGRES_PASSWORD debe tener al menos 16 caracteres.");
 if ((env.DEMO_STAFF_PASSWORD || "").length < 12 || env.DEMO_STAFF_PASSWORD === "ParkPlaza123*") errors.push("DEMO_STAFF_PASSWORD debe ser una clave temporal nueva de al menos 12 caracteres.");
 
-const domains = [env.ERP_DOMAIN, env.CUSTOMER_DOMAIN, env.OPERATIONS_DOMAIN].filter(Boolean);
-if (new Set(domains).size !== domains.length) errors.push("ERP_DOMAIN, CUSTOMER_DOMAIN y OPERATIONS_DOMAIN deben ser dominios diferentes.");
+const domains = [env.ERP_DOMAIN, env.CUSTOMER_DOMAIN].filter(Boolean);
+if (new Set(domains).size !== domains.length) errors.push("ERP_DOMAIN y CUSTOMER_DOMAIN deben ser dominios diferentes.");
 if (domains.some((domain) => /localhost|https?:\/\//i.test(domain))) errors.push("Los dominios deben escribirse sin protocolo y no pueden ser localhost.");
 
 if (env.DATABASE_URL) {
@@ -46,6 +50,8 @@ if (env.DATABASE_URL) {
 }
 
 for (const path of requiredFiles) if (!existsSync(resolve(path))) errors.push(`Falta el archivo de despliegue ${path}.`);
+if (aapanel) for (const key of ["ERP_PORT", "CUSTOMER_PORT"]) { const port = Number(env[key] || (key === "ERP_PORT" ? 8081 : 8082)); if (!Number.isInteger(port) || port < 1024 || port > 65535) errors.push(`${key} debe ser un puerto entre 1024 y 65535.`); }
+if (aapanel && (env.ERP_PORT || "8081") === (env.CUSTOMER_PORT || "8082")) errors.push("ERP_PORT y CUSTOMER_PORT deben ser distintos.");
 
 console.log(JSON.stringify({ status: errors.length ? "FAILED" : "PASSED", environmentFile: file, checks: required.length + requiredFiles.length + 7, errors, warnings }, null, 2));
 if (errors.length) process.exit(1);

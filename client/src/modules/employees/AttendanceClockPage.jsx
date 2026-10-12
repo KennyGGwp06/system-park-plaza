@@ -1,21 +1,23 @@
-import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, XCircle, TreePine, Clock } from "lucide-react";
-import { api, clearToken, setToken } from "../../services/api";
-import { useNavigate } from "react-router-dom";
-import { defaultRouteByRole } from "../../constants/menu";
-import { operationsBaseUrl } from "../../config/operations";
+// Reloj de asistencia (/reloj): terminal compartida donde cada trabajador marca su entrada o salida con DNI y PIN.
+// Confirma el registro en la misma pantalla y nunca abre una sesión ni redirige al panel del trabajador.
+// Identidad de las estaciones (access.css) con teclado numérico para tablet.
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, CheckCircle2, Delete, UserRound } from "lucide-react";
+import { api } from "../../services/api";
+import { LimaClock } from "../../components/LimaClock";
 
 export function AttendanceClockPage() {
   const [documentNumber, setDocumentNumber] = useState("");
   const [pin, setPin] = useState("");
+  const [field, setField] = useState("dni");
   const [workerInfo, setWorkerInfo] = useState(null);
-  const [status, setStatus] = useState(null); 
+  const [status, setStatus] = useState(null);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [clockNow, setClockNow] = useState(Date.now());
   const lookupRequest = useRef(0);
   const resultTimeout = useRef(null);
-  const navigate = useNavigate();
+  const pinInput = useRef(null);
 
   useEffect(() => {
     if (!status?.record?.checkIn || status.record.checkOut) return undefined;
@@ -30,6 +32,8 @@ export function AttendanceClockPage() {
       setWorkerInfo(null);
       setLookupLoading(true);
       setStatus(null);
+      setField("pin");
+      pinInput.current?.focus();
       api(`/attendance/lookup/${documentNumber}`)
         .then((data) => {
           if (requestId !== lookupRequest.current) return;
@@ -38,7 +42,7 @@ export function AttendanceClockPage() {
         .catch((err) => {
           if (requestId !== lookupRequest.current) return;
           setWorkerInfo(null);
-          setStatus({ type: 'error', message: err.message || "Trabajador no encontrado" });
+          setStatus({ type: "error", message: err.message || "Trabajador no encontrado" });
         })
         .finally(() => {
           if (requestId === lookupRequest.current) setLookupLoading(false);
@@ -46,7 +50,7 @@ export function AttendanceClockPage() {
     } else {
       setWorkerInfo(null);
       setLookupLoading(false);
-      if (status?.type === 'error') setStatus(null);
+      if (status?.type === "error") setStatus(null);
     }
   }, [documentNumber]);
 
@@ -54,14 +58,35 @@ export function AttendanceClockPage() {
     if (resultTimeout.current) window.clearTimeout(resultTimeout.current);
     setWorkerInfo(null);
     setStatus(null);
-    setDocumentNumber(value.replace(/\D/g, '').slice(0, 8));
+    setDocumentNumber(value.replace(/\D/g, "").slice(0, 8));
+  }
+
+  function updatePin(value) {
+    setPin(value.replace(/\D/g, "").slice(0, 4));
+  }
+
+  function reset() {
+    setDocumentNumber("");
+    setPin("");
+    setWorkerInfo(null);
+    setField("dni");
+  }
+
+  function press(key) {
+    const target = field === "pin" && documentNumber.length === 8 ? "pin" : "dni";
+    const current = target === "pin" ? pin : documentNumber;
+    const next = key === "back" ? current.slice(0, -1) : key === "clear" ? "" : current + key;
+    if (target === "pin") {
+      if (key === "back" && !pin) { setField("dni"); updateDocument(documentNumber.slice(0, -1)); return; }
+      updatePin(next);
+    } else updateDocument(next);
   }
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (documentNumber.length !== 8 || pin.length !== 4) return;
     if (!workerInfo || workerInfo.documentNumber !== documentNumber) {
-      setStatus({ type: 'error', message: 'Espera la validación del DNI antes de registrar la asistencia.' });
+      setStatus({ type: "error", message: "Espera la validación del DNI antes de registrar la asistencia." });
       return;
     }
 
@@ -69,155 +94,95 @@ export function AttendanceClockPage() {
     setStatus(null);
     try {
       const res = await api("/attendance/clock", { method: "POST", body: { documentNumber, pin } });
-      setStatus({ 
-        type: 'success', 
-        message: res.action === 'CHECK_IN'
-          ? `Hola ${res.user}. Ingreso registrado. Abriendo tu panel de trabajo…`
+      setStatus({
+        type: "success",
+        message: res.action === "CHECK_IN"
+          ? `Hola ${res.user}. Tu ingreso fue registrado correctamente.`
           : `Hola ${res.user}. Has registrado tu salida con éxito.`,
         record: res.record
       });
-      if (res.action === 'CHECK_IN' && res.session?.token) {
-        const role = res.session.user?.displayRole || res.session.user?.role;
-        resultTimeout.current = window.setTimeout(() => openWorkerPanel(role, res.session.token), 650);
-      } else {
-        clearToken();
-        setDocumentNumber("");
-        setPin("");
-        setWorkerInfo(null);
-        resultTimeout.current = window.setTimeout(() => setStatus(null), 7000);
-      }
+      reset();
+      resultTimeout.current = window.setTimeout(() => setStatus(null), 8000);
     } catch (err) {
-      setStatus({ type: 'error', message: err.message || "DNI o PIN incorrecto" });
-      setDocumentNumber("");
-      setPin("");
-      setWorkerInfo(null);
+      setStatus({ type: "error", message: err.message || "DNI o PIN incorrecto" });
+      reset();
     } finally {
       setSubmitting(false);
     }
   };
 
-  const renderAvatar = () => {
-    if (!workerInfo) return <Clock className="mx-auto text-park-gold opacity-50" size={64} />;
-    if (workerInfo.photoUrl) return <img src={workerInfo.photoUrl} alt="Trabajador validado" className="h-full w-full object-cover" />;
-    return <span className="text-3xl font-black text-park-gold">{`${workerInfo.firstName || ""}`.slice(0, 1)}</span>;
-  };
+  const ready = workerInfo && documentNumber.length === 8 && pin.length === 4 && !lookupLoading && !submitting;
+  const initial = `${workerInfo?.firstName || ""}`.slice(0, 1);
 
   return (
-    <div
-      className="relative flex min-h-screen flex-col items-center justify-center p-4 font-sans bg-park-bg"
-      style={{ backgroundImage: "url('/images/demo/hotel_lobby_background.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
-    >
-      {/* Background Blur Overlay */}
-      <div className="absolute inset-0 bg-park-dark/60 backdrop-blur-md"></div>
+    <div className="ax ax-clock">
+      <header className="ax-clock-top">
+        <div className="ax-brand"><img src="/brand/park-plaza-mark.svg" alt="" /><span><b>PARK PLAZA</b><small>Control de asistencia</small></span></div>
+        <div className="ax-clock-now"><LimaClock withSeconds /></div>
+      </header>
 
-      {/* Header */}
-      <div className="absolute top-0 left-0 w-full flex flex-col sm:flex-row items-center justify-between p-4 z-10 gap-4">
-        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-white shadow-lg">
-           <TreePine className="text-park-gold" size={32} />
-           <div className="flex flex-col leading-tight">
-             <span className="font-bold text-sm text-park-gold">Park Plaza</span>
-             <span className="font-bold text-sm">Hotel & Suites</span>
-           </div>
-        </div>
-        <div className="absolute left-1/2 top-4 -translate-x-1/2 text-white font-semibold text-lg drop-shadow-md hidden sm:block">
-          Registro de Asistencia Inteligente
-        </div>
-      </div>
-
-      {/* Main Card */}
-      <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-park-gold/30 bg-white/10 p-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-xl">
-
-        {/* Worker Details Section */}
-        <div className="mb-6 rounded-2xl border border-white/20 bg-white/5 p-6 text-center text-white shadow-inner transition-all duration-300">
-          <h2 className="mb-4 text-2xl font-medium drop-shadow-md text-park-gold">Detalles del Trabajador</h2>
-
-          <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-park-gold/50 bg-park-dark/50 shadow-lg">
-            {renderAvatar()}
-          </div>
-
-          <div className="space-y-1 text-xl drop-shadow-md min-h-[60px]">
-            {workerInfo ? (
-              <>
-                <p className="font-bold text-white">{workerInfo.firstName} {workerInfo.lastName}</p>
-                <p className="text-park-gold">{workerInfo.position}</p>
-              </>
-            ) : (
-              <p className="text-white/50 text-base mt-4">Ingresa tu DNI y PIN para marcar asistencia.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Input Section */}
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-white/20 bg-white/5 p-6 text-white shadow-inner">
-          {status && (
-            <div aria-live="polite" className={`mb-4 rounded-lg p-3 font-bold ${status.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white'} backdrop-blur-md`} role={status.type === 'error' ? 'alert' : 'status'}>
-              <div className="flex items-center justify-center gap-2">
-                {status.type === 'success' ? <CheckCircle2 /> : <XCircle />}
-                {status.message}
-              </div>
-              {status.record ? <AttendanceSummary record={status.record} currentTime={clockNow} /> : null}
+      <div className="ax-clock-body">
+        <section className="ax-clock-card">
+          <aside className="ax-worker" aria-live="polite">
+            <div className="ax-worker-photo">
+              {workerInfo?.photoUrl ? <img src={workerInfo.photoUrl} alt="Trabajador validado" /> : workerInfo ? initial : <UserRound />}
             </div>
-          )}
+            <div>
+              {workerInfo ? <>
+                <strong>{workerInfo.firstName} {workerInfo.lastName}</strong>
+                <span>{workerInfo.position}</span>
+              </> : <>
+                <strong>{lookupLoading ? "Buscando…" : "Sin identificar"}</strong>
+                <span>{lookupLoading ? "Validando el DNI" : "Digita tu DNI para empezar"}</span>
+              </>}
+            </div>
+            {workerInfo ? <em>DNI validado</em> : null}
+          </aside>
 
-          <label className="mb-2 block text-lg drop-shadow-md text-park-gold">DNI</label>
-          <input
-            type="text"
-            value={documentNumber}
-            onChange={(e) => updateDocument(e.target.value)}
-            placeholder="Ingrese DNI..."
-            className="mb-6 w-full rounded-xl border border-park-gold/50 bg-park-dark/40 px-4 py-4 text-white text-lg placeholder-white/40 outline-none backdrop-blur-md focus:border-park-gold focus:bg-park-dark/60 focus:ring-2 focus:ring-park-gold/50 transition-all text-center tracking-widest font-bold"
-          />
+          <form className="ax-clock-form" onSubmit={handleSubmit}>
+            <h1>Marcar entrada o salida</h1>
+            <p>El sistema detecta si inicias o terminas tu turno.</p>
 
-          <label className="mb-2 block text-lg drop-shadow-md text-park-gold">PIN personal de 4 dígitos</label>
-          <input
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            placeholder="••••"
-            className="mb-6 w-full rounded-xl border border-park-gold/50 bg-park-dark/40 px-4 py-4 text-center text-lg font-bold tracking-[0.55em] text-white placeholder-white/40 outline-none backdrop-blur-md transition-all focus:border-park-gold focus:bg-park-dark/60 focus:ring-2 focus:ring-park-gold/50"
-          />
+            {status ? <div className={`ax-alert${status.type === "success" ? " ax-alert--ok" : ""}`} role={status.type === "error" ? "alert" : "status"}>
+              {status.type === "success" ? <CheckCircle2 /> : <AlertCircle />}
+              <div style={{ flex: 1 }}>
+                {status.message}
+                {status.record ? <AttendanceSummary record={status.record} currentTime={clockNow} /> : null}
+              </div>
+            </div> : null}
 
-          <div className="flex justify-center gap-4">
-            <button
-              type="submit"
-              disabled={!workerInfo || documentNumber.length !== 8 || pin.length !== 4 || lookupLoading || submitting}
-              className="rounded-xl bg-park-gold hover:bg-yellow-500 px-10 py-3 text-lg font-semibold text-park-dark shadow-lg backdrop-blur-md transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 border border-yellow-400"
-            >
-              {lookupLoading ? 'Buscando trabajador...' : submitting ? 'Registrando...' : 'Marcar Asistencia'}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              className="rounded-xl bg-white/10 hover:bg-white/20 px-10 py-3 text-lg font-semibold text-white shadow-lg backdrop-blur-md transition-all hover:scale-105 active:scale-95 border border-white/30"
-            >
-              Cerrar
-            </button>
-          </div>
-        </form>
+            <div className="ax-codes">
+              <label className="ax-label">DNI
+                <input className={`ax-code${field === "dni" ? " is-active" : ""}`} value={documentNumber} onFocus={() => setField("dni")} onChange={(e) => updateDocument(e.target.value)} inputMode="numeric" autoComplete="off" placeholder="8 dígitos" aria-label="DNI" />
+              </label>
+              <label className="ax-label">PIN
+                <input ref={pinInput} className={`ax-code${field === "pin" ? " is-active" : ""}`} type="password" value={pin} onFocus={() => setField("pin")} onChange={(e) => updatePin(e.target.value)} inputMode="numeric" autoComplete="off" placeholder="••••" aria-label="PIN personal de 4 dígitos" />
+              </label>
+            </div>
 
+            <div className="ax-keypad" role="group" aria-label="Teclado numérico">
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((key) => <button key={key} type="button" onClick={() => press(key)}>{key}</button>)}
+              <button type="button" onClick={() => press("clear")} style={{ fontSize: 13, fontWeight: 500 }}>Borrar</button>
+              <button type="button" onClick={() => press("0")}>0</button>
+              <button type="button" onClick={() => press("back")} aria-label="Borrar un dígito"><Delete /></button>
+            </div>
+
+            <div className="ax-actions">
+              <button className="ax-btn ax-btn--line" type="button" onClick={() => { reset(); setStatus(null); }}>Cancelar</button>
+              <button className="ax-btn" type="submit" disabled={!ready}>{lookupLoading ? "Buscando trabajador…" : submitting ? "Registrando…" : "Marcar asistencia"}</button>
+            </div>
+          </form>
+        </section>
       </div>
+      <footer className="ax-clock-foot">Si olvidaste tu PIN, pídelo en Recepción o a la administración.</footer>
     </div>
   );
-}
-
-function openWorkerPanel(role, token) {
-  if (["LIMPIEZA", "MANTENIMIENTO"].includes(role)) {
-    clearToken();
-    const target = new URL(operationsBaseUrl, window.location.origin);
-    target.hash = new URLSearchParams({ session: token }).toString();
-    window.location.replace(target.toString());
-    return;
-  }
-  setToken(token);
-  window.location.replace(defaultRouteByRole[role] || "/login");
 }
 
 function AttendanceSummary({ record, currentTime }) {
   const checkIn = record.checkIn || record.clockIn;
   const checkOut = record.checkOut || record.clockOut;
-  return <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/30 pt-3 text-center text-xs font-semibold sm:text-sm">
+  return <div className="ax-times">
     <TimeMetric label="Entrada" value={formatClockTime(checkIn)} />
     <TimeMetric label="Salida" value={checkOut ? formatClockTime(checkOut) : "En turno"} />
     <TimeMetric label="Tiempo" value={formatDuration(checkIn, checkOut, currentTime)} />
@@ -225,7 +190,7 @@ function AttendanceSummary({ record, currentTime }) {
 }
 
 function TimeMetric({ label, value }) {
-  return <div><p className="text-[10px] font-bold uppercase tracking-wide text-white/75">{label}</p><p className="mt-1">{value}</p></div>;
+  return <div><small>{label}</small><b>{value}</b></div>;
 }
 
 function formatClockTime(value) {
