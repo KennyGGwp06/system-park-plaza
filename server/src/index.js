@@ -93,7 +93,9 @@ function isLocalDevelopmentOrigin(origin) {
 const corsOptions = {
   origin(origin, callback) {
     if (!origin || allowedOrigins.includes(origin) || isLocalDevelopmentOrigin(origin)) return callback(null, true);
-    return callback(new Error("Origen no autorizado"));
+    // 403 con explicación (antes salía "Error interno del servidor"): pasa cuando se abre el sistema por la IP o por un
+    // dominio distinto de FRONTEND_URL/CUSTOMER_URL.
+    return callback(Object.assign(new Error(`Este sistema solo atiende desde sus dominios configurados (${allowedOrigins.filter((item) => item.startsWith("https")).join(", ") || "FRONTEND_URL y CUSTOMER_URL"}). Entra por el dominio, no por la IP.`), { status: 403 }));
   },
   credentials: true
 };
