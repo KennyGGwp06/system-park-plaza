@@ -14,10 +14,15 @@ C="docker compose -f docker-compose.aapanel.yml --env-file $ENV_FILE"
 
 if [ ! -f "$ENV_FILE" ]; then
   cp .env.aapanel.example "$ENV_FILE"
+  # Un ZIP preparado en Windows puede traer la plantilla con CRLF.
+  sed -i 's/\r$//' "$ENV_FILE"
   CLAVE_DB=$(openssl rand -hex 18); JWT=$(openssl rand -hex 48); RESPALDO=$(openssl rand -hex 12)
   sed -i "s|REEMPLAZAR_CON_CLAVE_ALEATORIA_DE_24_CARACTERES|$CLAVE_DB|; s|REEMPLAZAR_CON_CLAVE_URL_ENCODED|$CLAVE_DB|; s|REEMPLAZAR_CON_SECRETO_ALEATORIO_DE_64_CARACTERES|$JWT|; s|REEMPLAZAR_CON_CLAVE_TEMPORAL_SEGURA_DE_16_CARACTERES|$RESPALDO|" "$ENV_FILE"
   chmod 600 "$ENV_FILE"
   echo "Creado $ENV_FILE con claves aleatorias. Dominios: $(grep -E '^(ERP|CUSTOMER)_DOMAIN=' "$ENV_FILE" | tr '\n' ' ')"
+else
+  # Conserva las claves de un intento previo y normaliza antes de leerlo con Bash.
+  sed -i 's/\r$//' "$ENV_FILE"
 fi
 set -a; . "./$ENV_FILE"; set +a
 [ "${COMPOSE_PROJECT_NAME:-}" = parkplaza_v2 ] || { echo "ERROR: COMPOSE_PROJECT_NAME debe ser parkplaza_v2; no se toca otro proyecto."; exit 1; }

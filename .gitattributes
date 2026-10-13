@@ -1,2 +1,3 @@
 # Los scripts del servidor deben quedar con finales de línea de Linux aunque se clone en Windows.
 *.sh text eol=lf
+.env*.example text eol=lf

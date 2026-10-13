@@ -70,6 +70,9 @@ bash deploy/aapanel/3-instalar-version-nueva.sh
 ```
 
 Genera `.env.aapanel` con claves internas aleatorias, construye con Node 22 y levanta únicamente `parkplaza_v2`.
+El instalador normaliza los saltos de línea de Windows antes de leer la configuración y conserva las claves
+si se repite un intento. Si un ZIP anterior informa `.env.aapanel: line 3: $'\r': command not found`, ejecuta
+`sudo sed -i 's/\r$//' .env.aapanel .env.aapanel.example` y repite el instalador; no borres la configuración.
 Descarga ese archivo y guárdalo con el respaldo. No lo publiques en GitHub ni lo pegues en un chat.
 
 Si existe el paquete privado `datos/parkplaza.dump`, también debe existir `datos/uploads.tgz`: se restaura únicamente
